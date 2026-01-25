@@ -34,7 +34,8 @@ export function generateStudentReportPDF(options: PDFGeneratorOptions): PDFDocum
   // Table configuration
   const tableTop = doc.y;
   const columnWidths = {
-    name: 250,
+    no: 50,
+    name: 230,
     sex: 60,
     age: 50,
     shirt: 80,
@@ -51,36 +52,39 @@ export function generateStudentReportPDF(options: PDFGeneratorOptions): PDFDocum
 
     let x = 50;
 
-    // NIE
+    // No. (Correlative)
+    doc.rect(x, y, columnWidths.no, rowHeight).stroke();
+    doc.text('NO.', x + 5, y + 8, { width: columnWidths.no - 10, align: 'center' });
+    x += columnWidths.no;
 
     // Name
     doc.rect(x, y, columnWidths.name, rowHeight).stroke();
-    doc.text('Nombre Estudiante', x + 5, y + 8, { width: columnWidths.name });
+    doc.text('NOMBRE ESTUDIANTE', x + 5, y + 8, { width: columnWidths.name });
     x += columnWidths.name;
 
     // Sex
     doc.rect(x, y, columnWidths.sex, rowHeight).stroke();
-    doc.text('Sexo', x + 5, y + 8, { width: columnWidths.sex - 10, align: 'center' });
+    doc.text('SEXO', x + 5, y + 8, { width: columnWidths.sex - 10, align: 'center' });
     x += columnWidths.sex;
 
     // Age
     doc.rect(x, y, columnWidths.age, rowHeight).stroke();
-    doc.text('Edad', x + 5, y + 8, { width: columnWidths.age - 10, align: 'center' });
+    doc.text('EDAD', x + 5, y + 8, { width: columnWidths.age - 10, align: 'center' });
     x += columnWidths.age;
 
     // Shirt
     doc.rect(x, y, columnWidths.shirt, rowHeight).stroke();
-    doc.text('Camisa', x + 5, y + 8, { width: columnWidths.shirt - 10, align: 'center' });
+    doc.text('CAMISA', x + 5, y + 8, { width: columnWidths.shirt - 10, align: 'center' });
     x += columnWidths.shirt;
 
     // Pants/Skirt
     doc.rect(x, y, columnWidths.pants, rowHeight).stroke();
-    doc.text('Pantalón/Falda', x + 5, y + 8, { width: columnWidths.pants - 5, align: 'center' });
+    doc.text('PANTALÓN/FALDA', x + 5, y + 8, { width: columnWidths.pants - 5, align: 'center' });
     x += columnWidths.pants;
 
     // Shoes
     doc.rect(x, y, columnWidths.shoe, rowHeight).stroke();
-    doc.text('Zapato', x + 5, y + 8, { width: columnWidths.shoe - 10, align: 'center' });
+    doc.text('ZAPATO', x + 5, y + 8, { width: columnWidths.shoe - 10, align: 'center' });
 
     return y + rowHeight;
   };
@@ -90,7 +94,9 @@ export function generateStudentReportPDF(options: PDFGeneratorOptions): PDFDocum
 
   // Draw rows
   doc.font('Helvetica');
-  for (const student of students) {
+  for (let i = 0; i < students.length; i++) {
+    const student = students[i];
+
     // Check if we need a new page
     if (currentY + rowHeight > doc.page.height - 50) {
       doc.addPage();
@@ -99,6 +105,14 @@ export function generateStudentReportPDF(options: PDFGeneratorOptions): PDFDocum
     }
 
     let x = 50;
+
+    // No. (Correlative)
+    doc.rect(x, currentY, columnWidths.no, rowHeight).stroke();
+    doc.text((i + 1).toString(), x + 5, currentY + 8, {
+      width: columnWidths.no - 10,
+      align: 'center',
+    });
+    x += columnWidths.no;
 
     // Name
     doc.rect(x, currentY, columnWidths.name, rowHeight).stroke();
