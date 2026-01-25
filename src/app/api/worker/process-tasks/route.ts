@@ -21,7 +21,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const batchSize = 5; // Process 5 tasks per run
+    // Configurable batch size and concurrency (optimized for 49k+ PDFs)
+    // Recommended: WORKER_BATCH_SIZE=25, WORKER_CONCURRENCY=3 on Vercel Free (10s timeout, 1GB)
+    const batchSize = parseInt(process.env.WORKER_BATCH_SIZE || '25', 10);
+    const concurrency = parseInt(process.env.WORKER_CONCURRENCY || '3', 10);
 
     // Claim pending tasks
     const { data: claimedTasks, error: claimError } = await supabaseServer.rpc(
@@ -42,10 +45,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'No pending tasks', processed: 0 });
     }
 
-    console.log(`Processing ${tasks.length} tasks`);
+    console.log(`Processing ${tasks.length} tasks with concurrency=${concurrency}`);
 
-    // Process each task
-    const results = await Promise.allSettled(tasks.map(task => processTask(task)));
+    // Process tasks with concurrency limit to avoid memory spikes
+    const results = await processTasksWithConcurrencyLimit(tasks, concurrency);
 
     const successful = results.filter(r => r.status === 'fulfilled').length;
     const failed = results.filter(r => r.status === 'rejected').length;
@@ -68,9 +71,35 @@ export async function POST(request: NextRequest) {
   }
 }
 
+/**
+ * Process tasks with a concurrency limit to avoid memory spikes from PDF buffers.
+ * Each PDF generation creates a ~500KB-2MB buffer; limiting concurrency keeps memory predictable.
+ */
+async function processTasksWithConcurrencyLimit(
+  tasks: ClaimedTask[],
+  concurrency: number
+): Promise<PromiseSettledResult<void>[]> {
+  const results: PromiseSettledResult<void>[] = [];
+
+  // Process in chunks of `concurrency` size
+  for (let i = 0; i < tasks.length; i += concurrency) {
+    const chunk = tasks.slice(i, i + concurrency);
+    const chunkResults = await Promise.allSettled(chunk.map(task => processTask(task)));
+    results.push(...chunkResults);
+  }
+
+  return results;
+}
+
 async function processTask(task: ClaimedTask): Promise<void> {
   try {
     console.log(`Processing task ${task.task_id} for ${task.school_codigo_ce} - ${task.grado}`);
+
+    const schoolCodigoCe = (task.school_codigo_ce || '').trim();
+    const rawGrado = (task.grado || '').trim();
+    const isAllGrades =
+      rawGrado === 'ALL' || rawGrado.toLowerCase() === 'todos' || rawGrado.toLowerCase() === 'todo';
+    const taskGrado = isAllGrades ? 'ALL' : rawGrado;
 
     // Check if the parent job is cancelled before doing expensive work
     const { data: job, error: jobError } = await supabaseServer
@@ -93,21 +122,23 @@ async function processTask(task: ClaimedTask): Promise<void> {
     const { data: school, error: schoolError } = await supabaseServer
       .from('schools')
       .select('nombre_ce')
-      .eq('codigo_ce', task.school_codigo_ce)
+      .eq('codigo_ce', schoolCodigoCe)
       .single();
 
     if (schoolError || !school) {
-      throw new Error(`School not found: ${task.school_codigo_ce}`);
+      throw new Error(`School not found: ${schoolCodigoCe}`);
     }
 
     // Fetch student data
-    const { data: students, error: studentsError } = await supabaseServer.rpc(
-      'report_students_by_school_grade',
-      {
-        p_school_codigo_ce: task.school_codigo_ce,
-        p_grado: task.grado,
-      }
-    );
+    const rpcUsed = isAllGrades ? 'report_students_by_school' : 'report_students_by_school_grade';
+    const { data: students, error: studentsError } = isAllGrades
+      ? await supabaseServer.rpc(rpcUsed, {
+          p_school_codigo_ce: schoolCodigoCe,
+        })
+      : await supabaseServer.rpc(rpcUsed, {
+          p_school_codigo_ce: schoolCodigoCe,
+          p_grado: taskGrado,
+        });
 
     if (studentsError) {
       throw new Error(`Failed to fetch students: ${studentsError.message}`);
@@ -122,7 +153,7 @@ async function processTask(task: ClaimedTask): Promise<void> {
         p_task_id: task.task_id,
         p_status: 'complete',
         p_pdf_path: null,
-        p_error: 'No students found',
+        p_error: `No students found (rpc=${rpcUsed}, school=${schoolCodigoCe}, grado=${taskGrado})`,
       });
       return;
     }
@@ -130,8 +161,8 @@ async function processTask(task: ClaimedTask): Promise<void> {
     // Generate PDF
     const pdfStream = generateStudentReportPDF({
       schoolName: school.nombre_ce,
-      codigo_ce: task.school_codigo_ce,
-      grado: task.grado,
+      codigo_ce: schoolCodigoCe,
+      grado: taskGrado,
       students: studentRows,
     });
 
@@ -142,8 +173,8 @@ async function processTask(task: ClaimedTask): Promise<void> {
     // Upload to Supabase Storage with safe, collision-free key
     const fileName = buildReportPdfStorageKey({
       jobId: task.job_id,
-      schoolCodigoCe: task.school_codigo_ce,
-      grado: task.grado,
+      schoolCodigoCe: schoolCodigoCe,
+      grado: taskGrado,
       taskId: task.task_id,
     });
     const { error: uploadError } = await supabaseServer.storage
@@ -269,6 +300,17 @@ async function checkAndCompleteJob(jobId: string): Promise<void> {
       .eq('status', job.status); // Only update if status hasn't changed (extra safety)
 
     console.log(`Job ${jobId} marked as ${newStatus}`);
+
+    // If this job is part of a batch, update the batch status
+    const { data: jobData } = await supabaseServer
+      .from('report_jobs')
+      .select('batch_id')
+      .eq('id', jobId)
+      .single();
+
+    if (jobData?.batch_id) {
+      await supabaseServer.rpc('update_batch_status', { p_batch_id: jobData.batch_id });
+    }
   } catch (error) {
     console.error(`Error checking job completion for ${jobId}:`, error);
   }

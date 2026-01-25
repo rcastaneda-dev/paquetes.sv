@@ -87,5 +87,8 @@ export function buildZipPdfEntryName(args: { schoolCodigoCe: string; grado: stri
   const { schoolCodigoCe, grado } = args;
   const safeSchool = toSafePathSegment(schoolCodigoCe, 50);
   const safeGrado = toSafePathSegment(grado, 80);
+  if (grado === 'ALL') {
+    return `${safeSchool}.pdf`;
+  }
   return `${safeSchool}-${safeGrado}.pdf`;
 }

@@ -24,6 +24,7 @@ export default function HomePage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
+  const [isPrintingLabels, setIsPrintingLabels] = useState(false);
   const pageSize = 50;
 
   const fetchStudents = async (page: number = 1) => {
@@ -98,6 +99,28 @@ export default function HomePage() {
     }
   };
 
+  const handlePrintLabels = async () => {
+    if (!lastSearchFilters?.school_codigo_ce) return;
+
+    setIsPrintingLabels(true);
+    try {
+      const params = new URLSearchParams();
+      params.set('school_codigo_ce', lastSearchFilters.school_codigo_ce);
+      if (lastSearchFilters.grado) {
+        params.set('grado', lastSearchFilters.grado);
+      }
+
+      // Open the generated labels PDF in a new tab
+      window.open(
+        `/api/students/print-labels?${params.toString()}`,
+        '_blank',
+        'noopener,noreferrer'
+      );
+    } finally {
+      setIsPrintingLabels(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b">
@@ -131,6 +154,18 @@ export default function HomePage() {
                 }
               >
                 {isPrinting ? 'Generando PDF...' : 'Imprimir (PDF)'}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handlePrintLabels}
+                disabled={!canPrint || isPrintingLabels}
+                title={
+                  !canPrint
+                    ? 'Selecciona una escuela y realiza una búsqueda para imprimir etiquetas.'
+                    : undefined
+                }
+              >
+                {isPrintingLabels ? 'Generando PDF...' : 'Imprimir Etiquetas (PDF)'}
               </Button>
             </div>
 

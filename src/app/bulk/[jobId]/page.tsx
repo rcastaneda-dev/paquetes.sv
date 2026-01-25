@@ -330,7 +330,7 @@ export default function JobDetailPage() {
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="font-medium">
-                        {task.school_codigo_ce} - {task.grado}
+                        {task.school_codigo_ce} - {task.grado === 'ALL' ? 'Todos' : task.grado}
                       </div>
                       <div className="mt-1 text-xs text-muted-foreground">
                         Actualizado: {new Date(task.updated_at).toLocaleString('es-SV')}

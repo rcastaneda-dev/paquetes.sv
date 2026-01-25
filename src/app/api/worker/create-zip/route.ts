@@ -21,13 +21,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Configurable limits for shard-job scale (recommended: 100 jobs, 5-10 parts)
+    const jobLimit = parseInt(process.env.ZIP_WORKER_JOB_LIMIT || '100', 10);
+    const partLimit = parseInt(process.env.ZIP_WORKER_PART_LIMIT || '10', 10);
+
     // 1) Ensure zip parts exist for completed jobs (idempotent)
     // We do this up-front so there is always work to claim, even if ZIP generation lags.
+    // With sharding, we may have 50-100 completed jobs at once, so increase limit.
     const { data: completedJobs, error: jobsError } = await supabaseServer
       .from('report_jobs')
       .select('id')
       .eq('status', 'complete')
-      .limit(25);
+      .is('zip_path', null) // Only jobs that haven't generated manifests yet
+      .limit(jobLimit);
 
     if (jobsError) {
       console.error('Error finding completed jobs:', jobsError);
@@ -36,16 +42,18 @@ export async function POST(request: NextRequest) {
 
     const jobs = completedJobs ?? [];
     if (jobs.length > 0) {
+      console.log(`Ensuring ZIP parts for ${jobs.length} completed jobs`);
       await Promise.allSettled(
         jobs.map(j => supabaseServer.rpc('ensure_zip_parts', { p_job_id: j.id, p_part_size: 100 }))
       );
     }
 
     // 2) Claim pending zip parts for processing
+    // With 50 shards × ~10 parts/shard = 500 parts total; increase claim limit
     const { data: claimedParts, error: claimError } = await supabaseServer.rpc(
       'claim_pending_zip_parts',
       {
-        p_limit: 2,
+        p_limit: partLimit,
       }
     );
 

@@ -12,6 +12,7 @@ export default function BulkReportsPage() {
   const [jobs, setJobs] = useState<ReportJob[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
+  const [isDeletingPast, setIsDeletingPast] = useState(false);
 
   const fetchJobs = async () => {
     try {
@@ -53,6 +54,40 @@ export default function BulkReportsPage() {
       alert('Error al crear el trabajo');
     } finally {
       setIsCreating(false);
+    }
+  };
+
+  const isPastJob = (status: ReportJob['status']) =>
+    status === 'complete' || status === 'failed' || status === 'cancelled';
+
+  const handleDeletePastJobs = async () => {
+    const pastJobs = jobs.filter(j => isPastJob(j.status));
+    if (pastJobs.length === 0) {
+      alert('No hay trabajos finalizados para eliminar.');
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `¿Eliminar ${pastJobs.length} trabajo(s) finalizado(s)? Esto los quitará de la lista.`
+    );
+    if (!confirmed) return;
+
+    setIsDeletingPast(true);
+    try {
+      const response = await fetch('/api/bulk/jobs?scope=past', { method: 'DELETE' });
+      const data = await response.json();
+
+      if (!response.ok || data.error) {
+        alert(`Error: ${data.error || 'No se pudo eliminar'}`);
+        return;
+      }
+
+      await fetchJobs();
+    } catch (error) {
+      console.error('Error deleting past jobs:', error);
+      alert('Error al eliminar trabajos finalizados');
+    } finally {
+      setIsDeletingPast(false);
     }
   };
 
@@ -103,6 +138,14 @@ export default function BulkReportsPage() {
               <div className="flex gap-2">
                 <Button variant="outline" onClick={fetchJobs} disabled={isLoading}>
                   {isLoading ? 'Sincronizando...' : 'Sincronizar'}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleDeletePastJobs}
+                  disabled={isLoading || isDeletingPast}
+                  className="text-destructive hover:text-destructive"
+                >
+                  {isDeletingPast ? 'Eliminando...' : 'Eliminar finalizados'}
                 </Button>
                 <Button onClick={handleCreateJob} disabled={isCreating}>
                   {isCreating ? 'Creando...' : 'Generar Todos los PDFs'}
