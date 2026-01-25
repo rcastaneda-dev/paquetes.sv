@@ -49,10 +49,35 @@ export async function GET(
       return NextResponse.json({ error: tasksError.message }, { status: 500 });
     }
 
+    // Get ZIP parts status (for progress indicator)
+    const { data: zipParts, error: zipPartsError } = await supabaseServer
+      .from('report_zip_parts')
+      .select('status')
+      .eq('job_id', jobId);
+
+    let zipProgress = null;
+    if (!zipPartsError && zipParts && zipParts.length > 0) {
+      const total = zipParts.length;
+      const pending = zipParts.filter((p) => p.status === 'pending').length;
+      const running = zipParts.filter((p) => p.status === 'running').length;
+      const complete = zipParts.filter((p) => p.status === 'complete').length;
+      const failed = zipParts.filter((p) => p.status === 'failed').length;
+
+      zipProgress = {
+        total,
+        pending,
+        running,
+        complete,
+        failed,
+        inProgress: pending > 0 || running > 0,
+      };
+    }
+
     return NextResponse.json({
       job: job as ReportJob,
       progress,
       tasks: tasks as ReportTask[],
+      zipProgress,
     });
   } catch (error) {
     console.error('Unexpected error:', error);

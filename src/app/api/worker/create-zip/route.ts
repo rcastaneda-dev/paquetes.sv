@@ -39,11 +39,12 @@ export async function POST(request: NextRequest) {
 
     // Drain queue until time budget exhausted
     while (Date.now() - startTime < maxRuntime) {
-      // 1) Ensure zip parts exist for completed jobs (idempotent)
+      // 1) Ensure zip parts exist for completed/failed jobs (idempotent)
+      // Include 'failed' to allow partial downloads (ZIPs of successful PDFs only)
       const { data: completedJobs, error: jobsError } = await supabaseServer
         .from('report_jobs')
         .select('id')
-        .eq('status', 'complete')
+        .in('status', ['complete', 'failed'])
         .is('zip_path', null)
         .limit(jobLimit);
 
@@ -239,7 +240,7 @@ async function createZipPart(part: {
 
 async function finalizeJobZipManifest(jobId: string): Promise<void> {
   try {
-    // If we've already written a manifest (zip_path pointing to manifest), skip.
+    // If we've already created a bundle, skip
     const { data: job, error: jobError } = await supabaseServer
       .from('report_jobs')
       .select('zip_path')
@@ -248,7 +249,7 @@ async function finalizeJobZipManifest(jobId: string): Promise<void> {
 
     if (jobError || !job) return;
 
-    if (job.zip_path && job.zip_path.endsWith('.manifest.json')) {
+    if (job.zip_path && job.zip_path.endsWith('bundle.zip')) {
       return;
     }
 
@@ -263,34 +264,75 @@ async function finalizeJobZipManifest(jobId: string): Promise<void> {
     const allComplete = parts.every(p => p.status === 'complete' && p.zip_path);
     if (!allComplete) return;
 
-    const manifestPath = `${jobId}/bundle.manifest.json`;
-    const manifest = {
-      jobId,
-      partCount: parts.length,
-      createdAt: new Date().toISOString(),
-      parts: parts.map(p => ({
-        partNo: p.part_no,
-        zipPath: p.zip_path,
-        pdfCount: p.pdf_count ?? 0,
-      })),
-    };
+    // Create single bundle.zip containing all PDFs from all parts
+    console.log(`Creating bundle.zip for job ${jobId} from ${parts.length} parts`);
 
+    // Get all completed tasks to rebuild a single unified ZIP
+    const { data: allTasks, error: tasksError } = await supabaseServer
+      .from('report_tasks')
+      .select('pdf_path, school_codigo_ce, grado')
+      .eq('job_id', jobId)
+      .eq('status', 'complete')
+      .not('pdf_path', 'is', null)
+      .order('school_codigo_ce', { ascending: true })
+      .order('grado', { ascending: true });
+
+    if (tasksError || !allTasks || allTasks.length === 0) {
+      console.error('No completed tasks found for bundle');
+      return;
+    }
+
+    const archive = archiver('zip', { zlib: { level: 9 } });
+    const passThrough = new PassThrough();
+    archive.pipe(passThrough);
+
+    // Add all PDFs directly to the bundle (single unified ZIP)
+    for (const task of allTasks) {
+      const pdfPath = task.pdf_path as string;
+      const { data: pdfData, error: downloadError } = await supabaseServer.storage
+        .from('reports')
+        .download(pdfPath);
+
+      if (downloadError || !pdfData) {
+        console.error(`Failed to download ${pdfPath}:`, downloadError);
+        continue;
+      }
+
+      const fileName = buildZipPdfEntryName({
+        schoolCodigoCe: task.school_codigo_ce,
+        grado: task.grado,
+      });
+      const webStream = pdfData.stream();
+      const nodeStream = Readable.fromWeb(webStream as any);
+      archive.append(nodeStream, { name: fileName });
+    }
+
+    await archive.finalize();
+    const bundleBuffer = await streamToBuffer(passThrough);
+
+    console.log(`Bundle created with ${allTasks.length} PDFs, size: ${bundleBuffer.length} bytes`);
+
+    // Upload bundle
+    const bundlePath = `${jobId}/bundle.zip`;
     const { error: uploadError } = await supabaseServer.storage
       .from('reports')
-      .upload(manifestPath, JSON.stringify(manifest, null, 2), {
-        contentType: 'application/json',
+      .upload(bundlePath, bundleBuffer, {
+        contentType: 'application/zip',
         upsert: true,
       });
 
     if (uploadError) {
-      console.error('Failed to upload manifest:', uploadError);
+      console.error('Failed to upload bundle:', uploadError);
       return;
     }
 
+    // Update job with bundle path
     await supabaseServer
       .from('report_jobs')
-      .update({ zip_path: manifestPath, updated_at: new Date().toISOString() })
+      .update({ zip_path: bundlePath, updated_at: new Date().toISOString() })
       .eq('id', jobId);
+
+    console.log(`Bundle finalized for job ${jobId}: ${bundlePath}`);
   } catch (e) {
     console.error('finalizeJobZipManifest error:', e);
   }

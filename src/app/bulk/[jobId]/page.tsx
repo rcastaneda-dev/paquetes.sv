@@ -8,10 +8,13 @@ import { Button } from '@/components/ui/Button';
 import { JobProgress } from '@/components/JobProgress';
 import type { ReportJob, ReportTask, JobProgress as JobProgressType } from '@/types/database';
 
-interface ZipPartDownload {
-  partNo: number;
-  pdfCount: number;
-  downloadUrl: string;
+interface ZipProgress {
+  total: number;
+  pending: number;
+  running: number;
+  complete: number;
+  failed: number;
+  inProgress: boolean;
 }
 
 export default function JobDetailPage() {
@@ -23,13 +26,10 @@ export default function JobDetailPage() {
   const [progress, setProgress] = useState<JobProgressType | null>(null);
   const [tasks, setTasks] = useState<ReportTask[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-
-  const [zipManifestUrl, setZipManifestUrl] = useState<string | null>(null);
-  const [zipParts, setZipParts] = useState<ZipPartDownload[]>([]);
-  const [zipTotalParts, setZipTotalParts] = useState<number>(0);
-  const [zipNextOffset, setZipNextOffset] = useState<number | null>(0);
+  const [zipProgress, setZipProgress] = useState<ZipProgress | null>(null);
   const [isZipLoading, setIsZipLoading] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [isRetrying, setIsRetrying] = useState(false);
 
   const fetchJobDetails = async () => {
     try {
@@ -44,6 +44,7 @@ export default function JobDetailPage() {
       setJob(data.job);
       setProgress(data.progress);
       setTasks(data.tasks || []);
+      setZipProgress(data.zipProgress || null);
     } catch (error) {
       console.error('Error fetching job details:', error);
     } finally {
@@ -57,6 +58,7 @@ export default function JobDetailPage() {
     // Poll for updates every 3 seconds
     const interval = setInterval(fetchJobDetails, 3000);
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jobId]);
 
   const getStatusBadge = (status: string) => {
@@ -90,48 +92,29 @@ export default function JobDetailPage() {
   const handleDownload = async () => {
     try {
       setIsZipLoading(true);
-      const response = await fetch(`/api/bulk/jobs/${jobId}/download?limit=50&offset=0`);
+      const response = await fetch(`/api/bulk/jobs/${jobId}/download`);
       const data = await response.json();
 
-      if (data.error) {
-        alert(`Error: ${data.error}`);
+      if (!response.ok) {
+        if (response.status === 202) {
+          alert(
+            `El archivo ZIP aún se está generando. Por favor, espera un momento y vuelve a intentar.`
+          );
+        } else {
+          alert(`Error: ${data.error || 'Error al obtener la descarga'}`);
+        }
         return;
       }
 
       if (data.downloadUrl) {
+        // Download the bundle
         window.open(data.downloadUrl, '_blank');
-        return;
+      } else {
+        alert('No hay URL de descarga disponible');
       }
-
-      // Multi-part ZIP flow
-      setZipManifestUrl(data.manifestUrl ?? null);
-      setZipTotalParts(data.totalParts ?? 0);
-      setZipNextOffset(data.nextOffset ?? null);
-      setZipParts((data.parts ?? []) as ZipPartDownload[]);
     } catch (error) {
       console.error('Error downloading:', error);
       alert('Error al descargar el archivo');
-    } finally {
-      setIsZipLoading(false);
-    }
-  };
-
-  const handleLoadMoreZipParts = async () => {
-    if (zipNextOffset == null) return;
-    try {
-      setIsZipLoading(true);
-      const response = await fetch(
-        `/api/bulk/jobs/${jobId}/download?limit=50&offset=${zipNextOffset}`
-      );
-      const data = await response.json();
-      if (data.error) {
-        alert(`Error: ${data.error}`);
-        return;
-      }
-      setZipManifestUrl(data.manifestUrl ?? zipManifestUrl);
-      setZipTotalParts(data.totalParts ?? zipTotalParts);
-      setZipNextOffset(data.nextOffset ?? null);
-      setZipParts(prev => [...prev, ...((data.parts ?? []) as ZipPartDownload[])]);
     } finally {
       setIsZipLoading(false);
     }
@@ -175,6 +158,41 @@ export default function JobDetailPage() {
 
   const handleSyncNow = async () => {
     await fetchJobDetails();
+  };
+
+  const handleRetryFailed = async () => {
+    if (!job) return;
+
+    const confirmed = window.confirm(
+      '¿Estás seguro de que deseas reintentar las tareas fallidas? El trabajo se reiniciará y las tareas fallidas se volverán a procesar.'
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setIsRetrying(true);
+      const response = await fetch(`/api/bulk/jobs/${jobId}/retry-failed`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        alert(`Error al reintentar: ${data.error || 'Error desconocido'}`);
+        return;
+      }
+
+      alert(`Reintento exitoso. ${data.tasksRetried} tarea(s) reintentándose.`);
+      await fetchJobDetails();
+    } catch (error) {
+      console.error('Error retrying failed tasks:', error);
+      alert('Error al reintentar las tareas fallidas');
+    } finally {
+      setIsRetrying(false);
+    }
   };
 
   if (isLoading) {
@@ -244,11 +262,22 @@ export default function JobDetailPage() {
                     {isCancelling ? 'Cancelando...' : 'Cancelar Trabajo'}
                   </Button>
                 )}
-                {job.status === 'complete' && (
-                  <Button onClick={handleDownload} disabled={isZipLoading}>
-                    {isZipLoading ? 'Cargando...' : 'Ver descargas'}
+                {job.status === 'failed' && progress && progress.failed_tasks > 0 && (
+                  <Button
+                    variant="outline"
+                    onClick={handleRetryFailed}
+                    disabled={isRetrying}
+                    className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                  >
+                    {isRetrying ? 'Reintentando...' : 'Reintentar Fallidos'}
                   </Button>
                 )}
+                {(job.status === 'complete' || job.status === 'failed') &&
+                  (!job.zip_path || !job.zip_path.endsWith('bundle.zip')) && (
+                    <Button onClick={handleDownload} disabled={true}>
+                      {zipProgress?.inProgress ? 'Generando ZIP...' : 'Preparando descarga...'}
+                    </Button>
+                  )}
               </div>
             </div>
           </CardHeader>
@@ -259,64 +288,94 @@ export default function JobDetailPage() {
           )}
         </Card>
 
-        {/* Downloads */}
-        {job.status === 'complete' && (zipManifestUrl || zipParts.length > 0) && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Descargas</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {zipManifestUrl && (
-                <div className="text-sm">
-                  <a href={zipManifestUrl} target="_blank" rel="noreferrer" className="underline">
-                    Descargar manifest (JSON)
-                  </a>
+        {/* ZIP Generation Progress */}
+        {(job.status === 'complete' || job.status === 'failed') &&
+          zipProgress &&
+          zipProgress.inProgress && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Generando archivos ZIP...</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">
+                    Creando partes ZIP de los PDFs generados
+                  </span>
+                  <span className="font-medium">
+                    {zipProgress.complete} de {zipProgress.total} partes completas
+                  </span>
                 </div>
-              )}
+                <div className="h-2.5 w-full rounded-full bg-secondary">
+                  <div
+                    className="h-2.5 rounded-full bg-blue-600 transition-all duration-300 dark:bg-blue-500"
+                    style={{
+                      width: `${zipProgress.total > 0 ? (zipProgress.complete / zipProgress.total) * 100 : 0}%`,
+                    }}
+                  />
+                </div>
+                <div className="grid grid-cols-4 gap-2 text-xs">
+                  <div className="rounded bg-gray-100 p-2 dark:bg-gray-800">
+                    <div className="font-medium">{zipProgress.pending}</div>
+                    <div className="text-muted-foreground">Pendientes</div>
+                  </div>
+                  <div className="rounded bg-blue-100 p-2 dark:bg-blue-900">
+                    <div className="font-medium">{zipProgress.running}</div>
+                    <div className="text-muted-foreground">En proceso</div>
+                  </div>
+                  <div className="rounded bg-green-100 p-2 dark:bg-green-900">
+                    <div className="font-medium">{zipProgress.complete}</div>
+                    <div className="text-muted-foreground">Completas</div>
+                  </div>
+                  <div className="rounded bg-red-100 p-2 dark:bg-red-900">
+                    <div className="font-medium">{zipProgress.failed}</div>
+                    <div className="text-muted-foreground">Fallidas</div>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Los archivos ZIP estarán disponibles para descargar cuando todas las partes estén
+                  completas.
+                </p>
+              </CardContent>
+            </Card>
+          )}
 
-              {zipTotalParts > 0 && (
-                <div className="text-sm text-muted-foreground">
-                  ZIP parts: {zipParts.length} visibles / {zipTotalParts} total
+        {/* Download Ready Notice */}
+        {(job.status === 'complete' || job.status === 'failed') &&
+          job.zip_path &&
+          job.zip_path.endsWith('bundle.zip') && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Descarga Lista</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {job.status === 'failed' && progress && progress.failed_tasks > 0 && (
+                  <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-3 text-sm dark:border-yellow-800 dark:bg-yellow-950/20">
+                    <p className="font-medium text-yellow-800 dark:text-yellow-200">
+                      ⚠️ Descarga parcial
+                    </p>
+                    <p className="mt-1 text-yellow-700 dark:text-yellow-300">
+                      Este trabajo terminó con {progress.failed_tasks} tarea(s) fallida(s). La
+                      descarga contiene solo los PDFs generados exitosamente (
+                      {progress.complete_tasks} de {progress.total_tasks}).
+                    </p>
+                  </div>
+                )}
+                <div className="flex items-center justify-between rounded-lg border bg-green-50 p-4 dark:bg-green-950/20">
+                  <div>
+                    <p className="font-medium text-green-900 dark:text-green-100">
+                      ✓ Archivo ZIP listo para descargar
+                    </p>
+                    <p className="text-sm text-green-700 dark:text-green-300">
+                      {progress ? progress.complete_tasks : 0} PDFs incluidos
+                    </p>
+                  </div>
+                  <Button onClick={handleDownload} disabled={isZipLoading}>
+                    {isZipLoading ? 'Descargando...' : 'Descargar ZIP'}
+                  </Button>
                 </div>
-              )}
-
-              {zipParts.length > 0 ? (
-                <div className="space-y-2">
-                  {zipParts.map(p => (
-                    <div
-                      key={p.partNo}
-                      className="flex items-center justify-between rounded-lg border p-3 text-sm"
-                    >
-                      <div>
-                        <div className="font-medium">Parte {p.partNo}</div>
-                        <div className="text-xs text-muted-foreground">{p.pdfCount} PDFs</div>
-                      </div>
-                      <a href={p.downloadUrl} target="_blank" rel="noreferrer">
-                        <Button size="sm" variant="outline">
-                          Descargar
-                        </Button>
-                      </a>
-                    </div>
-                  ))}
-
-                  {zipNextOffset != null && (
-                    <Button
-                      variant="outline"
-                      onClick={handleLoadMoreZipParts}
-                      disabled={isZipLoading}
-                    >
-                      {isZipLoading ? 'Cargando...' : 'Cargar más partes'}
-                    </Button>
-                  )}
-                </div>
-              ) : (
-                <div className="text-sm text-muted-foreground">
-                  Las partes todavía se están generando. Vuelve a intentar en unos minutos.
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
+              </CardContent>
+            </Card>
+          )}
 
         {/* Tasks list */}
         <Card>
