@@ -113,6 +113,7 @@ export async function GET(request: NextRequest) {
       sexo: s.sexo,
       edad: s.edad,
       grado: s.grado,
+      bodega_produccion: s.bodega_produccion,
       camisa: s.camisa,
       pantalon_falda: s.pantalon_falda,
       zapato: s.zapato,

@@ -34,6 +34,16 @@ export interface UniformSize {
   zapato: string;
 }
 
+export interface ReportJobBatch {
+  id: string;
+  status: string;
+  shard_count: number;
+  created_at: string;
+  updated_at: string;
+  created_by: string | null;
+  batch_params: Record<string, unknown> | null;
+}
+
 export interface ReportJob {
   id: string;
   status: JobStatus;
@@ -43,6 +53,8 @@ export interface ReportJob {
   error: string | null;
   job_params: Record<string, unknown> | null;
   updated_at: string;
+  batch_id?: string | null;
+  shard_no?: number | null;
 }
 
 export interface ReportTask {
@@ -65,6 +77,7 @@ export interface StudentReportRow {
   sexo: string;
   edad: number | null;
   grado: string;
+  bodega_produccion: string;
   camisa: string;
   pantalon_falda: string;
   zapato: string;
@@ -76,6 +89,7 @@ export interface StudentQueryRow {
   sexo: string;
   edad: number | null;
   grado: string;
+  bodega_produccion: string;
   school_codigo_ce: string;
   nombre_ce: string;
   camisa: string;
@@ -112,6 +126,20 @@ export interface JobProgress {
   complete_tasks: number;
   failed_tasks: number;
   cancelled_tasks: number;
+}
+
+export interface BatchProgress {
+  batch_id: string;
+  shard_count: number;
+  total_tasks: number;
+  pending_tasks: number;
+  running_tasks: number;
+  complete_tasks: number;
+  failed_tasks: number;
+  jobs_queued: number;
+  jobs_running: number;
+  jobs_complete: number;
+  jobs_failed: number;
 }
 
 // Query filters

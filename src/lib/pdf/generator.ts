@@ -15,7 +15,18 @@ export type PDFDocumentInstance = InstanceType<typeof PDFDocument>;
  * Returns a readable stream for efficient memory usage.
  */
 export function generateStudentReportPDF(options: PDFGeneratorOptions): PDFDocumentInstance {
-  const { schoolName, codigo_ce, grado, students } = options;
+  const { schoolName, codigo_ce, students } = options;
+
+  const summarizeBodega = (rows: StudentReportRow[]) => {
+    const values = Array.from(
+      new Set(rows.map(s => (s.bodega_produccion || '').trim()).filter(v => v.length > 0))
+    );
+
+    if (values.length === 0) return 'N/A';
+    if (values.length === 1) return values[0];
+    if (values.length <= 3) return values.join(', ');
+    return `${values.slice(0, 3).join(', ')} (+${values.length - 3} más)`;
+  };
 
   const doc = new PDFDocument({
     size: 'LETTER',
@@ -23,23 +34,33 @@ export function generateStudentReportPDF(options: PDFGeneratorOptions): PDFDocum
     margins: { top: 50, bottom: 50, left: 50, right: 50 },
   });
 
-  // Title
-  doc.fontSize(18).text(`Escuela: ${schoolName}`, { align: 'left' });
-  doc.fontSize(18).text(`Código: ${codigo_ce}`, { align: 'left' });
-  doc.fontSize(18).text(`Grado: ${grado}`, { align: 'left' });
-  doc.moveDown();
-  doc.fontSize(10).text(`Generado: ${new Date().toLocaleString('es-SV')}`, { align: 'center' });
-  doc.moveDown(2);
+  const generatedAtLabel = new Date().toLocaleString('es-SV');
+
+  const drawDocumentHeader = () => {
+    doc.fontSize(18).text(`Escuela: ${schoolName}`, { align: 'left' });
+    doc.fontSize(18).text(`Código: ${codigo_ce}`, { align: 'left' });
+    doc.moveDown(2);
+  };
+
+  const addPageWithHeader = () => {
+    doc.addPage();
+    drawDocumentHeader();
+    currentY = doc.y;
+  };
+
+  // Page 1 header
+  drawDocumentHeader();
 
   // Table configuration
   const tableTop = doc.y;
   const columnWidths = {
-    no: 50,
-    name: 230,
-    sex: 60,
-    age: 50,
-    shirt: 80,
-    pants: 80,
+    // NOTE: Sizes are tuned to exactly fill a LETTER landscape page with 50pt margins.
+    no: 40,
+    name: 307,
+    sex: 50,
+    age: 45,
+    shirt: 60,
+    pants: 110,
     shoe: 80,
   };
   const rowHeight = 25;
@@ -89,26 +110,47 @@ export function generateStudentReportPDF(options: PDFGeneratorOptions): PDFDocum
     return y + rowHeight;
   };
 
-  // Draw initial header
-  currentY = drawHeader(currentY);
+  const bottomLimitY = doc.page.height - 50;
 
-  // Draw rows
-  doc.font('Helvetica');
-  for (let i = 0; i < students.length; i++) {
-    const student = students[i];
+  const ensureSpace = (minHeight: number) => {
+    if (currentY + minHeight <= bottomLimitY) return;
+    addPageWithHeader();
+  };
 
-    // Check if we need a new page
-    if (currentY + rowHeight > doc.page.height - 50) {
-      doc.addPage();
-      currentY = 50;
-      currentY = drawHeader(currentY);
-    }
+  const getGradeKey = (value: string | null | undefined) => {
+    const normalized = (value || '').trim();
+    return normalized.length > 0 ? normalized : 'N/A';
+  };
 
+  // Group by grado (each grade renders as its own table in the same PDF)
+  const studentsByGrade = new Map<string, StudentReportRow[]>();
+  for (const s of students) {
+    const gradeKey = getGradeKey(s.grado);
+    const list = studentsByGrade.get(gradeKey);
+    if (list) list.push(s);
+    else studentsByGrade.set(gradeKey, [s]);
+  }
+
+  const gradeKeys = Array.from(studentsByGrade.keys()).sort((a, b) =>
+    a.localeCompare(b, 'es', { numeric: true, sensitivity: 'base' })
+  );
+
+  const drawGradeTitle = (grade: string, bodegaLabel: string) => {
+    doc.font('Helvetica-Bold').fontSize(16);
+
+    doc.text(`Bodega producción: ${bodegaLabel}`, 50, currentY, { align: 'left' });
+    currentY = doc.y + 8;
+
+    doc.text(`Grado: ${grade}`, 50, currentY, { align: 'left' });
+    currentY = doc.y + 2;
+  };
+
+  const drawStudentRow = (student: StudentReportRow, displayIndex: number) => {
     let x = 50;
 
     // No. (Correlative)
     doc.rect(x, currentY, columnWidths.no, rowHeight).stroke();
-    doc.text((i + 1).toString(), x + 5, currentY + 8, {
+    doc.text(displayIndex.toString(), x + 5, currentY + 8, {
       width: columnWidths.no - 10,
       align: 'center',
     });
@@ -163,12 +205,51 @@ export function generateStudentReportPDF(options: PDFGeneratorOptions): PDFDocum
     });
 
     currentY += rowHeight;
+  };
+
+  doc.font('Helvetica').fontSize(10);
+
+  for (let g = 0; g < gradeKeys.length; g++) {
+    const grade = gradeKeys[g];
+    const gradeStudents = studentsByGrade.get(grade) ?? [];
+    const bodegaLabel = summarizeBodega(gradeStudents);
+
+    // Each grade starts on a new page (except the first one which continues after the main title)
+    if (g > 0) {
+      addPageWithHeader();
+    }
+
+    // Ensure there's room for: title + header + at least 1 row
+    ensureSpace(48 + rowHeight + rowHeight);
+
+    drawGradeTitle(grade, bodegaLabel);
+    currentY = drawHeader(currentY);
+    doc.font('Helvetica').fontSize(10);
+
+    for (let i = 0; i < gradeStudents.length; i++) {
+      if (currentY + rowHeight > bottomLimitY) {
+        addPageWithHeader();
+        ensureSpace(48 + rowHeight);
+        drawGradeTitle(grade, bodegaLabel);
+        currentY = drawHeader(currentY);
+        doc.font('Helvetica').fontSize(10);
+      }
+
+      drawStudentRow(gradeStudents[i], i + 1);
+    }
   }
 
-  // Footer
-  doc
-    .fontSize(8)
-    .text(`Total estudiantes: ${students.length}`, 50, doc.page.height - 40, { align: 'right' });
+  // Final summary (rendered once, at the end of the file)
+  currentY += 18;
+  ensureSpace(70);
+  doc.font('Helvetica-Bold').fontSize(12).text('Resumen', 50, currentY, { align: 'left' });
+  currentY = doc.y + 6;
+  doc.font('Helvetica').fontSize(14);
+  doc.text(`Grados: ${gradeKeys.length}`, 50, currentY, { align: 'left' });
+  currentY = doc.y + 2;
+  doc.text(`Estudiantes: ${students.length}`, 50, currentY, { align: 'left' });
+  currentY = doc.y + 2;
+  doc.text(`Generado: ${generatedAtLabel}`, 50, currentY, { align: 'left' });
 
   // Finalize PDF
   doc.end();
