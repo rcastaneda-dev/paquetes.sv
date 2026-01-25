@@ -26,44 +26,89 @@ export async function POST(request: NextRequest) {
     const batchSize = parseInt(process.env.WORKER_BATCH_SIZE || '25', 10);
     const concurrency = parseInt(process.env.WORKER_CONCURRENCY || '3', 10);
 
-    // Claim pending tasks
-    const { data: claimedTasks, error: claimError } = await supabaseServer.rpc(
-      'claim_pending_tasks',
-      {
-        p_limit: batchSize,
-      }
+    // Drain-loop: process multiple batches until time budget exhausted
+    // For Vercel: 10s timeout (Free), 60s (Pro), 300s (Enterprise)
+    const maxRuntime = parseInt(process.env.WORKER_MAX_RUNTIME || '9000', 10); // 9s default
+    const startTime = Date.now();
+
+    let totalProcessed = 0;
+    let totalSuccessful = 0;
+    let totalFailed = 0;
+    let batchCount = 0;
+    const allJobIds = new Set<string>();
+
+    console.log(
+      `Worker drain started: maxRuntime=${maxRuntime}ms, batchSize=${batchSize}, concurrency=${concurrency}`
     );
 
-    if (claimError) {
-      console.error('Error claiming tasks:', claimError);
-      return NextResponse.json({ error: claimError.message }, { status: 500 });
+    // Drain queue until time budget exhausted or no more tasks
+    while (Date.now() - startTime < maxRuntime) {
+      // Claim pending tasks
+      const { data: claimedTasks, error: claimError } = await supabaseServer.rpc(
+        'claim_pending_tasks',
+        {
+          p_limit: batchSize,
+        }
+      );
+
+      if (claimError) {
+        console.error('Error claiming tasks:', claimError);
+        break; // Exit loop on error, return what we've processed so far
+      }
+
+      const tasks = claimedTasks as ClaimedTask[];
+
+      if (tasks.length === 0) {
+        console.log('No more pending tasks, exiting drain loop');
+        break;
+      }
+
+      batchCount++;
+      console.log(
+        `Processing batch ${batchCount}: ${tasks.length} tasks with concurrency=${concurrency}`
+      );
+
+      // Process tasks with concurrency limit to avoid memory spikes
+      const results = await processTasksWithConcurrencyLimit(tasks, concurrency);
+
+      const successful = results.filter(r => r.status === 'fulfilled').length;
+      const failed = results.filter(r => r.status === 'rejected').length;
+
+      totalProcessed += tasks.length;
+      totalSuccessful += successful;
+      totalFailed += failed;
+
+      // Collect job IDs for completion check
+      tasks.forEach(t => allJobIds.add(t.job_id));
+
+      console.log(`Batch ${batchCount} complete: ${successful} succeeded, ${failed} failed`);
+
+      // Check if approaching time limit (leave 2s buffer)
+      const elapsed = Date.now() - startTime;
+      const remaining = maxRuntime - elapsed;
+      if (remaining < 2000) {
+        console.log(`Approaching time limit (${remaining}ms remaining), stopping drain loop`);
+        break;
+      }
     }
 
-    const tasks = claimedTasks as ClaimedTask[];
-
-    if (tasks.length === 0) {
-      return NextResponse.json({ message: 'No pending tasks', processed: 0 });
-    }
-
-    console.log(`Processing ${tasks.length} tasks with concurrency=${concurrency}`);
-
-    // Process tasks with concurrency limit to avoid memory spikes
-    const results = await processTasksWithConcurrencyLimit(tasks, concurrency);
-
-    const successful = results.filter(r => r.status === 'fulfilled').length;
-    const failed = results.filter(r => r.status === 'rejected').length;
+    const elapsed = Date.now() - startTime;
 
     // Check if any jobs are now complete
-    const jobIds = [...new Set(tasks.map(t => t.job_id))];
-    for (const jobId of jobIds) {
-      await checkAndCompleteJob(jobId);
+    if (allJobIds.size > 0) {
+      console.log(`Checking completion for ${allJobIds.size} jobs`);
+      for (const jobId of allJobIds) {
+        await checkAndCompleteJob(jobId);
+      }
     }
 
     return NextResponse.json({
-      message: 'Batch processed',
-      processed: tasks.length,
-      successful,
-      failed,
+      message: 'Queue drain complete',
+      batches: batchCount,
+      processed: totalProcessed,
+      successful: totalSuccessful,
+      failed: totalFailed,
+      elapsedMs: elapsed,
     });
   } catch (error) {
     console.error('Worker error:', error);

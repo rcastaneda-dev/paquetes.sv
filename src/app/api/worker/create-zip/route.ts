@@ -23,71 +23,102 @@ export async function POST(request: NextRequest) {
 
     // Configurable limits for shard-job scale (recommended: 100 jobs, 5-10 parts)
     const jobLimit = parseInt(process.env.ZIP_WORKER_JOB_LIMIT || '100', 10);
-    const partLimit = parseInt(process.env.ZIP_WORKER_PART_LIMIT || '10', 10);
+    const partLimit = parseInt(process.env.ZIP_WORKER_PART_LIMIT || '5', 10);
 
-    // 1) Ensure zip parts exist for completed jobs (idempotent)
-    // We do this up-front so there is always work to claim, even if ZIP generation lags.
-    // With sharding, we may have 50-100 completed jobs at once, so increase limit.
-    const { data: completedJobs, error: jobsError } = await supabaseServer
-      .from('report_jobs')
-      .select('id')
-      .eq('status', 'complete')
-      .is('zip_path', null) // Only jobs that haven't generated manifests yet
-      .limit(jobLimit);
+    // Drain-loop: process multiple batches until time budget exhausted
+    const maxRuntime = parseInt(process.env.ZIP_WORKER_MAX_RUNTIME || '9000', 10); // 9s default
+    const startTime = Date.now();
 
-    if (jobsError) {
-      console.error('Error finding completed jobs:', jobsError);
-      return NextResponse.json({ error: jobsError.message }, { status: 500 });
-    }
+    let totalProcessed = 0;
+    let totalSuccessful = 0;
+    let totalFailed = 0;
+    let batchCount = 0;
+    const allJobIds = new Set<string>();
 
-    const jobs = completedJobs ?? [];
-    if (jobs.length > 0) {
-      console.log(`Ensuring ZIP parts for ${jobs.length} completed jobs`);
-      await Promise.allSettled(
-        jobs.map(j => supabaseServer.rpc('ensure_zip_parts', { p_job_id: j.id, p_part_size: 100 }))
-      );
-    }
+    console.log(`ZIP worker drain started: maxRuntime=${maxRuntime}ms, partLimit=${partLimit}`);
 
-    // 2) Claim pending zip parts for processing
-    // With 50 shards × ~10 parts/shard = 500 parts total; increase claim limit
-    const { data: claimedParts, error: claimError } = await supabaseServer.rpc(
-      'claim_pending_zip_parts',
-      {
-        p_limit: partLimit,
+    // Drain queue until time budget exhausted
+    while (Date.now() - startTime < maxRuntime) {
+      // 1) Ensure zip parts exist for completed jobs (idempotent)
+      const { data: completedJobs, error: jobsError } = await supabaseServer
+        .from('report_jobs')
+        .select('id')
+        .eq('status', 'complete')
+        .is('zip_path', null)
+        .limit(jobLimit);
+
+      if (!jobsError && completedJobs && completedJobs.length > 0) {
+        await Promise.allSettled(
+          completedJobs.map(j =>
+            supabaseServer.rpc('ensure_zip_parts', { p_job_id: j.id, p_part_size: 100 })
+          )
+        );
       }
-    );
 
-    if (claimError) {
-      console.error('Error claiming zip parts:', claimError);
-      return NextResponse.json({ error: claimError.message }, { status: 500 });
+      // 2) Claim pending zip parts for processing
+      const { data: claimedParts, error: claimError } = await supabaseServer.rpc(
+        'claim_pending_zip_parts',
+        {
+          p_limit: partLimit,
+        }
+      );
+
+      if (claimError) {
+        console.error('Error claiming zip parts:', claimError);
+        break;
+      }
+
+      const parts = (claimedParts ?? []) as Array<{
+        zip_part_id: string;
+        job_id: string;
+        part_no: number;
+        part_size: number;
+      }>;
+
+      if (parts.length === 0) {
+        console.log('No more pending ZIP parts, exiting drain loop');
+        break;
+      }
+
+      batchCount++;
+      console.log(`ZIP batch ${batchCount}: Creating ${parts.length} parts`);
+
+      const results = await Promise.allSettled(parts.map(p => createZipPart(p)));
+      const successful = results.filter(r => r.status === 'fulfilled').length;
+      const failed = results.filter(r => r.status === 'rejected').length;
+
+      totalProcessed += parts.length;
+      totalSuccessful += successful;
+      totalFailed += failed;
+
+      parts.forEach(p => allJobIds.add(p.job_id));
+
+      console.log(`ZIP batch ${batchCount} complete: ${successful} succeeded, ${failed} failed`);
+
+      // Check if approaching time limit
+      const elapsed = Date.now() - startTime;
+      const remaining = maxRuntime - elapsed;
+      if (remaining < 2000) {
+        console.log(`Approaching time limit (${remaining}ms remaining), stopping drain loop`);
+        break;
+      }
     }
 
-    const parts = (claimedParts ?? []) as Array<{
-      zip_part_id: string;
-      job_id: string;
-      part_no: number;
-      part_size: number;
-    }>;
+    const elapsed = Date.now() - startTime;
 
-    if (parts.length === 0) {
-      return NextResponse.json({ message: 'No pending ZIP parts', processed: 0 });
+    // 3) Finalize manifests for processed jobs
+    if (allJobIds.size > 0) {
+      console.log(`Finalizing manifests for ${allJobIds.size} jobs`);
+      await Promise.allSettled(Array.from(allJobIds).map(jobId => finalizeJobZipManifest(jobId)));
     }
-
-    console.log(`Creating ZIP parts: ${parts.map(p => `${p.job_id}#${p.part_no}`).join(', ')}`);
-
-    const results = await Promise.allSettled(parts.map(p => createZipPart(p)));
-    const successful = results.filter(r => r.status === 'fulfilled').length;
-    const failed = results.filter(r => r.status === 'rejected').length;
-
-    // 3) Attempt to finalize any jobs whose zip parts are complete (manifest)
-    const jobIds = [...new Set(parts.map(p => p.job_id))];
-    await Promise.allSettled(jobIds.map(jobId => finalizeJobZipManifest(jobId)));
 
     return NextResponse.json({
-      message: 'ZIP part creation processed',
-      processed: parts.length,
-      successful,
-      failed,
+      message: 'ZIP queue drain complete',
+      batches: batchCount,
+      processed: totalProcessed,
+      successful: totalSuccessful,
+      failed: totalFailed,
+      elapsedMs: elapsed,
     });
   } catch (error) {
     console.error('ZIP worker error:', error);
