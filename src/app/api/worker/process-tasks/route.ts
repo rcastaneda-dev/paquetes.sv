@@ -36,6 +36,7 @@ export async function POST(request: NextRequest) {
     let totalFailed = 0;
     let batchCount = 0;
     const allJobIds = new Set<string>();
+    let didRequeueStale = false;
 
     console.log(
       `Worker drain started: maxRuntime=${maxRuntime}ms, batchSize=${batchSize}, concurrency=${concurrency}`
@@ -59,6 +60,36 @@ export async function POST(request: NextRequest) {
       const tasks = claimedTasks as ClaimedTask[];
 
       if (tasks.length === 0) {
+        // If there are no pending tasks, we might still be "stuck" with stale running tasks
+        // left behind by crashed/time-limited workers. Try requeuing them once per invocation.
+        if (!didRequeueStale) {
+          didRequeueStale = true;
+
+          const staleSeconds = parseInt(process.env.WORKER_STALE_TASK_SECONDS || '900', 10); // 15m default
+          const requeueLimit = parseInt(process.env.WORKER_STALE_TASK_LIMIT || '5000', 10);
+
+          const { data: requeuedCount, error: requeueError } = await supabaseServer.rpc(
+            'requeue_stale_running_tasks',
+            {
+              p_stale_seconds: staleSeconds,
+              p_limit: requeueLimit,
+            }
+          );
+
+          if (requeueError) {
+            console.error('Error requeuing stale running tasks:', requeueError);
+            console.log('No more pending tasks, exiting drain loop');
+            break;
+          }
+
+          const count =
+            typeof requeuedCount === 'number' ? requeuedCount : Number(requeuedCount ?? 0);
+          if (count > 0) {
+            console.log(`Requeued ${count} stale running task(s), continuing drain loop`);
+            continue;
+          }
+        }
+
         console.log('No more pending tasks, exiting drain loop');
         break;
       }
