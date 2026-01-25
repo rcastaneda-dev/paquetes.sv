@@ -122,6 +122,7 @@ export async function GET(request: NextRequest) {
 
     const pdfStream = generateStudentReportPDF({
       schoolName: school.nombre_ce,
+      codigo_ce: school_codigo_ce,
       grado: gradoLabel,
       students: studentRows,
     });

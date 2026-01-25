@@ -112,16 +112,14 @@ async function processTask(task: ClaimedTask): Promise<void> {
     // Generate PDF
     const pdfStream = generateStudentReportPDF({
       schoolName: school.nombre_ce,
+      codigo_ce: task.school_codigo_ce,
       grado: task.grado,
       students: studentRows,
     });
 
-    // Convert stream to buffer
-    const chunks: Buffer[] = [];
-    for await (const chunk of pdfStream) {
-      chunks.push(Buffer.from(chunk));
-    }
-    const pdfBuffer = Buffer.concat(chunks);
+    // Convert PDF output to buffer.
+    // NOTE: `pdfkit.standalone` does not implement AsyncIterable, so `for await (...)` can throw.
+    const pdfBuffer = await toBuffer(pdfStream);
 
     // Upload to Supabase Storage
     const fileName = `${task.job_id}/${task.school_codigo_ce}-${task.grado}.pdf`;
@@ -158,6 +156,44 @@ async function processTask(task: ClaimedTask): Promise<void> {
 
     throw error;
   }
+}
+
+function toBuffer(streamLike: unknown): Promise<Buffer> {
+  // Case 1: AsyncIterable (Node Readable streams support this in many cases)
+  if (
+    streamLike &&
+    typeof streamLike === 'object' &&
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    typeof (streamLike as any)[Symbol.asyncIterator] === 'function'
+  ) {
+    return (async () => {
+      const chunks: Buffer[] = [];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      for await (const chunk of streamLike as any) {
+        chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+      }
+      return Buffer.concat(chunks);
+    })();
+  }
+
+  // Case 2: EventEmitter-style stream (covers pdfkit + pdfkit.standalone output)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const s = streamLike as any;
+  if (s && typeof s.on === 'function') {
+    return new Promise<Buffer>((resolve, reject) => {
+      const chunks: Buffer[] = [];
+      s.on('data', (chunk: unknown) => {
+        chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk as any));
+      });
+      s.on('end', () => resolve(Buffer.concat(chunks)));
+      s.on('finish', () => resolve(Buffer.concat(chunks)));
+      s.on('error', reject);
+    });
+  }
+
+  return Promise.reject(
+    new Error('pdfStream is not async iterable and does not support data/end events')
+  );
 }
 
 async function checkAndCompleteJob(jobId: string): Promise<void> {
