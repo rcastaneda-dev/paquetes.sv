@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase/server';
 import { streamToBuffer } from '@/lib/zip/bundler';
+import { buildZipPdfEntryName } from '@/lib/storage/keys';
 import archiver from 'archiver';
 import { PassThrough, Readable } from 'stream';
 
@@ -143,7 +144,11 @@ async function createZipPart(part: {
         continue;
       }
 
-      const fileName = `${task.school_codigo_ce}-${task.grado}.pdf`;
+      // Use sanitized ASCII-safe filename for ZIP entry
+      const fileName = buildZipPdfEntryName({
+        schoolCodigoCe: task.school_codigo_ce,
+        grado: task.grado,
+      });
       const webStream = pdfData.stream();
       const nodeStream = Readable.fromWeb(webStream as any);
       archive.append(nodeStream, { name: fileName });

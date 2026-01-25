@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase/server';
 import { generateStudentReportPDF } from '@/lib/pdf/generator';
+import { buildReportPdfStorageKey } from '@/lib/storage/keys';
 import type { ClaimedTask, StudentReportRow } from '@/types/database';
 
 /**
@@ -138,8 +139,13 @@ async function processTask(task: ClaimedTask): Promise<void> {
     // NOTE: `pdfkit.standalone` does not implement AsyncIterable, so `for await (...)` can throw.
     const pdfBuffer = await toBuffer(pdfStream);
 
-    // Upload to Supabase Storage
-    const fileName = `${task.job_id}/${task.school_codigo_ce}-${task.grado}.pdf`;
+    // Upload to Supabase Storage with safe, collision-free key
+    const fileName = buildReportPdfStorageKey({
+      jobId: task.job_id,
+      schoolCodigoCe: task.school_codigo_ce,
+      grado: task.grado,
+      taskId: task.task_id,
+    });
     const { error: uploadError } = await supabaseServer.storage
       .from('reports')
       .upload(fileName, pdfBuffer, {

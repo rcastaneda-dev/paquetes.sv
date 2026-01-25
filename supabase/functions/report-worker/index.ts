@@ -2,15 +2,25 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 
 serve(async req => {
   try {
-    // Simple authentication
-    const authHeader = req.headers.get('authorization');
+    /**
+     * Auth note:
+     * Supabase Edge Functions uses the `Authorization` header for Supabase JWT/API key auth.
+     * We must NOT overload `Authorization` for our own shared secret, otherwise scheduled/cron
+     * invocations that send a Supabase JWT will be rejected.
+     *
+     * Use `x-worker-secret: <FUNCTION_SECRET>` instead.
+     */
     const expectedSecret = Deno.env.get('FUNCTION_SECRET');
+    const providedSecret = req.headers.get('x-worker-secret');
 
-    if (expectedSecret && authHeader !== `Bearer ${expectedSecret}`) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-      });
+    if (expectedSecret && providedSecret !== expectedSecret) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized (missing/invalid x-worker-secret)' }),
+        {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
     }
 
     const nextjsUrl = Deno.env.get('NEXTJS_URL');
