@@ -8,6 +8,12 @@ import { Button } from '@/components/ui/Button';
 import { JobProgress } from '@/components/JobProgress';
 import type { ReportJob, ReportTask, JobProgress as JobProgressType } from '@/types/database';
 
+interface ZipPartDownload {
+  partNo: number;
+  pdfCount: number;
+  downloadUrl: string;
+}
+
 export default function JobDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -17,6 +23,12 @@ export default function JobDetailPage() {
   const [progress, setProgress] = useState<JobProgressType | null>(null);
   const [tasks, setTasks] = useState<ReportTask[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  const [zipManifestUrl, setZipManifestUrl] = useState<string | null>(null);
+  const [zipParts, setZipParts] = useState<ZipPartDownload[]>([]);
+  const [zipTotalParts, setZipTotalParts] = useState<number>(0);
+  const [zipNextOffset, setZipNextOffset] = useState<number | null>(0);
+  const [isZipLoading, setIsZipLoading] = useState(false);
 
   const fetchJobDetails = async () => {
     try {
@@ -40,7 +52,7 @@ export default function JobDetailPage() {
 
   useEffect(() => {
     fetchJobDetails();
-    
+
     // Poll for updates every 3 seconds
     const interval = setInterval(fetchJobDetails, 3000);
     return () => clearInterval(interval);
@@ -71,7 +83,8 @@ export default function JobDetailPage() {
 
   const handleDownload = async () => {
     try {
-      const response = await fetch(`/api/bulk/jobs/${jobId}/download`);
+      setIsZipLoading(true);
+      const response = await fetch(`/api/bulk/jobs/${jobId}/download?limit=50&offset=0`);
       const data = await response.json();
 
       if (data.error) {
@@ -79,10 +92,40 @@ export default function JobDetailPage() {
         return;
       }
 
-      window.open(data.downloadUrl, '_blank');
+      if (data.downloadUrl) {
+        window.open(data.downloadUrl, '_blank');
+        return;
+      }
+
+      // Multi-part ZIP flow
+      setZipManifestUrl(data.manifestUrl ?? null);
+      setZipTotalParts(data.totalParts ?? 0);
+      setZipNextOffset(data.nextOffset ?? null);
+      setZipParts((data.parts ?? []) as ZipPartDownload[]);
     } catch (error) {
       console.error('Error downloading:', error);
       alert('Error al descargar el archivo');
+    } finally {
+      setIsZipLoading(false);
+    }
+  };
+
+  const handleLoadMoreZipParts = async () => {
+    if (zipNextOffset == null) return;
+    try {
+      setIsZipLoading(true);
+      const response = await fetch(`/api/bulk/jobs/${jobId}/download?limit=50&offset=${zipNextOffset}`);
+      const data = await response.json();
+      if (data.error) {
+        alert(`Error: ${data.error}`);
+        return;
+      }
+      setZipManifestUrl(data.manifestUrl ?? zipManifestUrl);
+      setZipTotalParts(data.totalParts ?? zipTotalParts);
+      setZipNextOffset(data.nextOffset ?? null);
+      setZipParts((prev) => [...prev, ...((data.parts ?? []) as ZipPartDownload[])]);
+    } finally {
+      setIsZipLoading(false);
     }
   };
 
@@ -137,9 +180,9 @@ export default function JobDetailPage() {
                   </span>
                 </div>
               </div>
-              {job.status === 'complete' && job.zip_path && (
-                <Button onClick={handleDownload}>
-                  Descargar ZIP
+              {job.status === 'complete' && (
+                <Button onClick={handleDownload} disabled={isZipLoading}>
+                  {isZipLoading ? 'Cargando...' : 'Ver descargas'}
                 </Button>
               )}
             </div>
@@ -150,6 +193,61 @@ export default function JobDetailPage() {
             </CardContent>
           )}
         </Card>
+
+        {/* Downloads */}
+        {job.status === 'complete' && (zipManifestUrl || zipParts.length > 0) && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Descargas</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {zipManifestUrl && (
+                <div className="text-sm">
+                  <a
+                    href={zipManifestUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="underline"
+                  >
+                    Descargar manifest (JSON)
+                  </a>
+                </div>
+              )}
+
+              {zipTotalParts > 0 && (
+                <div className="text-sm text-muted-foreground">
+                  ZIP parts: {zipParts.length} visibles / {zipTotalParts} total
+                </div>
+              )}
+
+              {zipParts.length > 0 ? (
+                <div className="space-y-2">
+                  {zipParts.map((p) => (
+                    <div key={p.partNo} className="flex items-center justify-between border rounded-lg p-3 text-sm">
+                      <div>
+                        <div className="font-medium">Parte {p.partNo}</div>
+                        <div className="text-xs text-muted-foreground">{p.pdfCount} PDFs</div>
+                      </div>
+                      <a href={p.downloadUrl} target="_blank" rel="noreferrer">
+                        <Button size="sm" variant="outline">Descargar</Button>
+                      </a>
+                    </div>
+                  ))}
+
+                  {zipNextOffset != null && (
+                    <Button variant="outline" onClick={handleLoadMoreZipParts} disabled={isZipLoading}>
+                      {isZipLoading ? 'Cargando...' : 'Cargar más partes'}
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                <div className="text-sm text-muted-foreground">
+                  Las partes todavía se están generando. Vuelve a intentar en unos minutos.
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Tasks list */}
         <Card>

@@ -2,11 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import type { ReportJob } from '@/types/database';
 
 export default function BulkReportsPage() {
+  const router = useRouter();
   const [jobs, setJobs] = useState<ReportJob[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
@@ -25,7 +27,7 @@ export default function BulkReportsPage() {
 
   useEffect(() => {
     fetchJobs();
-    
+
     // Poll for updates every 5 seconds
     const interval = setInterval(fetchJobs, 5000);
     return () => clearInterval(interval);
@@ -132,12 +134,16 @@ export default function BulkReportsPage() {
                             </div>
                           )}
                         </div>
-                        {job.status === 'complete' && job.zip_path && (
-                          <Button size="sm" variant="outline" onClick={(e) => {
-                            e.preventDefault();
-                            window.open(`/api/bulk/jobs/${job.id}/download`, '_blank');
-                          }}>
-                            Descargar ZIP
+                        {job.status === 'complete' && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              router.push(`/bulk/${job.id}`);
+                            }}
+                          >
+                            Ver descargas
                           </Button>
                         )}
                       </div>

@@ -6,7 +6,7 @@ import type { ClaimedTask, StudentReportRow } from '@/types/database';
 /**
  * Worker endpoint that processes pending tasks in batches.
  * Can be triggered by:
- * - Vercel Cron (add to vercel.json)
+ * - Supabase Scheduled Edge Function (recommended)
  * - Manual POST request
  * - Supabase Edge Function
  */
@@ -23,9 +23,12 @@ export async function POST(request: NextRequest) {
     const batchSize = 5; // Process 5 tasks per run
 
     // Claim pending tasks
-    const { data: claimedTasks, error: claimError } = await supabaseServer.rpc('claim_pending_tasks', {
-      p_limit: batchSize,
-    });
+    const { data: claimedTasks, error: claimError } = await supabaseServer.rpc(
+      'claim_pending_tasks',
+      {
+        p_limit: batchSize,
+      }
+    );
 
     if (claimError) {
       console.error('Error claiming tasks:', claimError);
@@ -41,9 +44,7 @@ export async function POST(request: NextRequest) {
     console.log(`Processing ${tasks.length} tasks`);
 
     // Process each task
-    const results = await Promise.allSettled(
-      tasks.map(task => processTask(task))
-    );
+    const results = await Promise.allSettled(tasks.map(task => processTask(task)));
 
     const successful = results.filter(r => r.status === 'fulfilled').length;
     const failed = results.filter(r => r.status === 'rejected').length;
@@ -124,8 +125,7 @@ async function processTask(task: ClaimedTask): Promise<void> {
 
     // Upload to Supabase Storage
     const fileName = `${task.job_id}/${task.school_codigo_ce}-${task.grado}.pdf`;
-    const { error: uploadError } = await supabaseServer
-      .storage
+    const { error: uploadError } = await supabaseServer.storage
       .from('reports')
       .upload(fileName, pdfBuffer, {
         contentType: 'application/pdf',
