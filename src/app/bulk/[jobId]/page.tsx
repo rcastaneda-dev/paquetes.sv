@@ -29,6 +29,7 @@ export default function JobDetailPage() {
   const [zipTotalParts, setZipTotalParts] = useState<number>(0);
   const [zipNextOffset, setZipNextOffset] = useState<number | null>(0);
   const [isZipLoading, setIsZipLoading] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   const fetchJobDetails = async () => {
     try {
@@ -64,6 +65,8 @@ export default function JobDetailPage() {
       running: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100',
       complete: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100',
       failed: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100',
+      queued: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100',
+      cancelled: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-100',
     };
 
     const labels = {
@@ -72,10 +75,13 @@ export default function JobDetailPage() {
       complete: 'Completo',
       failed: 'Fallido',
       queued: 'En Cola',
+      cancelled: 'Cancelado',
     };
 
     return (
-      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${styles[status as keyof typeof styles] || styles.pending}`}>
+      <span
+        className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ${styles[status as keyof typeof styles] || styles.pending}`}
+      >
         {labels[status as keyof typeof labels] || status}
       </span>
     );
@@ -114,7 +120,9 @@ export default function JobDetailPage() {
     if (zipNextOffset == null) return;
     try {
       setIsZipLoading(true);
-      const response = await fetch(`/api/bulk/jobs/${jobId}/download?limit=50&offset=${zipNextOffset}`);
+      const response = await fetch(
+        `/api/bulk/jobs/${jobId}/download?limit=50&offset=${zipNextOffset}`
+      );
       const data = await response.json();
       if (data.error) {
         alert(`Error: ${data.error}`);
@@ -123,17 +131,57 @@ export default function JobDetailPage() {
       setZipManifestUrl(data.manifestUrl ?? zipManifestUrl);
       setZipTotalParts(data.totalParts ?? zipTotalParts);
       setZipNextOffset(data.nextOffset ?? null);
-      setZipParts((prev) => [...prev, ...((data.parts ?? []) as ZipPartDownload[])]);
+      setZipParts(prev => [...prev, ...((data.parts ?? []) as ZipPartDownload[])]);
     } finally {
       setIsZipLoading(false);
     }
   };
 
+  const handleCancelJob = async () => {
+    if (!job) return;
+
+    const confirmed = window.confirm(
+      '¿Estás seguro de que deseas cancelar este trabajo? Las tareas en proceso se detendrán y no se podrán reanudar.'
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setIsCancelling(true);
+      const response = await fetch(`/api/bulk/jobs/${jobId}/cancel`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ reason: 'Cancelled by user' }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        alert(`Error al cancelar: ${data.error || 'Error desconocido'}`);
+        return;
+      }
+
+      alert(`Trabajo cancelado exitosamente. ${data.tasksCancelled} tareas canceladas.`);
+      await fetchJobDetails();
+    } catch (error) {
+      console.error('Error cancelling job:', error);
+      alert('Error al cancelar el trabajo');
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+
+  const handleSyncNow = async () => {
+    await fetchJobDetails();
+  };
+
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-b-2 border-primary"></div>
           <p className="mt-4 text-muted-foreground">Cargando detalles del trabajo...</p>
         </div>
       </div>
@@ -142,10 +190,10 @@ export default function JobDetailPage() {
 
   if (!job) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-background">
         <Card className="w-full max-w-md">
           <CardContent className="pt-6 text-center">
-            <p className="text-muted-foreground mb-4">Trabajo no encontrado</p>
+            <p className="mb-4 text-muted-foreground">Trabajo no encontrado</p>
             <Button onClick={() => router.push('/bulk')}>Volver a Trabajos</Button>
           </CardContent>
         </Card>
@@ -159,32 +207,49 @@ export default function JobDetailPage() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold">Detalles del Trabajo</h1>
-            <Link href="/bulk">
-              <Button variant="outline">Volver a Trabajos</Button>
-            </Link>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={handleSyncNow} disabled={isLoading}>
+                {isLoading ? 'Sincronizando...' : 'Sincronizar'}
+              </Button>
+              <Link href="/bulk">
+                <Button variant="outline">Volver a Trabajos</Button>
+              </Link>
+            </div>
           </div>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8 space-y-6">
+      <main className="container mx-auto space-y-6 px-4 py-8">
         {/* Job info */}
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="font-mono text-lg">{job.id}</CardTitle>
-                <div className="flex items-center gap-2 mt-2">
+                <div className="mt-2 flex items-center gap-2">
                   {getStatusBadge(job.status)}
                   <span className="text-sm text-muted-foreground">
                     Creado: {new Date(job.created_at).toLocaleString('es-SV')}
                   </span>
                 </div>
               </div>
-              {job.status === 'complete' && (
-                <Button onClick={handleDownload} disabled={isZipLoading}>
-                  {isZipLoading ? 'Cargando...' : 'Ver descargas'}
-                </Button>
-              )}
+              <div className="flex gap-2">
+                {(job.status === 'queued' || job.status === 'running') && (
+                  <Button
+                    variant="outline"
+                    onClick={handleCancelJob}
+                    disabled={isCancelling}
+                    className="text-destructive hover:text-destructive"
+                  >
+                    {isCancelling ? 'Cancelando...' : 'Cancelar Trabajo'}
+                  </Button>
+                )}
+                {job.status === 'complete' && (
+                  <Button onClick={handleDownload} disabled={isZipLoading}>
+                    {isZipLoading ? 'Cargando...' : 'Ver descargas'}
+                  </Button>
+                )}
+              </div>
             </div>
           </CardHeader>
           {progress && (
@@ -203,12 +268,7 @@ export default function JobDetailPage() {
             <CardContent className="space-y-3">
               {zipManifestUrl && (
                 <div className="text-sm">
-                  <a
-                    href={zipManifestUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="underline"
-                  >
+                  <a href={zipManifestUrl} target="_blank" rel="noreferrer" className="underline">
                     Descargar manifest (JSON)
                   </a>
                 </div>
@@ -222,20 +282,29 @@ export default function JobDetailPage() {
 
               {zipParts.length > 0 ? (
                 <div className="space-y-2">
-                  {zipParts.map((p) => (
-                    <div key={p.partNo} className="flex items-center justify-between border rounded-lg p-3 text-sm">
+                  {zipParts.map(p => (
+                    <div
+                      key={p.partNo}
+                      className="flex items-center justify-between rounded-lg border p-3 text-sm"
+                    >
                       <div>
                         <div className="font-medium">Parte {p.partNo}</div>
                         <div className="text-xs text-muted-foreground">{p.pdfCount} PDFs</div>
                       </div>
                       <a href={p.downloadUrl} target="_blank" rel="noreferrer">
-                        <Button size="sm" variant="outline">Descargar</Button>
+                        <Button size="sm" variant="outline">
+                          Descargar
+                        </Button>
                       </a>
                     </div>
                   ))}
 
                   {zipNextOffset != null && (
-                    <Button variant="outline" onClick={handleLoadMoreZipParts} disabled={isZipLoading}>
+                    <Button
+                      variant="outline"
+                      onClick={handleLoadMoreZipParts}
+                      disabled={isZipLoading}
+                    >
                       {isZipLoading ? 'Cargando...' : 'Cargar más partes'}
                     </Button>
                   )}
@@ -255,31 +324,27 @@ export default function JobDetailPage() {
             <CardTitle>Tareas ({tasks.length})</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2 max-h-[600px] overflow-y-auto">
-              {tasks.map((task) => (
-                <div key={task.id} className="border rounded-lg p-3 text-sm">
+            <div className="max-h-[600px] space-y-2 overflow-y-auto">
+              {tasks.map(task => (
+                <div key={task.id} className="rounded-lg border p-3 text-sm">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="font-medium">
                         {task.school_codigo_ce} - {task.grado}
                       </div>
-                      <div className="text-xs text-muted-foreground mt-1">
+                      <div className="mt-1 text-xs text-muted-foreground">
                         Actualizado: {new Date(task.updated_at).toLocaleString('es-SV')}
                       </div>
                       {task.error && (
-                        <div className="text-xs text-destructive mt-1">
-                          Error: {task.error}
-                        </div>
+                        <div className="mt-1 text-xs text-destructive">Error: {task.error}</div>
                       )}
                       {task.attempt_count > 0 && (
-                        <div className="text-xs text-muted-foreground mt-1">
+                        <div className="mt-1 text-xs text-muted-foreground">
                           Intentos: {task.attempt_count}
                         </div>
                       )}
                     </div>
-                    <div>
-                      {getStatusBadge(task.status)}
-                    </div>
+                    <div>{getStatusBadge(task.status)}</div>
                   </div>
                 </div>
               ))}

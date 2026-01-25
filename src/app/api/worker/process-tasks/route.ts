@@ -71,6 +71,23 @@ async function processTask(task: ClaimedTask): Promise<void> {
   try {
     console.log(`Processing task ${task.task_id} for ${task.school_codigo_ce} - ${task.grado}`);
 
+    // Check if the parent job is cancelled before doing expensive work
+    const { data: job, error: jobError } = await supabaseServer
+      .from('report_jobs')
+      .select('status')
+      .eq('id', task.job_id)
+      .single();
+
+    if (jobError) {
+      throw new Error(`Failed to check job status: ${jobError.message}`);
+    }
+
+    if (job.status === 'cancelled') {
+      console.log(`Task ${task.task_id} belongs to cancelled job ${task.job_id}, skipping`);
+      // Task is already marked cancelled by the cancel RPC, just return
+      return;
+    }
+
     // Fetch school name
     const { data: school, error: schoolError } = await supabaseServer
       .from('schools')
@@ -198,6 +215,23 @@ function toBuffer(streamLike: unknown): Promise<Buffer> {
 
 async function checkAndCompleteJob(jobId: string): Promise<void> {
   try {
+    // Check current job status first
+    const { data: job, error: jobError } = await supabaseServer
+      .from('report_jobs')
+      .select('status')
+      .eq('id', jobId)
+      .single();
+
+    if (jobError || !job) {
+      return;
+    }
+
+    // Don't override cancelled jobs
+    if (job.status === 'cancelled') {
+      console.log(`Job ${jobId} is cancelled, skipping completion check`);
+      return;
+    }
+
     // Get job progress
     const { data: progressData } = await supabaseServer.rpc('get_job_progress', {
       p_job_id: jobId,
@@ -209,7 +243,7 @@ async function checkAndCompleteJob(jobId: string): Promise<void> {
 
     const progress = progressData[0];
 
-    // Check if all tasks are done (complete or failed)
+    // Check if all tasks are done (complete, failed, or cancelled)
     const allDone = progress.pending_tasks === 0 && progress.running_tasks === 0;
 
     if (!allDone) {
@@ -225,7 +259,8 @@ async function checkAndCompleteJob(jobId: string): Promise<void> {
         status: newStatus,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', jobId);
+      .eq('id', jobId)
+      .eq('status', job.status); // Only update if status hasn't changed (extra safety)
 
     console.log(`Job ${jobId} marked as ${newStatus}`);
   } catch (error) {

@@ -1,6 +1,6 @@
 // Database types matching the public schema
-export type JobStatus = 'queued' | 'running' | 'complete' | 'failed';
-export type TaskStatus = 'pending' | 'running' | 'complete' | 'failed';
+export type JobStatus = 'queued' | 'running' | 'complete' | 'failed' | 'cancelled';
+export type TaskStatus = 'pending' | 'running' | 'complete' | 'failed' | 'cancelled';
 
 export interface School {
   codigo_ce: string;
@@ -111,6 +111,7 @@ export interface JobProgress {
   running_tasks: number;
   complete_tasks: number;
   failed_tasks: number;
+  cancelled_tasks: number;
 }
 
 // Query filters

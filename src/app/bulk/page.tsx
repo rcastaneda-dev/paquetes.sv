@@ -62,6 +62,7 @@ export default function BulkReportsPage() {
       running: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100',
       complete: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100',
       failed: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100',
+      cancelled: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-100',
     };
 
     const labels = {
@@ -69,10 +70,13 @@ export default function BulkReportsPage() {
       running: 'En Proceso',
       complete: 'Completo',
       failed: 'Fallido',
+      cancelled: 'Cancelado',
     };
 
     return (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${styles[status as keyof typeof styles]}`}>
+      <span
+        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${styles[status as keyof typeof styles]}`}
+      >
         {labels[status as keyof typeof labels] || status}
       </span>
     );
@@ -96,27 +100,32 @@ export default function BulkReportsPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>Trabajos de Generación de PDFs</CardTitle>
-              <Button onClick={handleCreateJob} disabled={isCreating}>
-                {isCreating ? 'Creando...' : 'Generar Todos los PDFs'}
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={fetchJobs} disabled={isLoading}>
+                  {isLoading ? 'Sincronizando...' : 'Sincronizar'}
+                </Button>
+                <Button onClick={handleCreateJob} disabled={isCreating}>
+                  {isCreating ? 'Creando...' : 'Generar Todos los PDFs'}
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <div className="text-center py-12">
-                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              <div className="py-12 text-center">
+                <div className="inline-block h-8 w-8 animate-spin rounded-full border-b-2 border-primary"></div>
                 <p className="mt-4 text-muted-foreground">Cargando trabajos...</p>
               </div>
             ) : jobs.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
+              <div className="py-12 text-center text-muted-foreground">
                 <p>No hay trabajos aún.</p>
-                <p className="text-sm mt-2">Haz clic en "Generar Todos los PDFs" para crear uno.</p>
+                <p className="mt-2 text-sm">Haz clic en "Generar Todos los PDFs" para crear uno.</p>
               </div>
             ) : (
               <div className="space-y-4">
-                {jobs.map((job) => (
+                {jobs.map(job => (
                   <Link key={job.id} href={`/bulk/${job.id}`}>
-                    <div className="border rounded-lg p-4 hover:bg-accent/50 transition-colors cursor-pointer">
+                    <div className="cursor-pointer rounded-lg border p-4 transition-colors hover:bg-accent/50">
                       <div className="flex items-start justify-between">
                         <div className="space-y-1">
                           <div className="flex items-center gap-3">
@@ -129,16 +138,14 @@ export default function BulkReportsPage() {
                             Creado: {new Date(job.created_at).toLocaleString('es-SV')}
                           </div>
                           {job.error && (
-                            <div className="text-sm text-destructive">
-                              Error: {job.error}
-                            </div>
+                            <div className="text-sm text-destructive">Error: {job.error}</div>
                           )}
                         </div>
                         {job.status === 'complete' && (
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={(e) => {
+                            onClick={e => {
                               e.preventDefault();
                               router.push(`/bulk/${job.id}`);
                             }}
