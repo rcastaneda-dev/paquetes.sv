@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/worker/process-tasks",
+      "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/worker/create-zip",
+      "schedule": "*/5 * * * *"
+    }
+  ]
+}
