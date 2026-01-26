@@ -262,20 +262,26 @@ export default function JobDetailPage() {
                     {isCancelling ? 'Cancelando...' : 'Cancelar Trabajo'}
                   </Button>
                 )}
-                {job.status === 'failed' && progress && progress.failed_tasks > 0 && (
-                  <Button
-                    variant="outline"
-                    onClick={handleRetryFailed}
-                    disabled={isRetrying}
-                    className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-                  >
-                    {isRetrying ? 'Reintentando...' : 'Reintentar Fallidos'}
-                  </Button>
-                )}
+                {(job.status === 'failed' || job.status === 'complete') &&
+                  progress &&
+                  progress.failed_tasks > 0 && (
+                    <Button
+                      variant="outline"
+                      onClick={handleRetryFailed}
+                      disabled={isRetrying}
+                      className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                    >
+                      {isRetrying ? 'Reintentando...' : 'Reintentar Fallidos'}
+                    </Button>
+                  )}
                 {(job.status === 'complete' || job.status === 'failed') &&
-                  (!job.zip_path || !job.zip_path.endsWith('bundle.zip')) && (
+                  (!job.zip_path || !job.zip_path.endsWith('bundle.zip')) &&
+                  (!zipProgress ||
+                    (zipProgress.pending === 0 &&
+                      zipProgress.running === 0 &&
+                      zipProgress.failed === 0)) && (
                     <Button onClick={handleDownload} disabled={true}>
-                      {zipProgress?.inProgress ? 'Generando ZIP...' : 'Preparando descarga...'}
+                      Preparando descarga...
                     </Button>
                   )}
               </div>
