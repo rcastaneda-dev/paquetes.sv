@@ -23,12 +23,18 @@ export async function POST(request: NextRequest) {
 
     // Configurable batch size and concurrency (optimized for 49k+ PDFs)
     // Recommended: WORKER_BATCH_SIZE=25, WORKER_CONCURRENCY=3 on Vercel Free (10s timeout, 1GB)
-    const batchSize = parseInt(process.env.WORKER_BATCH_SIZE || '25', 10);
-    const concurrency = parseInt(process.env.WORKER_CONCURRENCY || '3', 10);
+    const batchSizeRaw = (process.env.WORKER_BATCH_SIZE || '25').trim();
+    const concurrencyRaw = (process.env.WORKER_CONCURRENCY || '3').trim();
+    const maxRuntimeRaw = (process.env.WORKER_MAX_RUNTIME || '9000').trim();
+    const batchSizeParsed = parseInt(batchSizeRaw, 10);
+    const concurrencyParsed = parseInt(concurrencyRaw, 10);
+    const maxRuntimeParsed = parseInt(maxRuntimeRaw, 10);
+    const batchSize = Number.isNaN(batchSizeParsed) ? 25 : batchSizeParsed;
+    const concurrency = Number.isNaN(concurrencyParsed) ? 3 : concurrencyParsed;
 
     // Drain-loop: process multiple batches until time budget exhausted
     // For Vercel: 10s timeout (Free), 60s (Pro), 300s (Enterprise)
-    const maxRuntime = parseInt(process.env.WORKER_MAX_RUNTIME || '9000', 10); // 9s default
+    const maxRuntime = Number.isNaN(maxRuntimeParsed) ? 9000 : maxRuntimeParsed; // 9s default
     const startTime = Date.now();
 
     let totalProcessed = 0;

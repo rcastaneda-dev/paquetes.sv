@@ -21,8 +21,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const jobLimit = parseInt(process.env.ZIP_WORKER_JOB_LIMIT || '100', 10);
-    const maxRuntime = parseInt(process.env.ZIP_WORKER_MAX_RUNTIME || '9000', 10); // 9s default
+    // Parse environment variables with explicit NaN handling
+    // For Vercel: 10s timeout (Free), 60s (Pro), 300s (Enterprise)
+    // Use 240s (4min) as default to leave buffer for Vercel's 300s limit
+    const jobLimitRaw = (process.env.ZIP_WORKER_JOB_LIMIT || '1').trim();
+    const maxRuntimeRaw = (process.env.ZIP_WORKER_MAX_RUNTIME || '240000').trim();
+    const jobLimitParsed = parseInt(jobLimitRaw, 10);
+    const maxRuntimeParsed = parseInt(maxRuntimeRaw, 10);
+    const jobLimit = Number.isNaN(jobLimitParsed) ? 1 : jobLimitParsed;
+    const maxRuntime = Number.isNaN(maxRuntimeParsed) ? 240000 : maxRuntimeParsed; // 240s default (4min)
     const startTime = Date.now();
 
     let totalJobsProcessed = 0;
@@ -55,25 +62,38 @@ export async function POST(request: NextRequest) {
       batchCount++;
       console.log(`ZIP batch ${batchCount}: Processing ${completedJobs.length} job(s)`);
 
-      // Process jobs sequentially (each job can be large)
-      const results = await Promise.allSettled(
-        completedJobs.map(job => createBundleDirectly(job.id))
+      // Process jobs sequentially (each job can be large and timeout-prone)
+      // Process one job at a time to avoid timeouts
+      for (const job of completedJobs) {
+        // Check if we have enough time remaining (need at least 30s buffer)
+        const elapsed = Date.now() - startTime;
+        const remaining = maxRuntime - elapsed;
+        if (remaining < 30000) {
+          console.log(`Insufficient time remaining (${remaining}ms), stopping`);
+          break;
+        }
+
+        try {
+          await createBundleDirectly(job.id, startTime, maxRuntime);
+          totalJobsSuccessful++;
+        } catch (error) {
+          console.error(`Failed to process job ${job.id}:`, error);
+          totalJobsFailed++;
+        }
+        totalJobsProcessed++;
+      }
+
+      console.log(
+        `ZIP batch ${batchCount} complete: ${totalJobsSuccessful} succeeded, ${totalJobsFailed} failed`
       );
 
-      const successful = results.filter(r => r.status === 'fulfilled').length;
-      const failed = results.filter(r => r.status === 'rejected').length;
-
-      totalJobsProcessed += completedJobs.length;
-      totalJobsSuccessful += successful;
-      totalJobsFailed += failed;
-
-      console.log(`ZIP batch ${batchCount} complete: ${successful} succeeded, ${failed} failed`);
-
-      // Check if approaching time limit
+      // Check if approaching time limit (need 30s buffer for safety)
       const elapsed = Date.now() - startTime;
       const remaining = maxRuntime - elapsed;
-      if (remaining < 2000) {
-        console.log(`Approaching time limit (${remaining}ms remaining), stopping drain loop`);
+      if (remaining < 30000) {
+        console.log(
+          `Approaching time limit (${Math.round(remaining / 1000)}s remaining), stopping drain loop`
+        );
         break;
       }
     }
@@ -97,8 +117,14 @@ export async function POST(request: NextRequest) {
 /**
  * Create bundle.zip directly for a job by streaming all completed PDFs.
  * Uses parallel downloading in batches to optimize network performance.
+ * @param startTime - Start time of the worker invocation (for timeout checks)
+ * @param maxRuntime - Maximum runtime in milliseconds (for timeout checks)
  */
-async function createBundleDirectly(jobId: string): Promise<void> {
+async function createBundleDirectly(
+  jobId: string,
+  startTime: number,
+  maxRuntime: number
+): Promise<void> {
   try {
     console.log(`Creating bundle.zip for job ${jobId}`);
 
@@ -139,14 +165,34 @@ async function createBundleDirectly(jobId: string): Promise<void> {
 
     console.log(`Bundling ${allTasks.length} PDFs for job ${jobId}`);
 
-    // Create ZIP archive with optimized compression (level 6 for speed)
-    const archive = archiver('zip', { zlib: { level: 6 } });
+    // Estimate if this job is too large (roughly 1 PDF per second, need 30s buffer)
+    const estimatedTime = allTasks.length * 1000; // 1s per PDF estimate
+    const elapsed = Date.now() - startTime;
+    const remaining = maxRuntime - elapsed;
+    if (estimatedTime > remaining - 30000) {
+      throw new Error(
+        `Job too large (${allTasks.length} PDFs, estimated ${Math.round(estimatedTime / 1000)}s, only ${Math.round(remaining / 1000)}s remaining). Will retry in next invocation.`
+      );
+    }
+
+    // Create ZIP archive with optimized compression (level 1 for speed on large files)
+    const archive = archiver('zip', { zlib: { level: 1 } });
     const passThrough = new PassThrough();
     archive.pipe(passThrough);
 
-    // Download and add PDFs in parallel batches (10 at a time)
-    const BATCH_SIZE = 10;
+    // Download and add PDFs in parallel batches (20 at a time for better throughput)
+    const BATCH_SIZE = 20;
+    let processedCount = 0;
     for (let i = 0; i < allTasks.length; i += BATCH_SIZE) {
+      // Check timeout before each batch
+      const batchElapsed = Date.now() - startTime;
+      const batchRemaining = maxRuntime - batchElapsed;
+      if (batchRemaining < 30000) {
+        throw new Error(
+          `Timeout approaching (${Math.round(batchRemaining / 1000)}s remaining). Processed ${processedCount}/${allTasks.length} PDFs. Will retry in next invocation.`
+        );
+      }
+
       const batch = allTasks.slice(i, i + BATCH_SIZE);
 
       // Download batch in parallel
@@ -180,7 +226,13 @@ async function createBundleDirectly(jobId: string): Promise<void> {
           const webStream = pdfData.stream();
           const nodeStream = Readable.fromWeb(webStream as any);
           archive.append(nodeStream, { name: fileName });
+          processedCount++;
         }
+      }
+
+      // Log progress every 100 PDFs
+      if (processedCount % 100 === 0) {
+        console.log(`Progress: ${processedCount}/${allTasks.length} PDFs added to ZIP`);
       }
     }
 
