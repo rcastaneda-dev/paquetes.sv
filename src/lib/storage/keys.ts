@@ -41,11 +41,8 @@ export function toSafePathSegment(input: string, maxLength = 200): string {
 }
 
 /**
- * Build the Storage object key for a report PDF.
- * Format: `{jobId}/{region}/{departamento}/{distrito}/{schoolCodigoCe}-{taskId}.pdf`
- *
- * Including taskId ensures collision-free keys even if duplicate tasks
- * somehow exist in the DB (e.g., from race conditions or retries).
+ * Build the Storage object key for a report PDF (tallas).
+ * Format: `{jobId}/{region}/{departamento}/{distrito}/{schoolCodigoCe}-tallas.pdf`
  *
  * @example
  * buildReportPdfStorageKey({
@@ -53,10 +50,9 @@ export function toSafePathSegment(input: string, maxLength = 200): string {
  *   region: "Occidental",
  *   departamento: "Santa Ana",
  *   distrito: "Santa Ana",
- *   schoolCodigoCe: "72006",
- *   taskId: "def-456"
+ *   schoolCodigoCe: "72006"
  * })
- * → "abc-123/Occidental/Santa-Ana/Santa-Ana/72006-def-456.pdf"
+ * → "abc-123/Occidental/Santa-Ana/Santa-Ana/72006-tallas.pdf"
  */
 export function buildReportPdfStorageKey(args: {
   jobId: string;
@@ -64,15 +60,42 @@ export function buildReportPdfStorageKey(args: {
   departamento: string;
   distrito: string;
   schoolCodigoCe: string;
-  taskId: string;
 }): string {
-  const { jobId, region, departamento, distrito, schoolCodigoCe, taskId } = args;
+  const { jobId, region, departamento, distrito, schoolCodigoCe } = args;
   const safeSchool = toSafePathSegment(schoolCodigoCe, 50);
   const safeRegion = toSafePathSegment(region || 'N/A', 80);
   const safeDepartamento = toSafePathSegment(departamento || 'N/A', 80);
   const safeDistrito = toSafePathSegment(distrito || 'N/A', 80);
-  const safeTaskId = toSafePathSegment(taskId, 50);
-  return `${jobId}/${safeRegion}/${safeDepartamento}/${safeDistrito}/${safeSchool}-${safeTaskId}.pdf`;
+  return `${jobId}/${safeRegion}/${safeDepartamento}/${safeDistrito}/${safeSchool}-tallas.pdf`;
+}
+
+/**
+ * Build the Storage object key for an etiquetas PDF.
+ * Format: `{jobId}/{region}/{departamento}/{distrito}/{schoolCodigoCe}-etiquetas.pdf`
+ *
+ * @example
+ * buildReportEtiquetasStorageKey({
+ *   jobId: "abc-123",
+ *   region: "Occidental",
+ *   departamento: "Santa Ana",
+ *   distrito: "Santa Ana",
+ *   schoolCodigoCe: "72006"
+ * })
+ * → "abc-123/Occidental/Santa-Ana/Santa-Ana/72006-etiquetas.pdf"
+ */
+export function buildReportEtiquetasStorageKey(args: {
+  jobId: string;
+  region: string;
+  departamento: string;
+  distrito: string;
+  schoolCodigoCe: string;
+}): string {
+  const { jobId, region, departamento, distrito, schoolCodigoCe } = args;
+  const safeSchool = toSafePathSegment(schoolCodigoCe, 50);
+  const safeRegion = toSafePathSegment(region || 'N/A', 80);
+  const safeDepartamento = toSafePathSegment(departamento || 'N/A', 80);
+  const safeDistrito = toSafePathSegment(distrito || 'N/A', 80);
+  return `${jobId}/${safeRegion}/${safeDepartamento}/${safeDistrito}/${safeSchool}-etiquetas.pdf`;
 }
 
 /**

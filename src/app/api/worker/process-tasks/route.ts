@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase/server';
-import { generateStudentReportPDF } from '@/lib/pdf/generator';
-import { buildReportPdfStorageKey } from '@/lib/storage/keys';
+import { generateStudentReportPDF, generateStudentLabelsPDF } from '@/lib/pdf/generator';
+import { buildReportPdfStorageKey, buildReportEtiquetasStorageKey } from '@/lib/storage/keys';
 import type { ClaimedTask, StudentReportRow } from '@/types/database';
 
 /**
@@ -234,37 +234,70 @@ async function processTask(task: ClaimedTask): Promise<void> {
       return;
     }
 
-    // Generate PDF
-    const pdfStream = generateStudentReportPDF({
+    // Generate tallas PDF
+    const tallasPdfStream = generateStudentReportPDF({
       schoolName: school.nombre_ce,
       codigo_ce: schoolCodigoCe,
       grado: taskGrado,
       students: studentRows,
     });
 
-    // Convert PDF output to buffer.
-    // NOTE: `pdfkit.standalone` does not implement AsyncIterable, so `for await (...)` can throw.
-    const pdfBuffer = await toBuffer(pdfStream);
+    // Generate etiquetas PDF
+    const etiquetasPdfStream = generateStudentLabelsPDF({
+      schoolName: school.nombre_ce,
+      codigo_ce: schoolCodigoCe,
+      grado: taskGrado,
+      students: studentRows,
+    });
 
-    // Upload to Supabase Storage with safe, collision-free key
-    const fileName = buildReportPdfStorageKey({
+    // Convert PDF outputs to buffers.
+    // NOTE: `pdfkit.standalone` does not implement AsyncIterable, so `for await (...)` can throw.
+    const tallasPdfBuffer = await toBuffer(tallasPdfStream);
+    const etiquetasPdfBuffer = await toBuffer(etiquetasPdfStream);
+
+    // Build storage keys for both PDFs
+    const tallasFileName = buildReportPdfStorageKey({
       jobId: task.job_id,
       region: school.region,
       departamento: school.departamento,
       distrito: school.distrito,
       schoolCodigoCe: schoolCodigoCe,
-      taskId: task.task_id,
     });
-    const { error: uploadError } = await supabaseServer.storage
+
+    const etiquetasFileName = buildReportEtiquetasStorageKey({
+      jobId: task.job_id,
+      region: school.region,
+      departamento: school.departamento,
+      distrito: school.distrito,
+      schoolCodigoCe: schoolCodigoCe,
+    });
+
+    // Upload tallas PDF to Supabase Storage
+    const { error: tallasUploadError } = await supabaseServer.storage
       .from('reports')
-      .upload(fileName, pdfBuffer, {
+      .upload(tallasFileName, tallasPdfBuffer, {
         contentType: 'application/pdf',
         upsert: true,
       });
 
-    if (uploadError) {
-      throw new Error(`Failed to upload PDF: ${uploadError.message}`);
+    if (tallasUploadError) {
+      throw new Error(`Failed to upload tallas PDF: ${tallasUploadError.message}`);
     }
+
+    // Upload etiquetas PDF to Supabase Storage
+    const { error: etiquetasUploadError } = await supabaseServer.storage
+      .from('reports')
+      .upload(etiquetasFileName, etiquetasPdfBuffer, {
+        contentType: 'application/pdf',
+        upsert: true,
+      });
+
+    if (etiquetasUploadError) {
+      throw new Error(`Failed to upload etiquetas PDF: ${etiquetasUploadError.message}`);
+    }
+
+    // Use tallas file name for the task's pdf_path (backward compatibility)
+    const fileName = tallasFileName;
 
     // Mark task as complete
     await supabaseServer.rpc('update_task_status', {
