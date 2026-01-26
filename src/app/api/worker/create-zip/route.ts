@@ -165,14 +165,23 @@ async function createBundleDirectly(
 
     console.log(`Bundling ${allTasks.length} PDFs for job ${jobId}`);
 
-    // Estimate if this job is too large (roughly 1 PDF per second, need 30s buffer)
-    const estimatedTime = allTasks.length * 1000; // 1s per PDF estimate
+    // Estimate processing time: with parallel downloads (20 at a time)
+    // Each batch processes 20 PDFs in parallel, taking ~1-2s per batch
+    const PDFS_PER_BATCH = 20;
+    const ESTIMATED_MS_PER_BATCH = 2000; // 2s per batch (20 PDFs downloaded in parallel)
+    const batchesNeeded = Math.ceil(allTasks.length / PDFS_PER_BATCH);
+    const estimatedTime = batchesNeeded * ESTIMATED_MS_PER_BATCH;
+
     const elapsed = Date.now() - startTime;
     const remaining = maxRuntime - elapsed;
-    if (estimatedTime > remaining - 30000) {
-      throw new Error(
-        `Job too large (${allTasks.length} PDFs, estimated ${Math.round(estimatedTime / 1000)}s, only ${Math.round(remaining / 1000)}s remaining). Will retry in next invocation.`
+
+    // Only reject if we're very sure it won't fit (need 60s buffer for finalization + upload)
+    if (estimatedTime > remaining - 60000) {
+      console.warn(
+        `Job may be too large (${allTasks.length} PDFs, estimated ${Math.round(estimatedTime / 1000)}s, only ${Math.round(remaining / 1000)}s remaining). Attempting anyway...`
       );
+      // Don't throw - let it try and fail naturally if it actually times out
+      // This prevents infinite retry loops
     }
 
     // Create ZIP archive with optimized compression (level 1 for speed on large files)
@@ -184,10 +193,10 @@ async function createBundleDirectly(
     const BATCH_SIZE = 20;
     let processedCount = 0;
     for (let i = 0; i < allTasks.length; i += BATCH_SIZE) {
-      // Check timeout before each batch
+      // Check timeout before each batch (need 60s for finalization + upload)
       const batchElapsed = Date.now() - startTime;
       const batchRemaining = maxRuntime - batchElapsed;
-      if (batchRemaining < 30000) {
+      if (batchRemaining < 60000) {
         throw new Error(
           `Timeout approaching (${Math.round(batchRemaining / 1000)}s remaining). Processed ${processedCount}/${allTasks.length} PDFs. Will retry in next invocation.`
         );
