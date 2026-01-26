@@ -8,15 +8,6 @@ import { Button } from '@/components/ui/Button';
 import { JobProgress } from '@/components/JobProgress';
 import type { ReportJob, ReportTask, JobProgress as JobProgressType } from '@/types/database';
 
-interface ZipProgress {
-  total: number;
-  pending: number;
-  running: number;
-  complete: number;
-  failed: number;
-  inProgress: boolean;
-}
-
 export default function JobDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -26,7 +17,6 @@ export default function JobDetailPage() {
   const [progress, setProgress] = useState<JobProgressType | null>(null);
   const [tasks, setTasks] = useState<ReportTask[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [zipProgress, setZipProgress] = useState<ZipProgress | null>(null);
   const [isZipLoading, setIsZipLoading] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
@@ -44,7 +34,6 @@ export default function JobDetailPage() {
       setJob(data.job);
       setProgress(data.progress);
       setTasks(data.tasks || []);
-      setZipProgress(data.zipProgress || null);
     } catch (error) {
       console.error('Error fetching job details:', error);
     } finally {
@@ -275,13 +264,9 @@ export default function JobDetailPage() {
                     </Button>
                   )}
                 {(job.status === 'complete' || job.status === 'failed') &&
-                  (!job.zip_path || !job.zip_path.endsWith('bundle.zip')) &&
-                  (!zipProgress ||
-                    (zipProgress.pending === 0 &&
-                      zipProgress.running === 0 &&
-                      zipProgress.failed === 0)) && (
+                  (!job.zip_path || !job.zip_path.endsWith('bundle.zip')) && (
                     <Button onClick={handleDownload} disabled={true}>
-                      Preparando descarga...
+                      Generando ZIP...
                     </Button>
                   )}
               </div>
@@ -293,57 +278,6 @@ export default function JobDetailPage() {
             </CardContent>
           )}
         </Card>
-
-        {/* ZIP Generation Progress */}
-        {(job.status === 'complete' || job.status === 'failed') &&
-          zipProgress &&
-          zipProgress.inProgress && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Generando archivos ZIP...</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">
-                    Creando partes ZIP de los PDFs generados
-                  </span>
-                  <span className="font-medium">
-                    {zipProgress.complete} de {zipProgress.total} partes completas
-                  </span>
-                </div>
-                <div className="h-2.5 w-full rounded-full bg-secondary">
-                  <div
-                    className="h-2.5 rounded-full bg-blue-600 transition-all duration-300 dark:bg-blue-500"
-                    style={{
-                      width: `${zipProgress.total > 0 ? (zipProgress.complete / zipProgress.total) * 100 : 0}%`,
-                    }}
-                  />
-                </div>
-                <div className="grid grid-cols-4 gap-2 text-xs">
-                  <div className="rounded bg-gray-100 p-2 dark:bg-gray-800">
-                    <div className="font-medium">{zipProgress.pending}</div>
-                    <div className="text-muted-foreground">Pendientes</div>
-                  </div>
-                  <div className="rounded bg-blue-100 p-2 dark:bg-blue-900">
-                    <div className="font-medium">{zipProgress.running}</div>
-                    <div className="text-muted-foreground">En proceso</div>
-                  </div>
-                  <div className="rounded bg-green-100 p-2 dark:bg-green-900">
-                    <div className="font-medium">{zipProgress.complete}</div>
-                    <div className="text-muted-foreground">Completas</div>
-                  </div>
-                  <div className="rounded bg-red-100 p-2 dark:bg-red-900">
-                    <div className="font-medium">{zipProgress.failed}</div>
-                    <div className="text-muted-foreground">Fallidas</div>
-                  </div>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Los archivos ZIP estarán disponibles para descargar cuando todas las partes estén
-                  completas.
-                </p>
-              </CardContent>
-            </Card>
-          )}
 
         {/* Download Ready Notice */}
         {(job.status === 'complete' || job.status === 'failed') &&

@@ -214,11 +214,11 @@ sequenceDiagram
         Worker->>DB: Mark task complete
     end
 
-    loop Every 5 minutes (Cron)
+    loop Every 1 hour (Cron)
         Worker->>DB: Find completed jobs
-        Worker->>Storage: Download all PDFs
-        Worker->>Worker: Create ZIP
-        Worker->>Storage: Upload ZIP
+        Worker->>Storage: Download PDFs in parallel batches
+        Worker->>Worker: Stream into bundle.zip
+        Worker->>Storage: Upload bundle.zip
         Worker->>DB: Update job with ZIP path
     end
 
