@@ -42,7 +42,7 @@ export function toSafePathSegment(input: string, maxLength = 200): string {
 
 /**
  * Build the Storage object key for a report PDF.
- * Format: `{jobId}/{schoolCodigoCe}-{safeGrado}-{taskId}.pdf`
+ * Format: `{jobId}/{region}/{departamento}/{distrito}/{schoolCodigoCe}-{taskId}.pdf`
  *
  * Including taskId ensures collision-free keys even if duplicate tasks
  * somehow exist in the DB (e.g., from race conditions or retries).
@@ -50,23 +50,29 @@ export function toSafePathSegment(input: string, maxLength = 200): string {
  * @example
  * buildReportPdfStorageKey({
  *   jobId: "abc-123",
+ *   region: "Occidental",
+ *   departamento: "Santa Ana",
+ *   distrito: "Santa Ana",
  *   schoolCodigoCe: "72006",
- *   grado: "Séptimo Grado",
  *   taskId: "def-456"
  * })
- * → "abc-123/72006-Septimo-Grado-def-456.pdf"
+ * → "abc-123/Occidental/Santa-Ana/Santa-Ana/72006-def-456.pdf"
  */
 export function buildReportPdfStorageKey(args: {
   jobId: string;
+  region: string;
+  departamento: string;
+  distrito: string;
   schoolCodigoCe: string;
-  grado: string;
   taskId: string;
 }): string {
-  const { jobId, schoolCodigoCe, grado, taskId } = args;
+  const { jobId, region, departamento, distrito, schoolCodigoCe, taskId } = args;
   const safeSchool = toSafePathSegment(schoolCodigoCe, 50);
-  const safeGrado = toSafePathSegment(grado, 80);
+  const safeRegion = toSafePathSegment(region || 'N/A', 80);
+  const safeDepartamento = toSafePathSegment(departamento || 'N/A', 80);
+  const safeDistrito = toSafePathSegment(distrito || 'N/A', 80);
   const safeTaskId = toSafePathSegment(taskId, 50);
-  return `${jobId}/${safeSchool}-${safeGrado}-${safeTaskId}.pdf`;
+  return `${jobId}/${safeRegion}/${safeDepartamento}/${safeDistrito}/${safeSchool}-${safeTaskId}.pdf`;
 }
 
 /**

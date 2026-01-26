@@ -194,10 +194,10 @@ async function processTask(task: ClaimedTask): Promise<void> {
       return;
     }
 
-    // Fetch school name
+    // Fetch school info (used in PDF header and Storage path)
     const { data: school, error: schoolError } = await supabaseServer
       .from('schools')
-      .select('nombre_ce')
+      .select('nombre_ce, region, departamento, distrito')
       .eq('codigo_ce', schoolCodigoCe)
       .single();
 
@@ -249,8 +249,10 @@ async function processTask(task: ClaimedTask): Promise<void> {
     // Upload to Supabase Storage with safe, collision-free key
     const fileName = buildReportPdfStorageKey({
       jobId: task.job_id,
+      region: school.region,
+      departamento: school.departamento,
+      distrito: school.distrito,
       schoolCodigoCe: schoolCodigoCe,
-      grado: taskGrado,
       taskId: task.task_id,
     });
     const { error: uploadError } = await supabaseServer.storage
