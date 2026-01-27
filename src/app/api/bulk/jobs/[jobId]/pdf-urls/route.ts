@@ -8,10 +8,7 @@ import { createClient } from '@supabase/supabase-js';
  * signed URLs that the client can use to download PDFs and create
  * a ZIP bundle in the browser.
  */
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { jobId: string } }
-) {
+export async function GET(request: NextRequest, { params }: { params: { jobId: string } }) {
   try {
     const jobId = params.jobId;
 
@@ -19,10 +16,7 @@ export async function GET(
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
     if (!supabaseUrl || !supabaseServiceKey) {
-      return NextResponse.json(
-        { error: 'Missing Supabase configuration' },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: 'Missing Supabase configuration' }, { status: 500 });
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -39,14 +33,22 @@ export async function GET(
     }
 
     // Get all completed tasks with PDFs
-    const { data: tasks, error: tasksError } = await supabase
+    // Use range(0, 9999) to explicitly fetch up to 10k rows (default is 1000)
+    const {
+      data: tasks,
+      error: tasksError,
+      count,
+    } = await supabase
       .from('report_tasks')
-      .select('id, pdf_path, school_codigo_ce, grado')
+      .select('id, pdf_path, school_codigo_ce, grado', { count: 'exact' })
       .eq('job_id', jobId)
       .eq('status', 'complete')
       .not('pdf_path', 'is', null)
       .order('school_codigo_ce', { ascending: true })
-      .order('grado', { ascending: true });
+      .order('grado', { ascending: true })
+      .range(0, 9999); // Explicitly allow up to 10k rows
+
+    console.log(`Fetched ${tasks?.length || 0} tasks (total count: ${count})`);
 
     if (tasksError) {
       return NextResponse.json(
@@ -56,15 +58,21 @@ export async function GET(
     }
 
     if (!tasks || tasks.length === 0) {
-      return NextResponse.json(
-        { error: 'No completed tasks found for this job' },
-        { status: 404 }
+      return NextResponse.json({ error: 'No completed tasks found for this job' }, { status: 404 });
+    }
+
+    if (count && count > tasks.length) {
+      console.warn(
+        `Warning: Only fetched ${tasks.length} of ${count} total tasks. Some PDFs will be missing from ZIP.`
       );
     }
 
     // Generate signed URLs for all PDFs (valid for 1 hour)
+    console.log(`Generating signed URLs for ${tasks.length} PDFs...`);
+    const startTime = Date.now();
+
     const pdfUrls = await Promise.all(
-      tasks.map(async (task) => {
+      tasks.map(async task => {
         const { data: signedUrl, error } = await supabase.storage
           .from('reports')
           .createSignedUrl(task.pdf_path!, 3600);
@@ -83,8 +91,12 @@ export async function GET(
       })
     );
 
+    const elapsedMs = Date.now() - startTime;
+    console.log(`Generated ${pdfUrls.length} signed URLs in ${elapsedMs}ms`);
+
     // Filter out any failed URL generations
-    const validUrls = pdfUrls.filter((url) => url !== null);
+    const validUrls = pdfUrls.filter(url => url !== null);
+    console.log(`Valid URLs: ${validUrls.length} / ${pdfUrls.length}`);
 
     return NextResponse.json({
       pdfs: validUrls,
@@ -93,10 +105,7 @@ export async function GET(
     });
   } catch (error) {
     console.error('Error generating PDF URLs:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
