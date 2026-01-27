@@ -16,22 +16,29 @@ export async function POST(request: NextRequest, { params }: { params: { jobId: 
     const jobId = params.jobId;
 
     // Call Supabase Edge Function to create bundle
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    // Note: API routes run server-side, so we can use either NEXT_PUBLIC_ or regular env vars
+    const supabaseUrl =
+      process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+    const supabaseAnonKey =
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
 
     if (!supabaseUrl || !supabaseAnonKey) {
+      console.error('Missing Supabase env vars:', { supabaseUrl: !!supabaseUrl, supabaseAnonKey: !!supabaseAnonKey });
       return NextResponse.json({ error: 'Missing Supabase configuration' }, { status: 500 });
     }
 
     const edgeFunctionUrl = `${supabaseUrl}/functions/v1/create-bundle-zip?jobId=${jobId}`;
 
     console.log(`Manually triggering ZIP creation for job ${jobId}`);
+    console.log(`Edge Function URL: ${edgeFunctionUrl}`);
+    console.log(`Using anon key (first 20 chars): ${supabaseAnonKey.substring(0, 20)}...`);
 
     const response = await fetch(edgeFunctionUrl, {
       method: 'GET',
       headers: {
         Authorization: `Bearer ${supabaseAnonKey}`,
         'Content-Type': 'application/json',
+        apikey: supabaseAnonKey, // Supabase also needs the apikey header
       },
     });
 
