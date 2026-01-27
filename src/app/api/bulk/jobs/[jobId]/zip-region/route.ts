@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import archiver from 'archiver';
-import { Readable } from 'stream';
 
 /**
  * Generate a regional ZIP file on-demand.
@@ -16,9 +15,11 @@ import { Readable } from 'stream';
  * Flow:
  * 1. Check if ZIP already exists for this region
  * 2. If exists, return signed URL
- * 3. If not, generate ZIP on-the-fly
- * 4. Upload to storage
- * 5. Return signed URL
+ * 3. Query database for PDFs in this region (filter by pdf_path)
+ * 4. Download PDFs in parallel batches
+ * 5. Stream into ZIP archive
+ * 6. Upload to storage
+ * 7. Return signed URL
  */
 export async function GET(request: NextRequest, { params }: { params: { jobId: string } }) {
   const startTime = Date.now();
@@ -61,6 +62,7 @@ export async function GET(request: NextRequest, { params }: { params: { jobId: s
     }
 
     const regionLower = region.toLowerCase();
+    const regionUpper = region.toUpperCase();
     const zipPath = `bundles/${jobId}-${regionLower}.zip`;
 
     // Check if ZIP already exists
@@ -81,29 +83,29 @@ export async function GET(request: NextRequest, { params }: { params: { jobId: s
       });
     }
 
-    console.log(`Generating ZIP for region: ${regionLower}`);
+    console.log(`Generating ZIP for region: ${regionUpper}`);
 
-    // Fetch PDFs for this region from storage
-    // Storage structure: [jobId]/[region]/school-grade.pdf
-    const { data: files, error: listError } = await supabase.storage
-      .from('reports')
-      .list(`${jobId}/${regionLower}`, {
-        limit: 10000,
-        sortBy: { column: 'name', order: 'asc' },
-      });
+    // Fetch tasks with PDFs from this region using database
+    // PDF paths are stored as: jobId/REGION/DEPARTAMENTO/MUNICIPIO/school-tallas.pdf
+    const { data: tasks, error: tasksError } = await supabase
+      .from('report_tasks')
+      .select('id, pdf_path, school_codigo_ce, grado')
+      .eq('job_id', jobId)
+      .eq('status', 'complete')
+      .not('pdf_path', 'is', null)
+      .ilike('pdf_path', `%/${regionUpper}/%`) // Filter by region in path (case-insensitive)
+      .order('school_codigo_ce', { ascending: true });
 
-    if (listError) {
-      console.error('Error listing files:', listError);
-      return NextResponse.json({ error: 'Failed to list PDFs' }, { status: 500 });
+    if (tasksError) {
+      console.error('Error fetching tasks:', tasksError);
+      return NextResponse.json({ error: 'Failed to fetch tasks' }, { status: 500 });
     }
 
-    if (!files || files.length === 0) {
-      return NextResponse.json({ error: `No PDFs found for region: ${regionLower}` }, { status: 404 });
+    if (!tasks || tasks.length === 0) {
+      return NextResponse.json({ error: `No PDFs found for region: ${regionUpper}` }, { status: 404 });
     }
 
-    // Filter only PDF files
-    const pdfFiles = files.filter(f => f.name.endsWith('.pdf'));
-    console.log(`Found ${pdfFiles.length} PDFs for ${regionLower}`);
+    console.log(`Found ${tasks.length} PDFs for ${regionUpper}`);
 
     // Create ZIP archive
     const archive = archiver('zip', {
@@ -117,31 +119,34 @@ export async function GET(request: NextRequest, { params }: { params: { jobId: s
     const BATCH_SIZE = 20;
     let completed = 0;
 
-    for (let i = 0; i < pdfFiles.length; i += BATCH_SIZE) {
-      const batch = pdfFiles.slice(i, i + BATCH_SIZE);
+    for (let i = 0; i < tasks.length; i += BATCH_SIZE) {
+      const batch = tasks.slice(i, i + BATCH_SIZE);
 
       await Promise.all(
-        batch.map(async file => {
+        batch.map(async task => {
           try {
-            const filePath = `${jobId}/${regionLower}/${file.name}`;
             const { data: pdfData, error: downloadError } = await supabase.storage
               .from('reports')
-              .download(filePath);
+              .download(task.pdf_path);
 
             if (downloadError || !pdfData) {
-              console.error(`Failed to download ${filePath}`);
+              console.error(`Failed to download ${task.pdf_path}`);
               return;
             }
 
             const buffer = Buffer.from(await pdfData.arrayBuffer());
-            archive.append(buffer, { name: file.name });
+
+            // Extract filename from path: path/to/file.pdf -> file.pdf
+            const fileName = task.pdf_path.split('/').pop() || `${task.school_codigo_ce}-${task.grado}.pdf`;
+
+            archive.append(buffer, { name: fileName });
             completed++;
 
             if (completed % 100 === 0) {
-              console.log(`Progress: ${completed}/${pdfFiles.length} PDFs`);
+              console.log(`Progress: ${completed}/${tasks.length} PDFs`);
             }
           } catch (err) {
-            console.error(`Error processing ${file.name}:`, err);
+            console.error(`Error processing ${task.pdf_path}:`, err);
           }
         })
       );
