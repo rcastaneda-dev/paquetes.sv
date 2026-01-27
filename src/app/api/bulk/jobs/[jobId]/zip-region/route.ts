@@ -136,10 +136,16 @@ export async function GET(request: NextRequest, { params }: { params: { jobId: s
 
             const buffer = Buffer.from(await pdfData.arrayBuffer());
 
-            // Extract filename from path: path/to/file.pdf -> file.pdf
-            const fileName = task.pdf_path.split('/').pop() || `${task.school_codigo_ce}-${task.grado}.pdf`;
+            // Preserve folder structure from region onwards
+            // Input: jobId/REGION/DEPARTAMENTO/MUNICIPIO/80107-tallas.pdf
+            // Output: DEPARTAMENTO/MUNICIPIO/80107-tallas.pdf
+            const pathParts = task.pdf_path.split('/');
+            const regionIndex = pathParts.findIndex(part => part.toUpperCase() === regionUpper);
+            const relativePath = regionIndex >= 0
+              ? pathParts.slice(regionIndex + 1).join('/')  // Keep everything after REGION
+              : pathParts[pathParts.length - 1];  // Fallback to just filename
 
-            archive.append(buffer, { name: fileName });
+            archive.append(buffer, { name: relativePath });
             completed++;
 
             if (completed % 100 === 0) {
