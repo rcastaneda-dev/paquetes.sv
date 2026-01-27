@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import JSZip from 'jszip';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { JobProgress } from '@/components/JobProgress';
@@ -18,9 +17,9 @@ export default function JobDetailPage() {
   const [progress, setProgress] = useState<JobProgressType | null>(null);
   const [tasks, setTasks] = useState<ReportTask[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isZipLoading, setIsZipLoading] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
+  const [loadingRegions, setLoadingRegions] = useState<Record<string, boolean>>({});
 
   const fetchJobDetails = async () => {
     try {
@@ -79,104 +78,37 @@ export default function JobDetailPage() {
     );
   };
 
-  const handleGenerateZip = async () => {
+  const handleDownloadRegion = async (region: string) => {
     try {
-      setIsZipLoading(true);
+      setLoadingRegions(prev => ({ ...prev, [region]: true }));
 
-      // Fetch all PDF URLs from the API
-      const response = await fetch(`/api/bulk/jobs/${jobId}/pdf-urls`);
+      const response = await fetch(`/api/bulk/jobs/${jobId}/zip-region?region=${region}`);
       const data = await response.json();
 
       if (!response.ok) {
-        alert(`Error: ${data.error || 'Error al obtener los PDFs'}`);
-        return;
-      }
-
-      const { pdfs, total } = data;
-
-      if (!pdfs || pdfs.length === 0) {
-        alert('No se encontraron PDFs para este trabajo');
-        return;
-      }
-
-      // Create ZIP file client-side
-      const zip = new JSZip();
-      let downloadedCount = 0;
-
-      // Download and add PDFs to ZIP
-      for (const pdf of pdfs) {
-        try {
-          // Fetch PDF data
-          const pdfResponse = await fetch(pdf.url);
-          if (!pdfResponse.ok) {
-            console.error(`Failed to download ${pdf.fileName}`);
-            continue;
-          }
-
-          const pdfBlob = await pdfResponse.blob();
-          zip.file(pdf.fileName, pdfBlob);
-          downloadedCount++;
-
-          // Update progress (optional: you could show this in UI)
-          if (downloadedCount % 10 === 0) {
-            console.log(`Descargados ${downloadedCount}/${total} PDFs...`);
-          }
-        } catch (error) {
-          console.error(`Error downloading ${pdf.fileName}:`, error);
-        }
-      }
-
-      if (downloadedCount === 0) {
-        alert('No se pudo descargar ningún PDF');
-        return;
-      }
-
-      // Generate ZIP file
-      console.log('Generando archivo ZIP...');
-      const zipBlob = await zip.generateAsync({ type: 'blob' });
-
-      // Trigger download
-      const downloadUrl = URL.createObjectURL(zipBlob);
-      const link = document.createElement('a');
-      link.href = downloadUrl;
-      link.download = `bundle-${jobId}.zip`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(downloadUrl);
-
-      alert(`ZIP generado exitosamente con ${downloadedCount} PDFs`);
-    } catch (error) {
-      console.error('Error generating ZIP:', error);
-      alert('Error al generar el archivo ZIP');
-    } finally {
-      setIsZipLoading(false);
-    }
-  };
-
-  const handleDownload = async () => {
-    try {
-      setIsZipLoading(true);
-      const response = await fetch(`/api/bulk/jobs/${jobId}/download`);
-      const data = await response.json();
-
-      if (!response.ok) {
-        alert(`Error: ${data.error || 'Error al obtener la descarga'}`);
+        alert(`Error: ${data.error || 'Error al generar ZIP regional'}`);
         return;
       }
 
       if (data.downloadUrl) {
         window.open(data.downloadUrl, '_blank');
-      } else {
-        alert('No hay URL de descarga disponible');
+
+        if (data.cached) {
+          alert(`ZIP de ${region} descargado (previamente generado)`);
+        } else {
+          alert(
+            `ZIP de ${region} generado exitosamente\n${data.pdfCount} PDFs, ${data.zipSizeMB} MB`
+          );
+        }
       }
     } catch (error) {
-      console.error('Error downloading:', error);
-      alert('Error al descargar el archivo');
+      console.error(`Error downloading ${region}:`, error);
+      alert(`Error al descargar ZIP de ${region}`);
     } finally {
-      setIsZipLoading(false);
+      setLoadingRegions(prev => ({ ...prev, [region]: false }));
     }
   };
+
 
   const handleCancelJob = async () => {
     if (!job) return;
@@ -332,12 +264,6 @@ export default function JobDetailPage() {
                       {isRetrying ? 'Reintentando...' : 'Reintentar Fallidos'}
                     </Button>
                   )}
-                {(job.status === 'complete' || job.status === 'failed') &&
-                  (!job.zip_path || !job.zip_path.endsWith('bundle.zip')) && (
-                    <Button onClick={handleGenerateZip} disabled={isZipLoading}>
-                      {isZipLoading ? 'Generando ZIP...' : 'Generar ZIP'}
-                    </Button>
-                  )}
               </div>
             </div>
           </CardHeader>
@@ -348,43 +274,50 @@ export default function JobDetailPage() {
           )}
         </Card>
 
-        {/* Download Ready Notice */}
-        {(job.status === 'complete' || job.status === 'failed') &&
-          job.zip_path &&
-          job.zip_path.endsWith('bundle.zip') && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Descarga Lista</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {job.status === 'failed' && progress && progress.failed_tasks > 0 && (
-                  <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-3 text-sm dark:border-yellow-800 dark:bg-yellow-950/20">
-                    <p className="font-medium text-yellow-800 dark:text-yellow-200">
-                      ⚠️ Descarga parcial
-                    </p>
-                    <p className="mt-1 text-yellow-700 dark:text-yellow-300">
-                      Este trabajo terminó con {progress.failed_tasks} tarea(s) fallida(s). La
-                      descarga contiene solo los PDFs generados exitosamente (
-                      {progress.complete_tasks} de {progress.total_tasks}).
-                    </p>
-                  </div>
-                )}
-                <div className="flex items-center justify-between rounded-lg border bg-green-50 p-4 dark:bg-green-950/20">
-                  <div>
-                    <p className="font-medium text-green-900 dark:text-green-100">
-                      ✓ Archivo ZIP listo para descargar
-                    </p>
-                    <p className="text-sm text-green-700 dark:text-green-300">
-                      {progress ? progress.complete_tasks : 0} PDFs incluidos
-                    </p>
-                  </div>
-                  <Button onClick={handleDownload} disabled={isZipLoading}>
-                    {isZipLoading ? 'Descargando...' : 'Descargar ZIP'}
-                  </Button>
+        {/* Regional Downloads */}
+        {(job.status === 'complete' || job.status === 'failed') && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Descargar PDFs por Región</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {job.status === 'failed' && progress && progress.failed_tasks > 0 && (
+                <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-3 text-sm dark:border-yellow-800 dark:bg-yellow-950/20">
+                  <p className="font-medium text-yellow-800 dark:text-yellow-200">
+                    ⚠️ Algunos PDFs fallaron
+                  </p>
+                  <p className="mt-1 text-yellow-700 dark:text-yellow-300">
+                    {progress.failed_tasks} tarea(s) fallida(s). Las descargas contienen solo los
+                    PDFs generados exitosamente.
+                  </p>
                 </div>
-              </CardContent>
-            </Card>
-          )}
+              )}
+              <p className="text-sm text-muted-foreground">
+                Haz clic en una región para generar y descargar el archivo ZIP (~1,500 PDFs por
+                región, toma 30-60 segundos)
+              </p>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {['oriental', 'occidental', 'paracentral', 'central'].map(region => (
+                  <Button
+                    key={region}
+                    onClick={() => handleDownloadRegion(region)}
+                    disabled={loadingRegions[region]}
+                    variant="outline"
+                    className="h-auto flex-col items-start p-4"
+                  >
+                    <span className="text-lg font-semibold capitalize">{region}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {loadingRegions[region] ? 'Generando ZIP...' : 'Descargar ZIP'}
+                    </span>
+                  </Button>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                💡 Los ZIPs se generan bajo demanda y se almacenan en caché para descargas futuras.
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Tasks list */}
         <Card>
