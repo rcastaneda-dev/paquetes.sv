@@ -306,7 +306,8 @@ serve(async req => {
     const zip = new SimpleZipCreator();
 
     // Download and add PDFs in batches
-    const BATCH_SIZE = 20;
+    // Reduced batch size to prevent memory limit (546) errors
+    const BATCH_SIZE = 5;
     let processedCount = 0;
 
     for (let i = 0; i < allTasks.length; i += BATCH_SIZE) {
@@ -345,8 +346,8 @@ serve(async req => {
         }
       }
 
-      // Log progress every 100 PDFs
-      if (processedCount % 100 === 0) {
+      // Log progress every 20 PDFs
+      if (processedCount % 20 === 0) {
         console.log(`Progress: ${processedCount}/${allTasks.length} PDFs added to ZIP`);
       }
     }
