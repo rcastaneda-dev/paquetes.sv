@@ -221,6 +221,8 @@ serve(async req => {
     }
 
     // Create Supabase client
+    // Supabase Edge Functions automatically validate the Authorization header
+    // We use service role key for elevated permissions (storage access)
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
