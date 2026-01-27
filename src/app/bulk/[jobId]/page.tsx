@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import JSZip from 'jszip';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { JobProgress } from '@/components/JobProgress';
@@ -81,21 +82,70 @@ export default function JobDetailPage() {
   const handleGenerateZip = async () => {
     try {
       setIsZipLoading(true);
-      const response = await fetch(`/api/bulk/jobs/${jobId}/generate-zip`, {
-        method: 'POST',
-      });
+
+      // Fetch all PDF URLs from the API
+      const response = await fetch(`/api/bulk/jobs/${jobId}/pdf-urls`);
       const data = await response.json();
 
       if (!response.ok) {
-        alert(`Error: ${data.error || 'Error al generar el ZIP'}`);
+        alert(`Error: ${data.error || 'Error al obtener los PDFs'}`);
         return;
       }
 
-      alert('ZIP generado exitosamente. Descargando...');
-      if (data.downloadUrl) {
-        window.open(data.downloadUrl, '_blank');
+      const { pdfs, total } = data;
+
+      if (!pdfs || pdfs.length === 0) {
+        alert('No se encontraron PDFs para este trabajo');
+        return;
       }
-      await fetchJobDetails(); // Refresh to show download button
+
+      // Create ZIP file client-side
+      const zip = new JSZip();
+      let downloadedCount = 0;
+
+      // Download and add PDFs to ZIP
+      for (const pdf of pdfs) {
+        try {
+          // Fetch PDF data
+          const pdfResponse = await fetch(pdf.url);
+          if (!pdfResponse.ok) {
+            console.error(`Failed to download ${pdf.fileName}`);
+            continue;
+          }
+
+          const pdfBlob = await pdfResponse.blob();
+          zip.file(pdf.fileName, pdfBlob);
+          downloadedCount++;
+
+          // Update progress (optional: you could show this in UI)
+          if (downloadedCount % 10 === 0) {
+            console.log(`Descargados ${downloadedCount}/${total} PDFs...`);
+          }
+        } catch (error) {
+          console.error(`Error downloading ${pdf.fileName}:`, error);
+        }
+      }
+
+      if (downloadedCount === 0) {
+        alert('No se pudo descargar ningún PDF');
+        return;
+      }
+
+      // Generate ZIP file
+      console.log('Generando archivo ZIP...');
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+
+      // Trigger download
+      const downloadUrl = URL.createObjectURL(zipBlob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = `bundle-${jobId}.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(downloadUrl);
+
+      alert(`ZIP generado exitosamente con ${downloadedCount} PDFs`);
     } catch (error) {
       console.error('Error generating ZIP:', error);
       alert('Error al generar el archivo ZIP');
