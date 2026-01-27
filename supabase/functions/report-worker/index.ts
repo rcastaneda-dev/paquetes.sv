@@ -31,20 +31,8 @@ serve(async req => {
       });
     }
 
-    // Mode selection (so we can schedule this function with different payloads)
-    // - "process": triggers PDF task processing
-    // - "zip": triggers ZIP part creation
-    let mode: 'process' | 'zip' = 'process';
-    if (req.method !== 'GET') {
-      try {
-        const body = await req.json();
-        if (body?.mode === 'zip') mode = 'zip';
-      } catch {
-        // ignore body parse errors; default mode applies
-      }
-    }
-
-    const path = mode === 'zip' ? '/api/worker/create-zip' : '/api/worker/process-tasks';
+    // Trigger PDF task processing on Vercel
+    const path = '/api/worker/process-tasks';
     const res = await fetch(`${nextjsUrl}${path}`, {
       method: 'POST',
       headers: {
@@ -57,7 +45,6 @@ serve(async req => {
     return new Response(
       JSON.stringify(
         {
-          mode,
           upstreamStatus: res.status,
           upstreamBody: text,
         },
