@@ -2,14 +2,19 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 /**
- * Supabase Edge Function for creating ZIP bundles on-demand.
+ * Supabase Edge Function for creating ZIP bundles manually on user request.
  *
  * Flow:
- * 1. User clicks download link → Frontend calls this Edge Function
- * 2. Edge Function fetches PDFs from storage
- * 3. ZIP is generated in-memory
- * 4. ZIP is uploaded to storage
- * 5. Signed URL is returned to user
+ * 1. User clicks "Generate ZIP" button → Frontend calls /api/bulk/jobs/[jobId]/generate-zip
+ * 2. That API route calls this Edge Function
+ * 3. Edge Function fetches PDFs from storage
+ * 4. ZIP is generated in-memory
+ * 5. ZIP is uploaded to storage
+ * 6. Job record is updated with zip_path
+ * 7. Signed URL is returned to user
+ *
+ * IMPORTANT: This is a MANUAL trigger. ZIP bundles are only created when explicitly
+ * requested by the user, NOT automatically after job completion.
  *
  * This replaces the Vercel worker approach with serverless execution on Supabase.
  */

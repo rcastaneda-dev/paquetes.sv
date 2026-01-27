@@ -6,19 +6,31 @@ This Supabase Edge Function generates ZIP bundles of PDFs on-demand when users r
 
 Previously, ZIP generation was handled by a Vercel worker endpoint with timeout constraints. This has been rearchitected to run on Supabase Edge Functions for better scalability and resource limits.
 
-### Flow
+### Flow (Manual Trigger)
 
-1. User clicks download link/button in the UI
-2. Frontend calls `/api/bulk/jobs/[jobId]/download`
-3. That endpoint calls this Supabase Edge Function
-4. Edge Function:
+**IMPORTANT:** ZIP bundles are created ONLY when the user explicitly requests them.
+
+1. User completes a job (or has failed tasks)
+2. User can optionally "Retry Failed Tasks" if needed
+3. **User clicks "Generate ZIP" button** in the UI
+4. Frontend calls `/api/bulk/jobs/[jobId]/generate-zip`
+5. That endpoint calls this Supabase Edge Function
+6. Edge Function:
    - Checks if bundle already exists (returns signed URL if so)
    - Fetches all completed PDFs from Supabase Storage
    - Generates ZIP file in-memory
    - Uploads ZIP to Supabase Storage
    - Updates job record with `zip_path`
    - Returns signed download URL
-5. User receives download URL and can download the bundle
+7. User receives download URL and file downloads automatically
+8. Subsequently, user can click "Download ZIP" to re-download the existing bundle
+
+### Why Manual?
+
+- Allows users to retry failed tasks before creating the bundle
+- Gives users control over when to generate the potentially large file
+- Avoids unnecessary storage costs for jobs that may never be downloaded
+- Users can ensure all tasks are complete before bundling
 
 ## Deployment
 

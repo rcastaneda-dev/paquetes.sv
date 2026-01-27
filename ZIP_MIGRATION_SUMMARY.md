@@ -33,9 +33,13 @@ Creates bundle.zip asynchronously
 ## New Architecture (Supabase)
 
 ```
-User clicks download
+User completes job
     ↓
-Frontend → /api/bulk/jobs/[jobId]/download (Next.js API)
+[Optional] User clicks "Retry Failed Tasks" if needed
+    ↓
+User clicks "Generate ZIP" button
+    ↓
+Frontend → /api/bulk/jobs/[jobId]/generate-zip (Next.js API)
     ↓
 Calls Supabase Edge Function
     ↓
@@ -49,14 +53,21 @@ Supabase Edge Function: create-bundle-zip
         └─ Return signed URL
     ↓
 User gets download immediately
+    ↓
+[Later] User clicks "Download ZIP" → Returns existing bundle
+    ↓
+Frontend → /api/bulk/jobs/[jobId]/download (Next.js API)
+    ↓
+Returns signed URL for existing bundle (no regeneration)
 ```
 
 **Benefits:**
-- On-demand generation (no waiting for cron)
-- No practical timeout limits (Edge Functions handle large jobs)
-- Single-step process (click → download)
-- Cached bundles for subsequent requests
+- **Manual trigger** - User controls when to generate ZIP
+- **Retry workflow** - Users can retry failed tasks before bundling
+- No timeout limits (Edge Functions handle large jobs)
+- Cached bundles for subsequent downloads
 - Runs on same platform as storage (faster)
+- Reduces storage costs (only creates ZIPs when requested)
 
 ## Files Changed
 

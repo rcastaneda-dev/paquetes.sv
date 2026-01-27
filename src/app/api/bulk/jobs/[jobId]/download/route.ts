@@ -1,50 +1,61 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { supabaseServer } from '@/lib/supabase/server';
 
 /**
- * Download endpoint that triggers ZIP bundle creation on Supabase Edge Function.
+ * Download endpoint that returns a signed URL for an existing ZIP bundle.
+ *
+ * This endpoint ONLY returns existing bundles. It does NOT create them.
+ * Use the /generate-zip endpoint to create bundles.
  *
  * Flow:
  * 1. User clicks download → This endpoint is called
- * 2. This endpoint calls Supabase Edge Function create-bundle-zip
- * 3. Edge Function checks if bundle exists, creates it if needed
- * 4. Returns signed download URL to user
+ * 2. Check if bundle exists in database
+ * 3. Generate signed URL for the bundle
+ * 4. Return signed URL to user
  */
-export async function GET(request: NextRequest, { params }: { params: { jobId: string } }) {
+export async function GET(_request: NextRequest, { params }: { params: { jobId: string } }) {
   try {
     const jobId = params.jobId;
 
-    // Call Supabase Edge Function to create/get bundle
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    // Get job details
+    const { data: job, error: jobError } = await supabaseServer
+      .from('report_jobs')
+      .select('status, zip_path')
+      .eq('id', jobId)
+      .single();
 
-    if (!supabaseUrl || !supabaseAnonKey) {
-      return NextResponse.json({ error: 'Missing Supabase configuration' }, { status: 500 });
+    if (jobError || !job) {
+      return NextResponse.json({ error: 'Job not found' }, { status: 404 });
     }
 
-    const edgeFunctionUrl = `${supabaseUrl}/functions/v1/create-bundle-zip?jobId=${jobId}`;
+    // Check if job is complete or failed
+    if (job.status !== 'complete' && job.status !== 'failed') {
+      return NextResponse.json({ error: 'Job not yet complete' }, { status: 400 });
+    }
 
-    console.log(`Calling Edge Function for job ${jobId}`);
-
-    const response = await fetch(edgeFunctionUrl, {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${supabaseAnonKey}`,
-        'Content-Type': 'application/json',
-      },
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      console.error('Edge Function error:', data);
+    // Check if bundle exists
+    if (!job.zip_path || !job.zip_path.endsWith('bundle.zip')) {
       return NextResponse.json(
-        { error: data.error || 'Failed to create ZIP bundle' },
-        { status: response.status }
+        { error: 'ZIP bundle not generated yet. Please generate it first.' },
+        { status: 404 }
       );
     }
 
-    // Return the download URL from the Edge Function
-    return NextResponse.json(data, { status: 200 });
+    // Generate signed URL for existing bundle
+    const { data: signedUrlData, error: urlError } = await supabaseServer.storage
+      .from('reports')
+      .createSignedUrl(job.zip_path, 3600); // 1 hour expiry
+
+    if (urlError || !signedUrlData) {
+      console.error('Error generating signed URL:', urlError);
+      return NextResponse.json({ error: 'Failed to generate download URL' }, { status: 500 });
+    }
+
+    return NextResponse.json({
+      downloadUrl: signedUrlData.signedUrl,
+      bundlePath: job.zip_path,
+      expiresIn: 3600,
+    });
   } catch (error) {
     console.error('Unexpected error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

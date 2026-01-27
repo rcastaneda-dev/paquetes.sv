@@ -78,6 +78,32 @@ export default function JobDetailPage() {
     );
   };
 
+  const handleGenerateZip = async () => {
+    try {
+      setIsZipLoading(true);
+      const response = await fetch(`/api/bulk/jobs/${jobId}/generate-zip`, {
+        method: 'POST',
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        alert(`Error: ${data.error || 'Error al generar el ZIP'}`);
+        return;
+      }
+
+      alert('ZIP generado exitosamente. Descargando...');
+      if (data.downloadUrl) {
+        window.open(data.downloadUrl, '_blank');
+      }
+      await fetchJobDetails(); // Refresh to show download button
+    } catch (error) {
+      console.error('Error generating ZIP:', error);
+      alert('Error al generar el archivo ZIP');
+    } finally {
+      setIsZipLoading(false);
+    }
+  };
+
   const handleDownload = async () => {
     try {
       setIsZipLoading(true);
@@ -85,18 +111,11 @@ export default function JobDetailPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        if (response.status === 202) {
-          alert(
-            `El archivo ZIP aún se está generando. Por favor, espera un momento y vuelve a intentar.`
-          );
-        } else {
-          alert(`Error: ${data.error || 'Error al obtener la descarga'}`);
-        }
+        alert(`Error: ${data.error || 'Error al obtener la descarga'}`);
         return;
       }
 
       if (data.downloadUrl) {
-        // Download the bundle
         window.open(data.downloadUrl, '_blank');
       } else {
         alert('No hay URL de descarga disponible');
@@ -265,8 +284,8 @@ export default function JobDetailPage() {
                   )}
                 {(job.status === 'complete' || job.status === 'failed') &&
                   (!job.zip_path || !job.zip_path.endsWith('bundle.zip')) && (
-                    <Button onClick={handleDownload} disabled={true}>
-                      Generando ZIP...
+                    <Button onClick={handleGenerateZip} disabled={isZipLoading}>
+                      {isZipLoading ? 'Generando ZIP...' : 'Generar ZIP'}
                     </Button>
                   )}
               </div>
