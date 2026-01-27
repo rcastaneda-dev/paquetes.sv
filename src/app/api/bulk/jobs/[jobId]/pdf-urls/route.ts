@@ -68,28 +68,24 @@ export async function GET(request: NextRequest, { params }: { params: { jobId: s
     }
 
     // Generate signed URLs for all PDFs (valid for 1 hour)
+    // Process in batches to avoid timeout with large numbers of tasks
     console.log(`Generating signed URLs for ${tasks.length} PDFs...`);
     const startTime = Date.now();
+    const batchSize = 100; // Process 100 at a time
+    const pdfUrls: (Awaited<ReturnType<typeof generateSignedUrl>> | null)[] = [];
 
-    const pdfUrls = await Promise.all(
-      tasks.map(async task => {
-        const { data: signedUrl, error } = await supabase.storage
-          .from('reports')
-          .createSignedUrl(task.pdf_path!, 3600);
+    for (let i = 0; i < tasks.length; i += batchSize) {
+      const batch = tasks.slice(i, i + batchSize);
+      const batchResults = await Promise.all(
+        batch.map(task => generateSignedUrl(supabase, task))
+      );
+      pdfUrls.push(...batchResults);
 
-        if (error || !signedUrl) {
-          console.error(`Failed to create signed URL for ${task.pdf_path}:`, error);
-          return null;
-        }
-
-        return {
-          url: signedUrl.signedUrl,
-          fileName: buildFileName(task.school_codigo_ce, task.grado),
-          schoolCode: task.school_codigo_ce,
-          grado: task.grado,
-        };
-      })
-    );
+      // Log progress every 500 PDFs
+      if ((i + batchSize) % 500 === 0 || i + batchSize >= tasks.length) {
+        console.log(`Progress: ${Math.min(i + batchSize, tasks.length)}/${tasks.length} signed URLs generated`);
+      }
+    }
 
     const elapsedMs = Date.now() - startTime;
     console.log(`Generated ${pdfUrls.length} signed URLs in ${elapsedMs}ms`);
@@ -107,6 +103,30 @@ export async function GET(request: NextRequest, { params }: { params: { jobId: s
     console.error('Error generating PDF URLs:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
+}
+
+/**
+ * Generate a signed URL for a single task
+ */
+async function generateSignedUrl(
+  supabase: any,
+  task: { pdf_path: string; school_codigo_ce: string; grado: string }
+) {
+  const { data: signedUrl, error } = await supabase.storage
+    .from('reports')
+    .createSignedUrl(task.pdf_path, 3600);
+
+  if (error || !signedUrl) {
+    console.error(`Failed to create signed URL for ${task.pdf_path}:`, error);
+    return null;
+  }
+
+  return {
+    url: signedUrl.signedUrl,
+    fileName: buildFileName(task.school_codigo_ce, task.grado),
+    schoolCode: task.school_codigo_ce,
+    grado: task.grado,
+  };
 }
 
 /**
