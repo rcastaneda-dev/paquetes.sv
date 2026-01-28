@@ -1,0 +1,28 @@
+{
+  "name": "zip-worker",
+  "version": "1.0.0",
+  "description": "Background worker for ZIP generation",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx watch index.ts",
+    "type-check": "tsc --noEmit"
+  },
+  "keywords": ["worker", "zip", "background"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
+    "archiver": "^6.0.1"
+  },
+  "devDependencies": {
+    "@types/archiver": "^6.0.2",
+    "@types/node": "^20.10.6",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

@@ -20,6 +20,7 @@ export default function JobDetailPage() {
   const [isCancelling, setIsCancelling] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
   const [loadingRegions, setLoadingRegions] = useState<Record<string, boolean>>({});
+  const [zipJobStatuses, setZipJobStatuses] = useState<Record<string, any>>({});
 
   const fetchJobDetails = async () => {
     try {
@@ -82,29 +83,93 @@ export default function JobDetailPage() {
     try {
       setLoadingRegions(prev => ({ ...prev, [region]: true }));
 
-      const response = await fetch(`/api/bulk/jobs/${jobId}/zip-region?region=${region}`);
-      const data = await response.json();
+      // Step 1: Create ZIP job
+      const createResponse = await fetch(
+        `/api/bulk/jobs/${jobId}/create-zip-job?region=${region}`,
+        { method: 'POST' }
+      );
+      const createData = await createResponse.json();
 
-      if (!response.ok) {
-        alert(`Error: ${data.error || 'Error al generar ZIP regional'}`);
+      if (!createResponse.ok) {
+        alert(`Error: ${createData.error || 'Error al crear trabajo de ZIP'}`);
+        setLoadingRegions(prev => ({ ...prev, [region]: false }));
         return;
       }
 
-      if (data.downloadUrl) {
-        window.open(data.downloadUrl, '_blank');
+      const zipJobId = createData.zipJobId;
 
-        if (data.cached) {
-          alert(`ZIP de ${region} descargado (previamente generado)`);
-        } else {
-          alert(
-            `ZIP de ${region} generado exitosamente\n${data.pdfCount} PDFs, ${data.zipSizeMB} MB`
-          );
-        }
+      // If already complete, download immediately
+      if (createData.status === 'complete' && createData.downloadUrl) {
+        window.open(createData.downloadUrl, '_blank');
+        alert(
+          `ZIP de ${region} descargado\n${createData.pdfCount || 0} PDFs, ${createData.zipSizeMB || 0} MB`
+        );
+        setLoadingRegions(prev => ({ ...prev, [region]: false }));
+        return;
       }
+
+      // Step 2: Poll for completion
+      let attempts = 0;
+      const maxAttempts = 120; // 10 minutes at 5 second intervals
+      const pollInterval = 5000;
+
+      const pollStatus = async () => {
+        try {
+          const statusResponse = await fetch(
+            `/api/bulk/jobs/${jobId}/zip-job-status?zipJobId=${zipJobId}`
+          );
+          const statusData = await statusResponse.json();
+
+          // Update local state for UI feedback
+          setZipJobStatuses(prev => ({ ...prev, [region]: statusData }));
+
+          if (statusData.status === 'complete' && statusData.downloadUrl) {
+            // Success! Download the ZIP
+            window.open(statusData.downloadUrl, '_blank');
+            alert(
+              `ZIP de ${region} generado exitosamente!\n${statusData.pdfCount || 0} PDFs, ${statusData.zipSizeMB || 0} MB`
+            );
+            setLoadingRegions(prev => ({ ...prev, [region]: false }));
+            return true;
+          }
+
+          if (statusData.status === 'failed') {
+            alert(`Error al generar ZIP de ${region}: ${statusData.error || 'Error desconocido'}`);
+            setLoadingRegions(prev => ({ ...prev, [region]: false }));
+            return true;
+          }
+
+          // Still processing or queued, continue polling
+          attempts++;
+          if (attempts >= maxAttempts) {
+            alert(
+              `Tiempo de espera agotado para ZIP de ${region}. Por favor, intenta de nuevo más tarde.`
+            );
+            setLoadingRegions(prev => ({ ...prev, [region]: false }));
+            return true;
+          }
+
+          // Continue polling
+          setTimeout(pollStatus, pollInterval);
+          return false;
+        } catch (err) {
+          console.error('Error polling ZIP status:', err);
+          attempts++;
+          if (attempts >= maxAttempts) {
+            alert(`Error al verificar el estado del ZIP de ${region}`);
+            setLoadingRegions(prev => ({ ...prev, [region]: false }));
+            return true;
+          }
+          setTimeout(pollStatus, pollInterval);
+          return false;
+        }
+      };
+
+      // Start polling
+      pollStatus();
     } catch (error) {
       console.error(`Error downloading ${region}:`, error);
       alert(`Error al descargar ZIP de ${region}`);
-    } finally {
       setLoadingRegions(prev => ({ ...prev, [region]: false }));
     }
   };
@@ -297,23 +362,35 @@ export default function JobDetailPage() {
                 región: tallas y etiquetas, toma 30-60 segundos)
               </p>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                {['oriental', 'occidental', 'paracentral', 'central'].map(region => (
-                  <Button
-                    key={region}
-                    onClick={() => handleDownloadRegion(region)}
-                    disabled={loadingRegions[region]}
-                    variant="outline"
-                    className="h-auto flex-col items-start p-4"
-                  >
-                    <span className="text-lg font-semibold capitalize">{region}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {loadingRegions[region] ? 'Generando ZIP...' : 'Descargar ZIP'}
-                    </span>
-                  </Button>
-                ))}
+                {['oriental', 'occidental', 'paracentral', 'central'].map(region => {
+                  const zipStatus = zipJobStatuses[region];
+                  const isLoading = loadingRegions[region];
+
+                  let statusText = 'Descargar ZIP';
+                  if (isLoading && zipStatus?.progress?.message) {
+                    statusText = zipStatus.progress.message;
+                  } else if (isLoading) {
+                    statusText = 'Generando ZIP...';
+                  }
+
+                  return (
+                    <Button
+                      key={region}
+                      onClick={() => handleDownloadRegion(region)}
+                      disabled={isLoading}
+                      variant="outline"
+                      className="h-auto flex-col items-start p-4"
+                    >
+                      <span className="text-lg font-semibold capitalize">{region}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {statusText}
+                      </span>
+                    </Button>
+                  );
+                })}
               </div>
               <p className="text-xs text-muted-foreground">
-                💡 Los ZIPs se generan bajo demanda y se almacenan en caché para descargas futuras.
+                💡 Los ZIPs se generan en segundo plano (1-3 minutos). La descarga comenzará automáticamente cuando esté listo.
               </p>
             </CardContent>
           </Card>
