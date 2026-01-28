@@ -14,17 +14,3 @@ export const supabaseServer = createClient(supabaseUrl, supabaseServiceKey, {
     persistSession: false,
   },
 });
-
-// Future-ready: for authenticated user sessions
-// import { cookies } from 'next/headers';
-// import type { ReadonlyRequestCookies } from 'next/dist/server/web/spec-extension/adapters/request-cookies';
-//
-// export function createServerClient(cookieStore: ReadonlyRequestCookies) {
-//   return createClient(supabaseUrl, supabaseAnonKey, {
-//     cookies: {
-//       get(name: string) {
-//         return cookieStore.get(name)?.value;
-//       },
-//     },
-//   });
-// }

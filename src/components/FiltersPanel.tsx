@@ -23,7 +23,6 @@ export function FiltersPanel({ onFilterChange, onSearch }: FiltersPanelProps) {
   const [showDropdown, setShowDropdown] = useState(false);
   const [grades, setGrades] = useState<string[]>([]);
   const [selectedGrade, setSelectedGrade] = useState<string>('');
-  const [isSearching, setIsSearching] = useState(false);
   const [isLoadingGrades, setIsLoadingGrades] = useState(false);
 
   // Fetch available grades when a school is selected
@@ -163,8 +162,8 @@ export function FiltersPanel({ onFilterChange, onSearch }: FiltersPanelProps) {
 
         {/* Action buttons */}
         <div className="flex items-end gap-2">
-          <Button onClick={onSearch} disabled={isSearching}>
-            {isSearching ? 'Buscando...' : 'Buscar'}
+          <Button onClick={onSearch}>
+            Buscar
           </Button>
           <Button variant="outline" onClick={handleClear}>
             Limpiar

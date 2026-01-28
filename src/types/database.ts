@@ -105,13 +105,6 @@ export interface SchoolSearchResult {
   departamento: string;
 }
 
-export interface SchoolGradeCombination {
-  school_codigo_ce: string;
-  nombre_ce: string;
-  grado: string;
-  student_count: number;
-}
-
 export interface ClaimedTask {
   task_id: string;
   job_id: string;
@@ -140,12 +133,4 @@ export interface BatchProgress {
   jobs_running: number;
   jobs_complete: number;
   jobs_failed: number;
-}
-
-// Query filters
-export interface StudentFilters {
-  school_codigo_ce?: string | null;
-  grado?: string | null;
-  limit?: number;
-  offset?: number;
 }

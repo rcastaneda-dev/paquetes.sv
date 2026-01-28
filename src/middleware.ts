@@ -5,21 +5,7 @@ import type { NextRequest } from 'next/server';
  * Next.js middleware for route protection
  * Currently a placeholder - ready for auth implementation
  */
-export function middleware(request: NextRequest) {
-  // TODO: When implementing auth, protect routes here
-  // Example:
-  // const protectedPaths = ['/bulk'];
-  // const isProtectedPath = protectedPaths.some(path =>
-  //   request.nextUrl.pathname.startsWith(path)
-  // );
-
-  // if (isProtectedPath) {
-  //   const session = await getSession(request);
-  //   if (!session) {
-  //     return NextResponse.redirect(new URL('/login', request.url));
-  //   }
-  // }
-
+export function middleware(_request: NextRequest) {
   return NextResponse.next();
 }
 
