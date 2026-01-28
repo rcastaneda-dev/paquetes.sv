@@ -111,13 +111,42 @@ export async function POST(request: NextRequest, { params }: { params: { jobId: 
 
     // If job exists but failed, retry it
     if (existingZipJob && existingZipJob.status === 'failed') {
-      const { error: retryError } = await supabase.rpc('retry_zip_job', {
+      const { data: retryResult, error: retryError } = await supabase.rpc('retry_zip_job', {
         p_job_id: existingZipJob.id,
       });
 
       if (retryError) {
-        console.error('Error retrying ZIP job:', retryError);
+        console.error('Error calling retry_zip_job RPC:', retryError);
         return NextResponse.json({ error: 'Failed to retry ZIP job' }, { status: 500 });
+      }
+
+      // If retry_zip_job returned false, it means the job wasn't in 'failed' status
+      // This can happen due to a race condition where the job status changed
+      if (!retryResult) {
+        console.warn(
+          `retry_zip_job returned false for job ${existingZipJob.id}. Job may have already been retried.`
+        );
+
+        // Re-fetch the job to get the current status
+        const { data: refreshedJob, error: refreshError } = await supabase
+          .from('zip_jobs')
+          .select('status')
+          .eq('id', existingZipJob.id)
+          .single();
+
+        if (refreshError || !refreshedJob) {
+          console.error('Error fetching refreshed job status:', refreshError);
+          return NextResponse.json({ error: 'Failed to fetch job status' }, { status: 500 });
+        }
+
+        // Return the current status
+        return NextResponse.json({
+          zipJobId: existingZipJob.id,
+          region: regionLower,
+          status: refreshedJob.status,
+          existingJob: true,
+          message: `ZIP generation already ${refreshedJob.status}`,
+        });
       }
 
       return NextResponse.json({

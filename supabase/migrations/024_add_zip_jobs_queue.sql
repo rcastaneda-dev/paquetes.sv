@@ -96,10 +96,11 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Function: Retry failed ZIP job
+-- Returns: TRUE if job was retried, FALSE if job wasn't in failed status or doesn't exist
 CREATE OR REPLACE FUNCTION public.retry_zip_job(p_job_id UUID)
 RETURNS BOOLEAN AS $$
 DECLARE
-  v_updated BOOLEAN;
+  v_row_count INTEGER;
 BEGIN
   UPDATE public.zip_jobs
   SET
@@ -110,8 +111,8 @@ BEGIN
   WHERE id = p_job_id
     AND status = 'failed';
 
-  GET DIAGNOSTICS v_updated = ROW_COUNT;
-  RETURN v_updated > 0;
+  GET DIAGNOSTICS v_row_count = ROW_COUNT;
+  RETURN v_row_count > 0;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
