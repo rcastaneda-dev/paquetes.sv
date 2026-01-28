@@ -3,6 +3,9 @@ import { supabaseServer } from '@/lib/supabase/server';
 import { generateStudentReportPDF, generateStudentLabelsPDF } from '@/lib/pdf/generator';
 import { buildReportPdfStorageKey, buildReportEtiquetasStorageKey } from '@/lib/storage/keys';
 import type { ClaimedTask, StudentReportRow } from '@/types/database';
+import { workerConfigSchema, authConfigSchema } from '@/lib/validation/schemas';
+import { validateEnv } from '@/lib/validation/helpers';
+import { createUnauthorizedResponse } from '@/lib/validation/errors';
 
 /**
  * Worker endpoint that processes pending tasks in batches.
@@ -13,28 +16,24 @@ import type { ClaimedTask, StudentReportRow } from '@/types/database';
  */
 export async function POST(request: NextRequest) {
   try {
+    // Validate auth secrets with Zod
+    const authConfig = validateEnv(authConfigSchema);
+    const expectedSecret = authConfig.SUPABASE_FUNCTION_SECRET || authConfig.CRON_SECRET;
+
     // Simple authentication check (for cron jobs)
     const authHeader = request.headers.get('authorization');
-    const expectedSecret = process.env.SUPABASE_FUNCTION_SECRET || process.env.CRON_SECRET;
 
     if (expectedSecret && authHeader !== `Bearer ${expectedSecret}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return createUnauthorizedResponse();
     }
 
-    // Configurable batch size and concurrency (optimized for 49k+ PDFs)
-    // Recommended: WORKER_BATCH_SIZE=25, WORKER_CONCURRENCY=3 on Vercel Free (10s timeout, 1GB)
-    const batchSizeRaw = (process.env.WORKER_BATCH_SIZE || '25').trim();
-    const concurrencyRaw = (process.env.WORKER_CONCURRENCY || '3').trim();
-    const maxRuntimeRaw = (process.env.WORKER_MAX_RUNTIME || '9000').trim();
-    const batchSizeParsed = parseInt(batchSizeRaw, 10);
-    const concurrencyParsed = parseInt(concurrencyRaw, 10);
-    const maxRuntimeParsed = parseInt(maxRuntimeRaw, 10);
-    const batchSize = Number.isNaN(batchSizeParsed) ? 25 : batchSizeParsed;
-    const concurrency = Number.isNaN(concurrencyParsed) ? 3 : concurrencyParsed;
+    // Validate and get worker configuration with Zod
+    const { WORKER_BATCH_SIZE, WORKER_CONCURRENCY, WORKER_MAX_RUNTIME } =
+      validateEnv(workerConfigSchema);
 
-    // Drain-loop: process multiple batches until time budget exhausted
-    // For Vercel: 10s timeout (Free), 60s (Pro), 300s (Enterprise)
-    const maxRuntime = Number.isNaN(maxRuntimeParsed) ? 9000 : maxRuntimeParsed; // 9s default
+    const batchSize = WORKER_BATCH_SIZE;
+    const concurrency = WORKER_CONCURRENCY;
+    const maxRuntime = WORKER_MAX_RUNTIME;
     const startTime = Date.now();
 
     let totalProcessed = 0;

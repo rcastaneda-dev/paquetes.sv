@@ -1,16 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { supabaseServer } from '@/lib/supabase/server';
 import type { ReportJob, ReportTask, JobProgress } from '@/types/database';
+import { validateQueryParams } from '@/lib/validation/helpers';
+import { createValidationErrorResponse } from '@/lib/validation/errors';
+
+// Schema for job detail query params
+const jobDetailQuerySchema = z.object({
+  search: z.string().optional(),
+  status: z.string().optional(),
+  limit: z.coerce.number().int().min(1).max(500).default(100),
+});
 
 export async function GET(request: NextRequest, { params }: { params: { jobId: string } }) {
   try {
     const jobId = params.jobId;
-    const { searchParams } = new URL(request.url);
 
-    // Get filter/search parameters
-    const searchQuery = searchParams.get('search')?.trim() || '';
-    const statusFilter = searchParams.get('status') || '';
-    const limit = Math.min(parseInt(searchParams.get('limit') || '100'), 500);
+    // Validate query params with Zod
+    const { search, status, limit } = validateQueryParams(request, jobDetailQuerySchema);
+    const searchQuery = search?.trim() || '';
+    const statusFilter = status || '';
 
     // Get job details
     const { data: job, error: jobError } = await supabaseServer
@@ -101,6 +110,9 @@ export async function GET(request: NextRequest, { params }: { params: { jobId: s
       tasks: tasks as ReportTask[],
     });
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return createValidationErrorResponse(error);
+    }
     console.error('Unexpected error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }

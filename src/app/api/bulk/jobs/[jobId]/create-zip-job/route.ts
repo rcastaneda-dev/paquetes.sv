@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { createClient } from '@supabase/supabase-js';
+import { regionSchema } from '@/lib/validation/schemas';
+import { validateQueryParams } from '@/lib/validation/helpers';
+import { createValidationErrorResponse } from '@/lib/validation/errors';
+import { env } from '@/lib/config/env';
 
 /**
  * Create a ZIP generation job for a specific region.
@@ -22,23 +27,12 @@ import { createClient } from '@supabase/supabase-js';
 export async function POST(request: NextRequest, { params }: { params: { jobId: string } }) {
   try {
     const reportJobId = params.jobId;
-    const region = request.nextUrl.searchParams.get('region');
 
-    // Validate region
-    const validRegions = ['oriental', 'occidental', 'paracentral', 'central'];
-    if (!region || !validRegions.includes(region.toLowerCase())) {
-      return NextResponse.json(
-        { error: 'Invalid region. Must be: oriental, occidental, paracentral, or central' },
-        { status: 400 }
-      );
-    }
+    // Validate region with Zod
+    const { region } = validateQueryParams(request, z.object({ region: regionSchema }));
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-    if (!supabaseUrl || !supabaseServiceKey) {
-      return NextResponse.json({ error: 'Missing Supabase configuration' }, { status: 500 });
-    }
+    const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseServiceKey = env.SUPABASE_SERVICE_ROLE_KEY;
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -60,14 +54,12 @@ export async function POST(request: NextRequest, { params }: { params: { jobId: 
       );
     }
 
-    const regionLower = region.toLowerCase();
-
     // Check if ZIP job already exists for this region
     const { data: existingZipJob, error: existingError } = await supabase
       .from('zip_jobs')
       .select('id, status, zip_path, zip_size_bytes, pdf_count, error, created_at, updated_at')
       .eq('report_job_id', reportJobId)
-      .eq('region', regionLower)
+      .eq('region', region)
       .maybeSingle();
 
     if (existingError) {
@@ -83,7 +75,7 @@ export async function POST(request: NextRequest, { params }: { params: { jobId: 
 
       return NextResponse.json({
         zipJobId: existingZipJob.id,
-        region: regionLower,
+        region: region,
         status: 'complete',
         downloadUrl: signedUrl?.signedUrl,
         zipSizeMB: existingZipJob.zip_size_bytes
@@ -102,7 +94,7 @@ export async function POST(request: NextRequest, { params }: { params: { jobId: 
     ) {
       return NextResponse.json({
         zipJobId: existingZipJob.id,
-        region: regionLower,
+        region: region,
         status: existingZipJob.status,
         existingJob: true,
         message: `ZIP generation already ${existingZipJob.status}`,
@@ -142,7 +134,7 @@ export async function POST(request: NextRequest, { params }: { params: { jobId: 
         // Return the current status
         return NextResponse.json({
           zipJobId: existingZipJob.id,
-          region: regionLower,
+          region: region,
           status: refreshedJob.status,
           existingJob: true,
           message: `ZIP generation already ${refreshedJob.status}`,
@@ -151,7 +143,7 @@ export async function POST(request: NextRequest, { params }: { params: { jobId: 
 
       return NextResponse.json({
         zipJobId: existingZipJob.id,
-        region: regionLower,
+        region: region,
         status: 'queued',
         existingJob: true,
         message: 'Retrying failed ZIP generation',
@@ -163,7 +155,7 @@ export async function POST(request: NextRequest, { params }: { params: { jobId: 
       .from('zip_jobs')
       .insert({
         report_job_id: reportJobId,
-        region: regionLower,
+        region: region,
         status: 'queued',
       })
       .select('id, status, created_at')
@@ -176,12 +168,15 @@ export async function POST(request: NextRequest, { params }: { params: { jobId: 
 
     return NextResponse.json({
       zipJobId: newZipJob.id,
-      region: regionLower,
+      region: region,
       status: newZipJob.status,
       existingJob: false,
       message: 'ZIP generation job created. Please poll for status.',
     });
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return createValidationErrorResponse(error);
+    }
     console.error('Error in create-zip-job:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }

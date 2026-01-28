@@ -44,6 +44,7 @@ Sistema completo para gestionar y reportar tallas de uniformes escolares en El S
 ## Stack Tecnológico
 
 ### Frontend y Backend
+
 - **Framework**: Next.js 14 (App Router) con React 18 y TypeScript 5
 - **Estilos**: Tailwind CSS 3 con configuración personalizada
 - **Base de Datos**: Supabase PostgreSQL con esquema `public`
@@ -51,17 +52,20 @@ Sistema completo para gestionar y reportar tallas de uniformes escolares en El S
 - **Funciones RPC**: Stored procedures para lógica compleja (búsqueda, reportes, colas)
 
 ### Generación de Documentos
+
 - **PDFs**: PDFKit con streaming para eficiencia de memoria
 - **ZIP Bundling**: Archiver con compresión configurable y procesamiento por batches
 - **Worker Background**: Servicio Node.js independiente deployado en Railway
 
 ### Herramientas de Desarrollo
+
 - **Linting**: ESLint + TypeScript ESLint con Prettier
 - **Formateo**: Prettier con plugin de Tailwind CSS
 - **Type Safety**: TypeScript strict mode + Zod para validación de datos
 - **Data Grid**: TanStack Table v8 para tablas interactivas
 
 ### Infraestructura
+
 - **Hosting Web**: Vercel (recomendado) o cualquier plataforma Node.js
 - **Worker**: Railway con Dockerfile multi-stage para optimización
 - **CI/CD**: Basado en Git con hot-reload configurado en Railway
@@ -168,17 +172,20 @@ npm install
 En el SQL Editor de Supabase, ejecuta **en orden**:
 
 1. **Schema base de educación** (si no existe):
+
    ```bash
    # En SQL Editor, pega y ejecuta:
    paquetes_schema.sql
    ```
 
 2. **Fix de foreign keys**:
+
    ```bash
    fix_foreign_keys.sql
    ```
 
 3. **Todas las migraciones de reportes** (en orden numérico):
+
    ```bash
    # Ejecuta cada archivo en supabase/migrations/ desde 001 hasta 029
    # O concatena todos y ejecuta de una vez (¡cuidado con errores!)
@@ -201,6 +208,7 @@ El bucket `reports` se crea automáticamente al ejecutar la migración `029`, pe
    - **Allowed MIME types**: `application/pdf`, `application/zip`
 
 3. **Políticas RLS** (migración 029 las crea automáticamente):
+
    ```sql
    -- Lectura pública
    CREATE POLICY "reports_bucket_public_read"
@@ -253,12 +261,14 @@ Abre [http://localhost:3000](http://localhost:3000)
 ## Despliegue
 
 Este proyecto usa una arquitectura híbrida:
+
 - **Frontend/API**: Vercel (o cualquier plataforma Node.js)
 - **Worker ZIP**: Railway (proceso persistente)
 
 ### Paso 1: Desplegar Frontend en Vercel
 
 1. **Push a GitHub** (si no lo has hecho):
+
    ```bash
    git push origin main
    ```
@@ -268,6 +278,7 @@ Este proyecto usa una arquitectura híbrida:
    - Vercel detecta automáticamente Next.js
 
 3. **Configurar variables de entorno** en Vercel Dashboard:
+
    ```env
    NEXT_PUBLIC_SUPABASE_URL=https://tu-proyecto.supabase.co
    NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGci...
@@ -286,6 +297,7 @@ Este proyecto usa una arquitectura híbrida:
 El worker ZIP es un servicio Node.js independiente que procesa ZIPs en background.
 
 #### ¿Por qué Railway?
+
 - **Procesos persistentes**: A diferencia de funciones serverless, Railway corre 24/7
 - **Sin límites de tiempo**: Generación de ZIPs puede tomar 5-10 minutos
 - **Uso eficiente de recursos**: Polling con intervalos configurables
@@ -300,6 +312,7 @@ El worker ZIP es un servicio Node.js independiente que procesa ZIPs en backgroun
    - Railway detecta el `railway.toml` y `Dockerfile.worker`
 
 3. **Configurar variables de entorno** en Railway:
+
    ```env
    NEXT_PUBLIC_SUPABASE_URL=https://tu-proyecto.supabase.co
    SUPABASE_SERVICE_ROLE_KEY=eyJhbGci...
@@ -323,6 +336,7 @@ El worker ZIP es un servicio Node.js independiente que procesa ZIPs en backgroun
 #### Arquitectura del Worker ZIP
 
 El worker de Railway opera de forma independiente:
+
 1. **Polling**: Consulta la base de datos cada 5 segundos buscando trabajos ZIP pendientes
 2. **Claim**: Reclama un trabajo usando `claim_next_zip_job()` (evita conflictos)
 3. **Procesamiento**:
@@ -332,6 +346,7 @@ El worker de Railway opera de forma independiente:
 4. **Actualización**: Marca el trabajo como `complete` con la ruta del ZIP
 
 **Ventajas de esta arquitectura**:
+
 - Frontend puede seguir respondiendo sin esperar
 - ZIPs de 100+ MB se procesan sin timeouts
 - Fácil escalar horizontalmente (múltiples replicas en Railway)
@@ -342,6 +357,7 @@ El worker de Railway opera de forma independiente:
 Si prefieres no usar Railway, puedes adaptar el worker como Edge Function:
 
 1. **Instalar CLI de Supabase**:
+
    ```bash
    npm install -g supabase
    ```
@@ -354,6 +370,7 @@ Si prefieres no usar Railway, puedes adaptar el worker como Edge Function:
    ```
 
 **Limitaciones de Edge Functions**:
+
 - Límite de tiempo de ejecución (generalmente 60-120s)
 - No hay polling continuo (necesitas triggers o cron externos)
 - Más complejo para debugging
@@ -412,6 +429,7 @@ Este módulo genera PDFs para **todas** las escuelas del país, organizados por 
 #### Monitoreo de progreso
 
 En la página de detalle (`/bulk/[jobId]`) verás:
+
 - **Estado general**: queued → running → complete
 - **Progreso por región**: Contador de PDFs completados vs totales
 - **Tareas fallidas**: Lista de errores con opción de retry
@@ -482,6 +500,7 @@ sequenceDiagram
 #### 1. Base de Datos (Supabase PostgreSQL)
 
 **Tablas principales**:
+
 - `schools`: Catálogo de escuelas (codigo_ce, nombre, región, departamento, municipio)
 - `students`: Estudiantes con tallas (nie, school_codigo_ce, grado_ok, sexo)
 - `uniform_sizes`: Tallas de uniforme por estudiante (camisa, pantalon_falda, zapato)
@@ -490,6 +509,7 @@ sequenceDiagram
 - `zip_jobs`: Trabajos de generación de ZIP (id, report_job_id, region, status, zip_path)
 
 **Funciones RPC críticas**:
+
 - `search_schools(query)`: Búsqueda con autocomplete (prioriza código CE)
 - `query_students(school_codigo, grado, limit, offset)`: Paginación con ordenamiento
 - `report_students_by_school_grade()`: Datos optimizados para PDFs
@@ -500,6 +520,7 @@ sequenceDiagram
 #### 2. Storage (Supabase Storage)
 
 **Bucket**: `reports` (público con RLS)
+
 - **Límite de archivo**: 500 MB
 - **MIME types permitidos**: `application/pdf`, `application/zip`
 - **Estructura de carpetas**:
@@ -524,6 +545,7 @@ sequenceDiagram
   ```
 
 **Políticas RLS** (migración 029):
+
 - Lectura pública sin autenticación
 - Escritura exclusiva para `service_role` y `authenticated`
 - Bypass RLS para service role (usado por workers)
@@ -533,6 +555,7 @@ sequenceDiagram
 **Ubicación**: `src/app/api/worker/process-tasks/route.ts`
 
 **Características**:
+
 - Ejecuta en Vercel (serverless)
 - Timeout: 60s (con extensiones hasta 5 min en planes Pro)
 - Procesa 10 tareas por invocación
@@ -540,6 +563,7 @@ sequenceDiagram
 - Sube a Storage con service role key
 
 **¿Por qué dentro de Next.js?**
+
 - Reutiliza tipos y utilidades del proyecto
 - Fácil desarrollo y testing local
 - Serverless = no pagar por tiempo idle
@@ -550,6 +574,7 @@ sequenceDiagram
 **Ubicación**: `worker/zip-worker/index.ts`
 
 **Características**:
+
 - Proceso persistente (24/7)
 - Sin límites de tiempo de ejecución
 - Polling cada 5 segundos
@@ -557,12 +582,14 @@ sequenceDiagram
 - Streaming de PDFs a ZIP para eficiencia de memoria
 
 **¿Por qué en Railway?**
+
 - Generación de ZIP puede tomar 5-15 minutos
 - Necesita polling continuo (no eventos)
 - Vercel serverless tiene timeout de 60s (5 min en Pro)
 - Railway = $5/mes para workloads continuas vs Vercel Pro = $20/mes
 
 **Dockerfile multi-stage**:
+
 1. **Builder**: Instala deps, compila TypeScript
 2. **Production**: Solo runtime + dependencies, usuario non-root
 
@@ -571,6 +598,7 @@ sequenceDiagram
 ### ¿Por qué Next.js 14 con App Router?
 
 **Ventajas**:
+
 - **Server Components**: Reducen JavaScript enviado al cliente (mejor performance)
 - **Streaming**: Renderizado progresivo para UIs complejas
 - **API Routes**: Backend y frontend en un solo proyecto
@@ -578,6 +606,7 @@ sequenceDiagram
 - **Vercel deployment**: Deploy en 1 minuto con optimizaciones automáticas
 
 **Alternativas consideradas**:
+
 - **Remix**: Más opinado, menor ecosistema
 - **SvelteKit**: Menos maduro para apps enterprise
 - **SPA (React + Express)**: Más boilerplate, peor SEO
@@ -585,6 +614,7 @@ sequenceDiagram
 ### ¿Por qué Supabase?
 
 **Ventajas**:
+
 - **PostgreSQL completo**: No limitaciones de Firebase/NoSQL
 - **RLS (Row Level Security)**: Seguridad a nivel de base de datos
 - **Storage integrado**: Sin necesidad de S3/Cloudflare
@@ -593,6 +623,7 @@ sequenceDiagram
 - **Precios**: Free tier generoso, pay-as-you-grow
 
 **Alternativas consideradas**:
+
 - **Planetscale**: No tiene storage ni auth integrados
 - **Firebase**: Firestore no es ideal para datos relacionales complejos
 - **AWS RDS + S3**: Mayor complejidad operacional
@@ -600,12 +631,14 @@ sequenceDiagram
 ### ¿Por qué PDFKit?
 
 **Ventajas**:
+
 - **Streaming**: Genera PDFs sin cargar todo en memoria
 - **Control total**: Layout customizado (tablas, etiquetas, fuentes)
 - **Node.js nativo**: Funciona en Vercel sin problemas
 - **Sin dependencies pesadas**: Bundle pequeño (~500KB)
 
 **Alternativas consideradas**:
+
 - **Puppeteer/Playwright**: Requiere Chrome headless (pesado en serverless)
 - **React-PDF**: Rendering más lento, mayor memoria
 - **jsPDF**: Menos features, API menos intuitiva
@@ -613,6 +646,7 @@ sequenceDiagram
 ### ¿Por qué Railway para el worker ZIP?
 
 **Ventajas**:
+
 - **Procesos persistentes**: Ideal para polling continuo
 - **Sin timeouts**: Generación de ZIPs puede tomar 10+ minutos
 - **Logs en tiempo real**: Debugging fácil
@@ -620,6 +654,7 @@ sequenceDiagram
 - **Precio**: $5/mes vs Vercel Pro $20/mes (para workers)
 
 **Alternativas consideradas**:
+
 - **Vercel Cron (Pro)**: Timeout de 5 min, más caro
 - **Supabase Edge Functions**: Límite de 120s, runtime Deno (no Node)
 - **AWS Lambda**: Timeout de 15 min, pero más complejo de configurar
@@ -628,12 +663,14 @@ sequenceDiagram
 ### ¿Por qué Archiver para ZIPs?
 
 **Ventajas**:
+
 - **Streaming**: Crea ZIPs sin cargar todo en memoria
 - **Compresión configurable**: Balance entre tamaño y velocidad
 - **API simple**: Append files con rutas relativas
 - **Estable**: Librería madura (8+ años)
 
 **Alternativas consideradas**:
+
 - **JSZip**: Carga todo en memoria (no escala para 100+ MB)
 - **ADM-ZIP**: Similar a JSZip, no streaming
 - **yazl**: Más bajo nivel, menos conveniente
@@ -641,12 +678,14 @@ sequenceDiagram
 ### ¿Por qué TanStack Table?
 
 **Ventajas**:
+
 - **Headless**: Control total del markup (integra con Tailwind)
 - **Performance**: Virtualización incluida para 10,000+ filas
 - **Features completos**: Sorting, filtering, pagination out-of-the-box
 - **TypeScript**: Type-safe columns y data
 
 **Alternativas consideradas**:
+
 - **AG Grid**: Demasiado complejo para este use case
 - **React Table v7**: TanStack es la evolución oficial
 - **Material Table**: Coupled a Material-UI (no queremos eso)
@@ -656,12 +695,14 @@ sequenceDiagram
 **Nota**: PGMQ se configuró en migración 017 pero **no se usa activamente** en la implementación actual. Se mantiene para escalabilidad futura.
 
 **Ventajas si se activa**:
+
 - **Sin infraestructura extra**: Queue dentro de Postgres
 - **ACID guarantees**: Transaccionalidad completa
 - **Idempotency**: Deduplicación con `dedupe_key`
 - **Visibility timeout**: Evita duplicados con workers concurrentes
 
 **Sistema actual** (polling simple):
+
 - Más sencillo de entender y debuggear
 - Suficiente para volúmenes actuales (~6k PDFs/run)
 - PGMQ activable sin cambios en DB schema
@@ -669,12 +710,14 @@ sequenceDiagram
 ### ¿Por qué organizar por regiones geográficas?
 
 **Ventajas**:
+
 - **ZIPs más pequeños**: Occidental (~2k escuelas), Central (~2.5k), Oriental (~1.5k)
 - **Descargas más rápidas**: Usuario solo descarga su región de interés
 - **Paralelización**: 3 ZIPs se pueden generar concurrentemente
 - **Mejor UX**: Progreso granular por región
 
 **Estructura geográfica**:
+
 ```
 El Salvador
 ├── OCCIDENTAL (Ahuachapán, Santa Ana, Sonsonate)
@@ -691,6 +734,7 @@ El Salvador
 **Estado**: Infraestructura ya preparada en el código
 
 **Tareas**:
+
 - [ ] Activar Supabase Auth (email/password + Google OAuth)
 - [ ] Descomentar funciones en [src/lib/supabase/auth.ts](src/lib/supabase/auth.ts)
 - [ ] Activar middleware en `src/middleware.ts`
@@ -703,6 +747,7 @@ El Salvador
 #### 2. Notificaciones
 
 **Tareas**:
+
 - [ ] Integrar Resend o SendGrid para emails
 - [ ] Enviar notificación cuando un job completa
 - [ ] Incluir enlaces de descarga en el email
@@ -715,6 +760,7 @@ El Salvador
 **Estado**: Ya existe migración 020 con función `retry_failed_tasks()`
 
 **Tareas**:
+
 - [ ] Crear endpoint `/api/bulk/jobs/[jobId]/retry-failed`
 - [ ] Botón en UI para retry manual
 - [ ] Cron job para retry automático después de N minutos
@@ -729,6 +775,7 @@ El Salvador
 **Estado**: PGMQ configurado en migración 017 pero no activo
 
 **Tareas**:
+
 - [ ] Reemplazar polling simple con PGMQ en PDF worker
 - [ ] Migrar de `claim_pending_tasks()` a `pgmq.read('pdf_generate')`
 - [ ] Implementar idempotency con `report_work_results`
@@ -741,6 +788,7 @@ El Salvador
 #### 5. Dashboard de Estadísticas
 
 **Tareas**:
+
 - [ ] Página `/dashboard` con métricas agregadas:
   - Estudiantes totales por región/departamento/municipio
   - Distribución de tallas (gráficos)
@@ -754,6 +802,7 @@ El Salvador
 #### 6. Exportar a Excel
 
 **Tareas**:
+
 - [ ] Integrar ExcelJS o SheetJS
 - [ ] Endpoint `/api/students/export` que genera XLSX
 - [ ] Opción en UI: "Exportar a Excel" junto a "Imprimir"
@@ -766,6 +815,7 @@ El Salvador
 #### 7. Edición de Datos de Estudiantes
 
 **Tareas**:
+
 - [ ] CRUD completo para estudiantes (con permisos)
 - [ ] Validación de NIE (formato, unicidad)
 - [ ] Auditoría: log de cambios (quién, cuándo, qué)
@@ -779,6 +829,7 @@ El Salvador
 #### 8. Plantillas de PDF Personalizables
 
 **Tareas**:
+
 - [ ] UI para diseñar plantillas (drag-and-drop o código)
 - [ ] Almacenar plantillas en DB (tabla `pdf_templates`)
 - [ ] Motor de templating (Handlebars o similar)
@@ -791,6 +842,7 @@ El Salvador
 #### 9. Webhooks para Integración
 
 **Tareas**:
+
 - [ ] Tabla `webhooks` (url, eventos, secret)
 - [ ] Disparar webhook cuando job completa
 - [ ] Payload firmado con HMAC para seguridad
@@ -804,6 +856,7 @@ El Salvador
 **Condición**: Si Supabase aumenta límites de timeout o Railway se vuelve muy caro
 
 **Tareas**:
+
 - [ ] Portar worker de Node.js a Deno
 - [ ] Implementar chunking (dividir ZIPs grandes en partes)
 - [ ] Subir partes en paralelo
@@ -816,6 +869,7 @@ El Salvador
 #### 11. Cache de Consultas Frecuentes
 
 **Tareas**:
+
 - [ ] Implementar cache con Redis o Upstash
 - [ ] Cachear resultados de `search_schools()`, `get_grades()`
 - [ ] TTL configurable (ej: 1 hora)
@@ -826,6 +880,7 @@ El Salvador
 #### 12. Compresión de PDFs
 
 **Tareas**:
+
 - [ ] Integrar Ghostscript o similar para post-procesamiento
 - [ ] Comprimir PDFs después de generarlos (puede reducir 30-50% tamaño)
 - [ ] Trade-off: CPU extra vs ancho de banda
@@ -837,6 +892,7 @@ El Salvador
 **Estado**: TanStack Table ya instalado, Virtual es add-on
 
 **Tareas**:
+
 - [ ] Integrar `@tanstack/react-virtual`
 - [ ] Renderizar solo filas visibles en viewport
 - [ ] Útil si se muestran 1000+ estudiantes de una escuela grande
@@ -848,25 +904,16 @@ El Salvador
 ### Roadmap Priorizado
 
 **P0 (Bloqueantes para producción)**:
+
 1. Autenticación y autorización
 2. Notificaciones por email
 3. Retry automático de tareas fallidas
 
-**P1 (Mejoran significativamente UX)**:
-4. Dashboard de estadísticas
-5. Exportar a Excel
-6. Cache de consultas
+**P1 (Mejoran significativamente UX)**: 4. Dashboard de estadísticas 5. Exportar a Excel 6. Cache de consultas
 
-**P2 (Nice-to-have)**:
-7. Edición de datos
-8. Plantillas personalizables
-9. Webhooks
+**P2 (Nice-to-have)**: 7. Edición de datos 8. Plantillas personalizables 9. Webhooks
 
-**P3 (Optimizaciones avanzadas)**:
-10. Activar PGMQ
-11. Migrar a Edge Functions
-12. Compresión de PDFs
-13. Virtualización de tabla
+**P3 (Optimizaciones avanzadas)**: 10. Activar PGMQ 11. Migrar a Edge Functions 12. Compresión de PDFs 13. Virtualización de tabla
 
 ## Troubleshooting
 
@@ -875,11 +922,13 @@ El Salvador
 **Síntoma**: El worker falla al subir PDFs con error RLS
 
 **Causas**:
+
 1. No estás usando el `service_role` key (usas `anon` key por error)
 2. Las políticas RLS no están configuradas correctamente
 3. El service role key es inválido
 
 **Solución**:
+
 1. Verifica que usas `SUPABASE_SERVICE_ROLE_KEY` en el worker (NO `ANON_KEY`)
 2. Ejecuta la migración 029 (`fix_storage_rls_definitive.sql`)
 3. Confirma las políticas en SQL Editor:
@@ -898,6 +947,7 @@ El Salvador
 **Síntoma**: Trabajos quedan en estado `queued` indefinidamente
 
 **Diagnóstico**:
+
 1. Verifica que Railway está corriendo:
    - Ve a Railway Dashboard → Logs
    - Deberías ver: `🚀 ZIP Worker starting...`
@@ -907,6 +957,7 @@ El Salvador
    - `SUPABASE_SERVICE_ROLE_KEY` (debe empezar con eyJ)
 
 3. Verifica que hay trabajos pendientes en DB:
+
    ```sql
    SELECT * FROM zip_jobs WHERE status = 'queued';
    ```
@@ -920,12 +971,15 @@ El Salvador
 **Síntoma**: PDF se descarga pero no abre o está vacío
 
 **Causas**:
+
 1. No hay estudiantes para esa escuela/grado
 2. Error en generación con PDFKit
 3. Corrupción durante upload
 
 **Diagnóstico**:
+
 1. Verifica datos en DB:
+
    ```sql
    SELECT COUNT(*)
    FROM students s
@@ -934,6 +988,7 @@ El Salvador
    ```
 
 2. Revisa logs del worker PDF:
+
    ```bash
    # Vercel: Dashboard → Functions → Logs
    # Local: Terminal donde corre `npm run dev`
@@ -953,12 +1008,14 @@ El Salvador
 **Causa**: El schema `edu` no está expuesto en Supabase API
 
 **Solución**:
+
 1. Ve a Supabase Dashboard → Settings → API → Schema
 2. Asegúrate que el schema expuesto es `public` (default)
 3. Las funciones RPC deben estar en `public`, no en `edu`
 4. Si tus funciones están en `edu`, migra a `public` o cambia el schema expuesto
 
 **Verificación**:
+
 ```sql
 -- Lista funciones en schema public
 SELECT routine_name
@@ -971,11 +1028,13 @@ WHERE routine_schema = 'public';
 **Síntoma**: Error "Function invocation failed: ENOMEM" o "JavaScript heap out of memory"
 
 **Causas**:
+
 1. Generando demasiados PDFs en una llamada
 2. PDFKit acumulando buffers grandes
 3. Límite de memoria de Vercel (1GB free, 3GB Pro)
 
 **Solución**:
+
 1. Reduce `BATCH_SIZE` en el worker (de 10 a 5)
 2. Usa streaming en lugar de buffers cuando sea posible
 3. Actualiza a Vercel Pro si generas >100 PDFs por batch
@@ -986,11 +1045,13 @@ WHERE routine_schema = 'public';
 **Síntoma**: ZIP de 100+ MB tarda mucho en descargarse
 
 **Causas**:
+
 1. Compresión muy alta (nivel 9) hace archivos más pesados de procesar
 2. Supabase Storage en región lejana al usuario
 3. PDFs no optimizados (imágenes grandes)
 
 **Solución**:
+
 1. Ajusta `COMPRESSION_LEVEL` en Railway (6 es balance entre tamaño y velocidad)
 2. Considera CDN (Cloudflare) frente a Supabase Storage
 3. Optimiza PDFs (comprimir imágenes, usar fuentes embebidas)
@@ -1000,19 +1061,22 @@ WHERE routine_schema = 'public';
 **Síntoma**: Logs muestran "Shutting down" y "Starting" repetidamente
 
 **Causas**:
+
 1. Error no capturado que crashea el proceso
 2. Railway detecta health check failure
 3. Memory leak en el worker
 
 **Diagnóstico**:
+
 1. Revisa logs completos en Railway
 2. Busca stack traces antes del shutdown
 3. Monitorea uso de memoria
 
 **Solución**:
+
 1. Agrega try-catch global:
    ```typescript
-   process.on('uncaughtException', (err) => {
+   process.on('uncaughtException', err => {
      console.error('Uncaught exception:', err);
      // No process.exit(), deja que continúe
    });
@@ -1025,18 +1089,21 @@ WHERE routine_schema = 'public';
 **Síntoma**: El worker de PDFs no procesa automáticamente
 
 **Causas**:
+
 1. No estás en plan Vercel Pro (cron requiere Pro)
 2. Archivo `vercel.json` mal configurado
 3. Variable `CRON_SECRET` no coincide
 
 **Solución para desarrollo**:
 Invoca el endpoint manualmente:
+
 ```bash
 curl -X POST https://tu-app.vercel.app/api/worker/process-tasks \
   -H "Authorization: Bearer ${CRON_SECRET}"
 ```
 
 **Solución para producción**:
+
 1. Actualiza a Vercel Pro ($20/mes)
 2. O usa servicio de cron externo (cron-job.org, EasyCron)
 3. O mueve worker a Railway también (polling, sin necesidad de cron)
@@ -1048,6 +1115,7 @@ curl -X POST https://tu-app.vercel.app/api/worker/process-tasks \
 **Causa**: Vercel output tracing no incluye archivos de data de PDFKit
 
 **Solución**: Ya incluido en [next.config.js:10-13](next.config.js#L10-L13):
+
 ```javascript
 outputFileTracingIncludes: {
   '**/*': ['node_modules/pdfkit/js/data/**'],
@@ -1055,6 +1123,7 @@ outputFileTracingIncludes: {
 ```
 
 Si persiste:
+
 1. Limpia caché de Vercel (Settings → General → Clear cache)
 2. Redeploy
 3. Verifica que `next.config.js` no fue sobrescrito
@@ -1064,11 +1133,13 @@ Si persiste:
 **Síntoma**: Páginas cargan lento, timeouts en RPCs
 
 **Causas**:
+
 1. Faltan índices en columnas filtradas
 2. Muchas JOINs sin optimizar
 3. Plan de Supabase free (recursos compartidos)
 
 **Diagnóstico**:
+
 1. Usa EXPLAIN ANALYZE:
    ```sql
    EXPLAIN ANALYZE
@@ -1080,6 +1151,7 @@ Si persiste:
    ```
 
 **Solución**:
+
 1. Agrega índices en columnas de filtro:
    ```sql
    CREATE INDEX idx_students_school_code ON students(school_codigo_ce);
@@ -1090,22 +1162,22 @@ Si persiste:
 
 ## Tecnologías Utilizadas (Resumen)
 
-| Categoría | Tecnología | Versión | Propósito | ¿Por qué se eligió? |
-|-----------|-----------|---------|-----------|---------------------|
-| **Framework** | Next.js | 14.1.0 | Framework full-stack | App Router, Server Components, excelente DX |
-| **UI Library** | React | 18.2.0 | Componentes interactivos | Ecosistema maduro, performance |
-| **Lenguaje** | TypeScript | 5.x | Type safety | Catch errores en compile-time, mejor IntelliSense |
-| **Estilos** | Tailwind CSS | 3.3.0 | Utility-first CSS | Desarrollo rápido, bundle pequeño |
-| **Base de Datos** | Supabase (PostgreSQL) | - | DB relacional + Storage | RLS, funciones RPC, hosting incluido |
-| **Storage** | Supabase Storage | - | Almacenamiento de archivos | Integrado con DB, políticas RLS, URLs firmadas |
-| **PDF Generation** | PDFKit | 0.14.0 | Creación de PDFs | Streaming, control total del layout, Node.js nativo |
-| **ZIP Bundling** | Archiver | 6.0.1 | Compresión de archivos | Streaming, compresión configurable |
-| **Data Table** | TanStack Table | 8.11.6 | Tablas interactivas | Headless, sorting/filtering/pagination incluido |
-| **Validación** | Zod | 3.22.4 | Validación de schemas | Type inference para TypeScript, errores descriptivos |
-| **Linting** | ESLint + Prettier | - | Code quality | Estándar de la industria, integración con IDEs |
-| **Hosting (Web)** | Vercel | - | Deploy serverless | Optimizado para Next.js, CI/CD automático |
-| **Hosting (Worker)** | Railway | - | Procesos persistentes | Sin timeouts, Dockerfile support, logs en tiempo real |
-| **CI/CD** | GitHub + Railway + Vercel | - | Integración continua | Auto-deploy en push, hot-reload configurado |
+| Categoría            | Tecnología                | Versión | Propósito                  | ¿Por qué se eligió?                                   |
+| -------------------- | ------------------------- | ------- | -------------------------- | ----------------------------------------------------- |
+| **Framework**        | Next.js                   | 14.1.0  | Framework full-stack       | App Router, Server Components, excelente DX           |
+| **UI Library**       | React                     | 18.2.0  | Componentes interactivos   | Ecosistema maduro, performance                        |
+| **Lenguaje**         | TypeScript                | 5.x     | Type safety                | Catch errores en compile-time, mejor IntelliSense     |
+| **Estilos**          | Tailwind CSS              | 3.3.0   | Utility-first CSS          | Desarrollo rápido, bundle pequeño                     |
+| **Base de Datos**    | Supabase (PostgreSQL)     | -       | DB relacional + Storage    | RLS, funciones RPC, hosting incluido                  |
+| **Storage**          | Supabase Storage          | -       | Almacenamiento de archivos | Integrado con DB, políticas RLS, URLs firmadas        |
+| **PDF Generation**   | PDFKit                    | 0.14.0  | Creación de PDFs           | Streaming, control total del layout, Node.js nativo   |
+| **ZIP Bundling**     | Archiver                  | 6.0.1   | Compresión de archivos     | Streaming, compresión configurable                    |
+| **Data Table**       | TanStack Table            | 8.11.6  | Tablas interactivas        | Headless, sorting/filtering/pagination incluido       |
+| **Validación**       | Zod                       | 3.22.4  | Validación de schemas      | Type inference para TypeScript, errores descriptivos  |
+| **Linting**          | ESLint + Prettier         | -       | Code quality               | Estándar de la industria, integración con IDEs        |
+| **Hosting (Web)**    | Vercel                    | -       | Deploy serverless          | Optimizado para Next.js, CI/CD automático             |
+| **Hosting (Worker)** | Railway                   | -       | Procesos persistentes      | Sin timeouts, Dockerfile support, logs en tiempo real |
+| **CI/CD**            | GitHub + Railway + Vercel | -       | Integración continua       | Auto-deploy en push, hot-reload configurado           |
 
 ## Performance y Escalabilidad
 
@@ -1128,6 +1200,7 @@ Si persiste:
 ### Escalabilidad Futura
 
 Con PGMQ y múltiples workers:
+
 - **Workers concurrentes**: 10-20 Edge Functions paralelas
 - **Throughput**: ~50-100 PDFs/minuto
 - **Tiempo total**: 6,000 PDFs en ~20-30 minutos
@@ -1163,6 +1236,7 @@ Con PGMQ y múltiples workers:
 - **Total**: **$5/mes** (solo Railway)
 
 **Limitaciones**:
+
 - Sin cron jobs en Vercel (requiere invocación manual)
 - DB y Storage limitados (suficiente para desarrollo)
 - Railway solo 500h (suficiente para polling 24/7)
@@ -1176,6 +1250,7 @@ Con PGMQ y múltiples workers:
 - **Total**: **$66/mes**
 
 **Incluye**:
+
 - Cron automático
 - Recursos dedicados
 - Mejor performance
@@ -1190,6 +1265,7 @@ Con PGMQ y múltiples workers:
 - **Total**: **$269+/mes**
 
 **Justificable si**:
+
 - Más de 50,000 PDFs/mes
 - Múltiples instituciones
 - SLA requerido
@@ -1205,11 +1281,13 @@ Con PGMQ y múltiples workers:
 ### Métricas
 
 **Actualmente manual**:
+
 - Ver progreso en `/bulk/[jobId]`
 - Logs de Railway para throughput
 - Supabase Dashboard para uso de DB/Storage
 
 **Mejoras futuras**:
+
 - Integrar Sentry para error tracking
 - Dashboards con Grafana o Datadog
 - Alertas automáticas (Slack, Discord)

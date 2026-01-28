@@ -1,27 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { supabaseServer } from '@/lib/supabase/server';
 import type { ReportJob } from '@/types/database';
+import { createJobSchema, limitSchema } from '@/lib/validation/schemas';
+import { validateBody, validateQueryParams } from '@/lib/validation/helpers';
+import { createValidationErrorResponse } from '@/lib/validation/errors';
 
 export const dynamic = 'force-dynamic';
 
 // Create a new bulk report job (or batch of shard jobs)
 export async function POST(request: NextRequest) {
   try {
-    // Parse body to check for sharding params
-    let shards = 1; // default: legacy single-job mode
-    let batchParams = null;
-
-    try {
-      const body = await request.json();
-      if (body.shards && typeof body.shards === 'number') {
-        shards = Math.max(1, Math.min(200, Math.floor(body.shards))); // clamp 1-200
-      }
-      if (body.params) {
-        batchParams = body.params;
-      }
-    } catch {
-      // Empty or invalid body → use defaults
-    }
+    // Validate request body with Zod
+    const { shards, params: batchParams } = await validateBody(request, createJobSchema);
 
     if (shards > 1) {
       // NEW: Create a batch with N shard jobs
@@ -65,6 +56,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ jobId: result.job_id, tasksCreated: result.tasks_created });
     }
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return createValidationErrorResponse(error);
+    }
     console.error('Unexpected error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
@@ -73,8 +67,8 @@ export async function POST(request: NextRequest) {
 // Get all jobs
 export async function GET(request: NextRequest) {
   try {
-    const searchParams = request.nextUrl.searchParams;
-    const limit = parseInt(searchParams.get('limit') || '20', 10);
+    // Validate query params with Zod
+    const { limit } = validateQueryParams(request, limitSchema);
 
     const { data: jobs, error } = await supabaseServer
       .from('report_jobs')
@@ -89,6 +83,9 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ jobs: jobs as ReportJob[] });
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return createValidationErrorResponse(error);
+    }
     console.error('Unexpected error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }

@@ -1,18 +1,14 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { supabaseServer } from '@/lib/supabase/server';
+import { schoolCodeSchema } from '@/lib/validation/schemas';
+import { validateQueryParams } from '@/lib/validation/helpers';
+import { createValidationErrorResponse } from '@/lib/validation/errors';
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const schoolCodigoCe = searchParams.get('school_codigo_ce');
-
-    // Require school_codigo_ce parameter
-    if (!schoolCodigoCe) {
-      return NextResponse.json(
-        { error: 'school_codigo_ce parameter is required' },
-        { status: 400 }
-      );
-    }
+    // Validate query params with Zod
+    const { school_codigo_ce: schoolCodigoCe } = validateQueryParams(request, schoolCodeSchema);
 
     // Query students.grado_ok and grado for the specific school
     // Use COALESCE strategy: prefer grado_ok, fall back to grado if grado_ok is null/empty
@@ -43,6 +39,9 @@ export async function GET(request: Request) {
       source: 'grado_ok', // Optional metadata for debugging
     });
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return createValidationErrorResponse(error);
+    }
     console.error('Unexpected error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }

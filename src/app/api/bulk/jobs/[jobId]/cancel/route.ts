@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { supabaseServer } from '@/lib/supabase/server';
+import { cancelJobSchema } from '@/lib/validation/schemas';
+import { validateBody } from '@/lib/validation/helpers';
+import { createValidationErrorResponse } from '@/lib/validation/errors';
 
 /**
  * Cancel a bulk report job and all its pending/running tasks
@@ -8,19 +12,13 @@ export async function POST(request: NextRequest, { params }: { params: { jobId: 
   try {
     const jobId = params.jobId;
 
-    // Optional: get reason from request body
-    let reason: string | null = null;
-    try {
-      const body = await request.json();
-      reason = body.reason || null;
-    } catch {
-      // No body or invalid JSON, use default reason
-    }
+    // Validate request body with Zod
+    const { reason } = await validateBody(request, cancelJobSchema);
 
     // Call the cancel RPC
     const { data, error } = await supabaseServer.rpc('cancel_report_job', {
       p_job_id: jobId,
-      p_reason: reason,
+      p_reason: reason || null,
     });
 
     if (error) {
@@ -70,6 +68,9 @@ export async function POST(request: NextRequest, { params }: { params: { jobId: 
       job: job || null,
     });
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return createValidationErrorResponse(error);
+    }
     console.error('Unexpected error cancelling job:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }

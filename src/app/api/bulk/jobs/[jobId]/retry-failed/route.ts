@@ -26,7 +26,6 @@ export async function POST(request: NextRequest, { params }: { params: { jobId: 
       success: boolean;
       message: string;
       tasks_retried: number;
-      zip_parts_deleted: number;
     };
 
     if (!result.success) {
@@ -56,7 +55,6 @@ export async function POST(request: NextRequest, { params }: { params: { jobId: 
       success: true,
       message: result.message,
       tasksRetried: result.tasks_retried,
-      zipPartsDeleted: result.zip_parts_deleted,
       job: job || null,
     });
   } catch (error) {

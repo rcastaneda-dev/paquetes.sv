@@ -1,16 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { supabaseServer } from '@/lib/supabase/server';
 import type { StudentQueryRow } from '@/types/database';
+import { studentFilterSchema } from '@/lib/validation/schemas';
+import { validateQueryParams } from '@/lib/validation/helpers';
+import { createValidationErrorResponse } from '@/lib/validation/errors';
 
 export async function GET(request: NextRequest) {
   try {
-    const searchParams = request.nextUrl.searchParams;
-    const school_codigo_ce = searchParams.get('school_codigo_ce');
-    const grado = searchParams.get('grado');
-    const departamento = searchParams.get('departamento');
-    const region = searchParams.get('region');
-    const page = parseInt(searchParams.get('page') || '1', 10);
-    const pageSize = parseInt(searchParams.get('pageSize') || '50', 10);
+    // Validate query params with Zod
+    const { school_codigo_ce, grado, departamento, region, page, pageSize } = validateQueryParams(
+      request,
+      studentFilterSchema
+    );
     const offset = (page - 1) * pageSize;
 
     const baseArgs = {
@@ -47,6 +49,9 @@ export async function GET(request: NextRequest) {
       pageSize,
     });
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return createValidationErrorResponse(error);
+    }
     console.error('Unexpected error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }

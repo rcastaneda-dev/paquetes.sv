@@ -1,9 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { supabaseServer } from '@/lib/supabase/server';
 import { generateStudentReportPDF } from '@/lib/pdf/generator';
 import type { StudentQueryRow, StudentReportRow } from '@/types/database';
+import { validateQueryParams } from '@/lib/validation/helpers';
+import { createValidationErrorResponse } from '@/lib/validation/errors';
 
 export const dynamic = 'force-dynamic';
+
+// Schema for print query params
+const printQuerySchema = z.object({
+  school_codigo_ce: z.string().min(1, 'school_codigo_ce is required'),
+  grado: z.string().optional(),
+});
 
 function slugify(value: string): string {
   return value
@@ -81,14 +90,8 @@ async function fetchAllStudents(params: {
 
 export async function GET(request: NextRequest) {
   try {
-    const searchParams = request.nextUrl.searchParams;
-    const school_codigo_ce = searchParams.get('school_codigo_ce');
-    const grado = searchParams.get('grado');
-
-    // Restriction: escuela must be selected
-    if (!school_codigo_ce) {
-      return NextResponse.json({ error: 'school_codigo_ce is required' }, { status: 400 });
-    }
+    // Validate query params with Zod
+    const { school_codigo_ce, grado } = validateQueryParams(request, printQuerySchema);
 
     // Fetch school name (for PDF title + filename)
     const { data: school, error: schoolError } = await supabaseServer
@@ -146,6 +149,9 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return createValidationErrorResponse(error);
+    }
     console.error('Error generating PDF:', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Internal server error' },
