@@ -5,6 +5,12 @@ import type { ReportJob, ReportTask, JobProgress } from '@/types/database';
 export async function GET(request: NextRequest, { params }: { params: { jobId: string } }) {
   try {
     const jobId = params.jobId;
+    const { searchParams } = new URL(request.url);
+
+    // Get filter/search parameters
+    const searchQuery = searchParams.get('search')?.trim() || '';
+    const statusFilter = searchParams.get('status') || '';
+    const limit = Math.min(parseInt(searchParams.get('limit') || '100'), 500);
 
     // Get job details
     const { data: job, error: jobError } = await supabaseServer
@@ -14,6 +20,11 @@ export async function GET(request: NextRequest, { params }: { params: { jobId: s
       .single();
 
     if (jobError) {
+      // PGRST116 means no rows found - return 404 without logging
+      if (jobError.code === 'PGRST116') {
+        return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+      }
+      // Other errors should be logged
       console.error('Error fetching job:', jobError);
       return NextResponse.json({ error: jobError.message }, { status: 500 });
     }
@@ -37,12 +48,47 @@ export async function GET(request: NextRequest, { params }: { params: { jobId: s
 
     const progress = progressData?.[0] as JobProgress;
 
-    // Get tasks
-    const { data: tasks, error: tasksError } = await supabaseServer
+    // Get tasks with school information, search, and filters
+    // If searching, we need to query schools first to get matching codes
+    let schoolCodes: string[] | null = null;
+    if (searchQuery) {
+      const { data: matchingSchools } = await supabaseServer
+        .from('schools')
+        .select('codigo_ce')
+        .or(`codigo_ce.ilike.%${searchQuery}%,nombre_ce.ilike.%${searchQuery}%`);
+
+      schoolCodes = matchingSchools?.map(s => s.codigo_ce) || [];
+
+      // If no matching schools found, return empty results
+      if (schoolCodes.length === 0) {
+        return NextResponse.json({
+          job: job as ReportJob,
+          progress,
+          tasks: [],
+        });
+      }
+    }
+
+    // Join with schools table to get nombre_ce
+    let tasksQuery = supabaseServer
       .from('report_tasks')
-      .select('*')
-      .eq('job_id', jobId)
-      .order('updated_at', { ascending: false });
+      .select('*, schools!report_tasks_school_codigo_ce_fkey(nombre_ce)')
+      .eq('job_id', jobId);
+
+    // Apply school search filter
+    if (schoolCodes && schoolCodes.length > 0) {
+      tasksQuery = tasksQuery.in('school_codigo_ce', schoolCodes);
+    }
+
+    // Apply status filter
+    if (statusFilter) {
+      tasksQuery = tasksQuery.eq('status', statusFilter);
+    }
+
+    // Order and limit
+    tasksQuery = tasksQuery.order('updated_at', { ascending: false }).limit(limit);
+
+    const { data: tasks, error: tasksError } = await tasksQuery;
 
     if (tasksError) {
       console.error('Error fetching tasks:', tasksError);

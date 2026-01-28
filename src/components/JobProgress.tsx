@@ -29,7 +29,7 @@ export function JobProgress({ progress }: JobProgressProps) {
       </div>
 
       {/* Stats grid */}
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-6">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-6">
         <StatCard label="Total" value={progress.total_tasks} />
         <StatCard label="Pendientes" value={progress.pending_tasks} variant="muted" />
         <StatCard label="En Proceso" value={progress.running_tasks} variant="info" />
@@ -60,7 +60,7 @@ function StatCard({ label, value, variant = 'default' }: StatCardProps) {
   return (
     <div className={`rounded-lg border p-4 ${variantStyles[variant]}`}>
       <div className="text-2xl font-bold">{value}</div>
-      <div className="text-sm text-muted-foreground">{label}</div>
+      <div className="break-words text-sm text-muted-foreground">{label}</div>
     </div>
   );
 }

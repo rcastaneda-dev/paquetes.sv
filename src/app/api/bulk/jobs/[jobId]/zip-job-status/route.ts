@@ -149,10 +149,10 @@ export async function GET(request: NextRequest, { params }: { params: { jobId: s
  */
 function getProgressMessage(status: string): { message: string } {
   const messages: Record<string, string> = {
-    queued: 'Waiting in queue for processing...',
-    processing: 'Generating ZIP file (this may take 1-3 minutes)...',
-    complete: 'ZIP generation complete! Ready to download.',
-    failed: 'ZIP generation failed. You can retry.',
+    queued: 'En cola para ser procesado...',
+    processing: 'Generando archivo ZIP (puede tardar entre 1 y 3 minutos)...',
+    complete: 'Generación del ZIP completa. Listo para descargar.',
+    failed: 'La generación del ZIP falló. Puedes intentarlo de nuevo.',
   };
 
   return { message: messages[status] || 'Unknown status' };

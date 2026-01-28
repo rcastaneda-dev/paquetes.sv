@@ -104,12 +104,12 @@ export function FiltersPanel({ onFilterChange, onSearch }: FiltersPanelProps) {
         {/* School autocomplete */}
         <div className="relative">
           <label htmlFor="school-search" className="mb-2 block text-sm font-medium">
-            Código CE
+            Código CE o Nombre
           </label>
           <Input
             id="school-search"
             type="text"
-            placeholder="Buscar por código CE..."
+            placeholder="Buscar por código CE o nombre..."
             value={schoolQuery}
             onChange={e => {
               setSchoolQuery(e.target.value);

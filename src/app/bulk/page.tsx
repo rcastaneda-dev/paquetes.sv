@@ -121,10 +121,12 @@ export default function BulkReportsPage() {
     <div className="min-h-screen bg-background">
       <header className="border-b">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold">Paquetes SV - Reportes Masivos</h1>
+          <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
+            <h1 className="text-xl font-bold sm:text-2xl">Paquetes SV - Reportes Masivos</h1>
             <Link href="/">
-              <Button variant="outline">Volver a Consultas</Button>
+              <Button variant="outline" className="whitespace-nowrap px-3 text-sm sm:px-4">
+                Volver a Consultas
+              </Button>
             </Link>
           </div>
         </div>
@@ -133,21 +135,30 @@ export default function BulkReportsPage() {
       <main className="container mx-auto px-4 py-8">
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
               <CardTitle>Trabajos de Generación de PDFs</CardTitle>
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={fetchJobs} disabled={isLoading}>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  onClick={fetchJobs}
+                  disabled={isLoading}
+                  className="whitespace-nowrap px-3 text-sm sm:px-4"
+                >
                   {isLoading ? 'Sincronizando...' : 'Sincronizar'}
                 </Button>
                 <Button
                   variant="outline"
                   onClick={handleDeletePastJobs}
                   disabled={isLoading || isDeletingPast}
-                  className="text-destructive hover:text-destructive"
+                  className="whitespace-nowrap px-3 text-sm text-destructive hover:text-destructive sm:px-4"
                 >
                   {isDeletingPast ? 'Eliminando...' : 'Eliminar finalizados'}
                 </Button>
-                <Button onClick={handleCreateJob} disabled={isCreating}>
+                <Button
+                  onClick={handleCreateJob}
+                  disabled={isCreating}
+                  className="whitespace-nowrap px-3 text-sm sm:px-4"
+                >
                   {isCreating ? 'Creando...' : 'Generar Todos los PDFs'}
                 </Button>
               </div>
@@ -192,6 +203,7 @@ export default function BulkReportsPage() {
                               e.preventDefault();
                               router.push(`/bulk/${job.id}`);
                             }}
+                            className="whitespace-nowrap text-xs sm:text-sm"
                           >
                             Ver descargas
                           </Button>
