@@ -8,6 +8,7 @@ WORKDIR /app
 
 # Copy package files from worker directory
 COPY worker/zip-worker/package*.json ./
+COPY worker/zip-worker/package-lock.json ./
 
 # Install dependencies
 RUN npm ci --only=production
