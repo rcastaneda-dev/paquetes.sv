@@ -10,14 +10,17 @@ WORKDIR /app
 COPY worker/zip-worker/package*.json ./
 COPY worker/zip-worker/package-lock.json ./
 
-# Install dependencies
-RUN npm ci --only=production
+# Install all dependencies (including devDependencies for building)
+RUN npm ci
 
 # Copy worker source code
 COPY worker/zip-worker/ ./
 
 # Build TypeScript
 RUN npm run build
+
+# Install production dependencies only
+RUN npm ci --only=production
 
 # Production image
 FROM node:20-alpine
