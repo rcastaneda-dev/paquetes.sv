@@ -5,6 +5,7 @@ This guide walks you through deploying the new ZIP generation architecture that 
 ## Quick Overview
 
 **What we built:**
+
 1. Database migration for ZIP job queue
 2. Two new Vercel API routes (create job, poll status)
 3. Standalone background worker (Railway)
@@ -56,10 +57,12 @@ git push origin main
 ```
 
 Vercel will auto-deploy:
+
 - ✅ New routes: `create-zip-job`, `zip-job-status`
 - ✅ Updated frontend: `bulk/[jobId]/page.tsx`
 
 **Verify deployment:**
+
 1. Check Vercel dashboard for successful deploy
 2. Visit your app → complete a report job
 3. See regional download buttons (don't click yet - worker not deployed)
@@ -91,15 +94,18 @@ Vercel will auto-deploy:
 4. Configure the following:
 
 **Root Directory:**
+
 ```
 worker/zip-worker
 ```
 
 **Build Configuration:**
+
 - Build Method: `Dockerfile` (Railway auto-detects the Dockerfile)
 - Dockerfile Path: `Dockerfile` (default)
 
 **Deploy Configuration:**
+
 - Start Command: (leave empty - uses Dockerfile CMD)
 
 #### 3d. Set Environment Variables
@@ -109,20 +115,21 @@ worker/zip-worker
 
 **Required Variables:**
 
-| Variable Name | Value | Where to Get It |
-|--------------|-------|-----------------|
-| `NEXT_PUBLIC_SUPABASE_URL` | `https://your-project.supabase.co` | Supabase Dashboard → Settings → API → Project URL |
-| `SUPABASE_SERVICE_ROLE_KEY` | `eyJ...` | Supabase Dashboard → Settings → API → Service Role Key (secret!) |
+| Variable Name               | Value                              | Where to Get It                                                  |
+| --------------------------- | ---------------------------------- | ---------------------------------------------------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`  | `https://your-project.supabase.co` | Supabase Dashboard → Settings → API → Project URL                |
+| `SUPABASE_SERVICE_ROLE_KEY` | `eyJ...`                           | Supabase Dashboard → Settings → API → Service Role Key (secret!) |
 
 **Optional Variables (for tuning):**
 
-| Variable Name | Default | Description |
-|--------------|---------|-------------|
-| `POLL_INTERVAL_MS` | `5000` | How often worker polls for jobs (milliseconds) |
-| `DOWNLOAD_BATCH_SIZE` | `50` | PDFs downloaded in parallel per batch |
-| `COMPRESSION_LEVEL` | `6` | ZIP compression (1-9, lower=faster) |
+| Variable Name         | Default | Description                                    |
+| --------------------- | ------- | ---------------------------------------------- |
+| `POLL_INTERVAL_MS`    | `5000`  | How often worker polls for jobs (milliseconds) |
+| `DOWNLOAD_BATCH_SIZE` | `50`    | PDFs downloaded in parallel per batch          |
+| `COMPRESSION_LEVEL`   | `6`     | ZIP compression (1-9, lower=faster)            |
 
 **Example:**
+
 ```
 NEXT_PUBLIC_SUPABASE_URL=https://abcdefghijk.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
@@ -147,12 +154,14 @@ COMPRESSION_LEVEL=6
 3. Click **"View Logs"**
 
 **Expected log output:**
+
 ```
 🚀 ZIP Worker starting...
 📊 Config: Poll interval=5000ms, Batch size=50, Compression=6
 ```
 
 **If you see errors:**
+
 - Check **Variables** tab to ensure all env vars are set correctly
 - Click **"Redeploy"** to restart with new variables
 
@@ -224,6 +233,7 @@ railway logs --follow
 ```
 
 **Expected output:**
+
 ```
 🚀 ZIP Worker starting...
 📊 Config: Poll interval=5000ms, Batch size=50, Compression=6
@@ -252,6 +262,7 @@ railway variables
 5. ZIP completes, download starts automatically
 
 **Expected timeline:**
+
 - Job created: instant
 - Worker picks up: 0-5 seconds
 - ZIP generation: 60-120 seconds
@@ -353,6 +364,7 @@ git push
 ### Issue: Worker not picking up jobs
 
 **Check:**
+
 ```bash
 # Verify worker is running
 railway logs
@@ -369,6 +381,7 @@ railway run node -e "console.log(process.env.NEXT_PUBLIC_SUPABASE_URL)"
 **Cause:** Old route still being called
 
 **Fix:**
+
 ```bash
 # Ensure old route is deleted
 ls src/app/api/bulk/jobs/[jobId]/zip-region/route.ts
@@ -382,6 +395,7 @@ grep -r "zip-region" src/app/bulk/
 ### Issue: Jobs stuck in "processing"
 
 **Recovery:**
+
 ```sql
 -- Reset jobs stuck for >30 minutes
 UPDATE zip_jobs
@@ -395,6 +409,7 @@ WHERE status = 'processing'
 ### Issue: Worker crashes with OOM
 
 **Solution:**
+
 ```bash
 # Reduce batch size
 railway variables set DOWNLOAD_BATCH_SIZE=30
@@ -417,12 +432,12 @@ Set up monitoring for:
 
 **Monthly costs:**
 
-| Service | Plan | Cost |
-|---------|------|------|
-| Vercel | Free | $0 |
-| Supabase | Pro | $25 |
-| Railway | Hobby | $5 |
-| **Total** | | **$30/mo** |
+| Service   | Plan  | Cost       |
+| --------- | ----- | ---------- |
+| Vercel    | Free  | $0         |
+| Supabase  | Pro   | $25        |
+| Railway   | Hobby | $5         |
+| **Total** |       | **$30/mo** |
 
 **Cost increase:** +$5/mo for reliable large file uploads
 

@@ -5,6 +5,7 @@ This guide documents what to delete from Supabase and your codebase after deploy
 ## Overview
 
 **What changed:**
+
 - ❌ **Old:** Synchronous ZIP generation in Vercel API routes (caused 413 errors)
 - ✅ **New:** Async background worker with TUS uploads (solves 413 errors)
 
@@ -98,6 +99,7 @@ src/app/api/bulk/jobs/[jobId]/zip-region/route.ts
 **Why:** This route caused 413 errors by trying to upload large ZIPs through Vercel.
 
 **Replaced by:**
+
 - `src/app/api/bulk/jobs/[jobId]/create-zip-job/route.ts` (creates job)
 - `src/app/api/bulk/jobs/[jobId]/zip-job-status/route.ts` (polls status)
 
@@ -127,6 +129,7 @@ src/app/api/bulk/jobs/[jobId]/zip-region/route.ts
 ```
 
 **Already removed** (migration 022):
+
 ```json
 // These were removed earlier
 {
@@ -300,23 +303,25 @@ railway logs
 
 ## Summary of Changes
 
-| Component | Old | New | Action |
-|-----------|-----|-----|--------|
-| ZIP generation | Sync in Vercel | Async in Railway | Deploy worker |
-| Upload method | Standard (fails >6MB) | TUS (works to 50GB) | Automatic |
-| API route | `zip-region` | `create-zip-job` | Delete old |
-| Status check | N/A | `zip-job-status` | Add new |
-| Edge Functions | zip-part-worker, zip-rollup-worker | None | Delete |
-| Database table | `report_zip_parts` | `zip_jobs` | Already migrated |
+| Component      | Old                                | New                 | Action           |
+| -------------- | ---------------------------------- | ------------------- | ---------------- |
+| ZIP generation | Sync in Vercel                     | Async in Railway    | Deploy worker    |
+| Upload method  | Standard (fails >6MB)              | TUS (works to 50GB) | Automatic        |
+| API route      | `zip-region`                       | `create-zip-job`    | Delete old       |
+| Status check   | N/A                                | `zip-job-status`    | Add new          |
+| Edge Functions | zip-part-worker, zip-rollup-worker | None                | Delete           |
+| Database table | `report_zip_parts`                 | `zip_jobs`          | Already migrated |
 
 ## Cost Impact
 
 **Before:**
+
 - Vercel Free: $0
 - Supabase Pro: $25/mo
 - **Total: $25/mo**
 
 **After:**
+
 - Vercel Free: $0
 - Supabase Pro: $25/mo
 - Railway Hobby: $5/mo

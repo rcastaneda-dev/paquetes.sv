@@ -150,8 +150,8 @@ export function FiltersPanel({ onFilterChange, onSearch }: FiltersPanelProps) {
               {!selectedSchool
                 ? 'Seleccione un código CE primero'
                 : isLoadingGrades
-                ? 'Cargando grados...'
-                : 'Todos los grados'}
+                  ? 'Cargando grados...'
+                  : 'Todos los grados'}
             </option>
             {grades.map(grade => (
               <option key={grade} value={grade}>

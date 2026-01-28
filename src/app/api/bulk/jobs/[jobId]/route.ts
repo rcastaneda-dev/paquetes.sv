@@ -2,10 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase/server';
 import type { ReportJob, ReportTask, JobProgress } from '@/types/database';
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { jobId: string } }
-) {
+export async function GET(request: NextRequest, { params }: { params: { jobId: string } }) {
   try {
     const jobId = params.jobId;
 
@@ -26,9 +23,12 @@ export async function GET(
     }
 
     // Get progress stats
-    const { data: progressData, error: progressError } = await supabaseServer.rpc('get_job_progress', {
-      p_job_id: jobId,
-    });
+    const { data: progressData, error: progressError } = await supabaseServer.rpc(
+      'get_job_progress',
+      {
+        p_job_id: jobId,
+      }
+    );
 
     if (progressError) {
       console.error('Error fetching progress:', progressError);
@@ -67,10 +67,7 @@ export async function GET(
  * - Cascades to tasks via FK ON DELETE CASCADE.
  * - Does NOT delete Supabase Storage objects referenced by pdf_path/zip_path.
  */
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { jobId: string } }
-) {
+export async function DELETE(request: NextRequest, { params }: { params: { jobId: string } }) {
   try {
     const jobId = params.jobId;
 
@@ -82,7 +79,10 @@ export async function DELETE(
 
     if (jobError) {
       const status = jobError.code === 'PGRST116' ? 404 : 500;
-      return NextResponse.json({ error: status === 404 ? 'Job not found' : jobError.message }, { status });
+      return NextResponse.json(
+        { error: status === 404 ? 'Job not found' : jobError.message },
+        { status }
+      );
     }
 
     const status = (job as { status: ReportJob['status'] }).status;

@@ -12,17 +12,19 @@ npm run type-check    # TypeScript check
 ## Formatting Rules
 
 ### Quotes & Semicolons
+
 ```typescript
 // ✅ Good
 const name = 'John';
 const greeting = `Hello, ${name}`;
 
 // ❌ Bad
-const name = "John";
-const greeting = "Hello, " + name
+const name = 'John';
+const greeting = 'Hello, ' + name;
 ```
 
 ### Line Length
+
 ```typescript
 // ✅ Good (under 100 chars)
 const shortFunction = (a: string, b: number) => {
@@ -30,20 +32,23 @@ const shortFunction = (a: string, b: number) => {
 };
 
 // ❌ Bad (over 100 chars - will be wrapped by Prettier)
-const longFunction = (parameterOne: string, parameterTwo: number, parameterThree: boolean) => doSomethingVeryLongHere(parameterOne, parameterTwo, parameterThree);
+const longFunction = (parameterOne: string, parameterTwo: number, parameterThree: boolean) =>
+  doSomethingVeryLongHere(parameterOne, parameterTwo, parameterThree);
 ```
 
 ### Arrow Functions
+
 ```typescript
 // ✅ Good (omit parens when single param)
 const square = (n: number) => n * n;
 const greet = name => `Hello, ${name}`;
 
 // ❌ Bad (unnecessary parens)
-const greet = (name) => `Hello, ${name}`;
+const greet = name => `Hello, ${name}`;
 ```
 
 ### Trailing Commas
+
 ```typescript
 // ✅ Good
 const obj = {
@@ -51,21 +56,19 @@ const obj = {
   age: 30,
 };
 
-const arr = [
-  'item1',
-  'item2',
-];
+const arr = ['item1', 'item2'];
 
 // ❌ Bad (missing trailing comma)
 const obj = {
   name: 'John',
-  age: 30
+  age: 30,
 };
 ```
 
 ## TypeScript Best Practices
 
 ### Avoid `any`
+
 ```typescript
 // ✅ Good
 const fetchData = async (): Promise<Student[]> => {
@@ -81,6 +84,7 @@ const fetchData = async (): Promise<any> => {
 ```
 
 ### Use Type Inference
+
 ```typescript
 // ✅ Good (type inferred)
 const numbers = [1, 2, 3];
@@ -92,6 +96,7 @@ const total: number = numbers.reduce((sum: number, n: number): number => sum + n
 ```
 
 ### Interface vs Type
+
 ```typescript
 // ✅ Good (use interface for objects)
 interface Student {
@@ -110,6 +115,7 @@ type Student = {
 ```
 
 ### Unused Variables
+
 ```typescript
 // ✅ Good (prefix with _ to mark as intentionally unused)
 const handleClick = (_event: MouseEvent, index: number) => {
@@ -125,6 +131,7 @@ const handleClick = (event: MouseEvent, index: number) => {
 ## React Best Practices
 
 ### Component Prop Types
+
 ```typescript
 // ✅ Good
 interface ButtonProps {
@@ -148,6 +155,7 @@ export function Button({ label, onClick, disabled }) {
 ```
 
 ### State Types
+
 ```typescript
 // ✅ Good
 const [user, setUser] = useState<User | null>(null);
@@ -158,6 +166,7 @@ const [user, setUser] = useState(null);
 ```
 
 ### Event Handlers
+
 ```typescript
 // ✅ Good
 const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -173,6 +182,7 @@ const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
 ## Tailwind CSS Guidelines
 
 ### Class Organization
+
 ```typescript
 // ✅ Good (grouped logically, sorted by plugin)
 <div className="flex items-center justify-between gap-4 rounded-lg border bg-white p-4 shadow-sm hover:shadow-md">
@@ -182,6 +192,7 @@ const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
 ```
 
 ### Conditional Classes
+
 ```typescript
 // ✅ Good
 const buttonClass = `
@@ -250,20 +261,20 @@ import './styles.css';
 
 ```typescript
 // ✅ Components
-export function StudentGrid() { }
-export const Button = () => { };
+export function StudentGrid() {}
+export const Button = () => {};
 
 // ✅ Hooks
-const useStudents = () => { };
-const useFetchData = () => { };
+const useStudents = () => {};
+const useFetchData = () => {};
 
 // ✅ Utilities
-const fetchStudents = async () => { };
-const formatDate = (date: Date) => { };
+const fetchStudents = async () => {};
+const formatDate = (date: Date) => {};
 
 // ✅ Handlers
-const handleClick = () => { };
-const handleSubmit = (e: FormEvent) => { };
+const handleClick = () => {};
+const handleSubmit = (e: FormEvent) => {};
 
 // ✅ Predicates
 const isValidEmail = (email: string) => boolean;
@@ -306,11 +317,13 @@ const data = doSomething();
 ## Auto-Format Shortcuts
 
 ### VS Code
+
 - **Format Document**: `Shift + Alt + F` (Windows/Linux) or `Shift + Option + F` (Mac)
 - **Format Selection**: `Cmd/Ctrl + K, Cmd/Ctrl + F`
 - **Save + Format**: `Cmd/Ctrl + S` (if format on save enabled)
 
 ### Command Line
+
 ```bash
 # Format all files
 npm run format

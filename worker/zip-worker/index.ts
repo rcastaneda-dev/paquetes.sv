@@ -48,7 +48,9 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
  */
 async function main() {
   console.log('🚀 ZIP Worker starting...');
-  console.log(`📊 Config: Poll interval=${POLL_INTERVAL_MS}ms, Batch size=${BATCH_SIZE}, Compression=${COMPRESSION_LEVEL}`);
+  console.log(
+    `📊 Config: Poll interval=${POLL_INTERVAL_MS}ms, Batch size=${BATCH_SIZE}, Compression=${COMPRESSION_LEVEL}`
+  );
 
   while (true) {
     try {
@@ -108,7 +110,9 @@ async function processZipJob(supabase: SupabaseClient, job: ZipJob) {
       throw new Error(`No PDFs found for region ${regionUpper}`);
     }
 
-    console.log(`   ✅ Found ${tasks.length} schools (will generate ~${tasks.length * 2} PDFs: tallas + etiquetas)`);
+    console.log(
+      `   ✅ Found ${tasks.length} schools (will generate ~${tasks.length * 2} PDFs: tallas + etiquetas)`
+    );
 
     // 2. Create ZIP archive
     const archive = archiver('zip', {

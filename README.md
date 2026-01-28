@@ -64,6 +64,7 @@ npm install
 ### 2. Configurar Supabase
 
 #### a) Crear proyecto en Supabase
+
 - Ve a [supabase.com](https://supabase.com) y crea un nuevo proyecto
 - Anota la URL y las API keys
 
@@ -72,11 +73,13 @@ npm install
 En el SQL Editor de Supabase, ejecuta en orden:
 
 1. **Schema base** (si no existe):
+
    ```sql
    -- Ejecuta el contenido de paquetes_schema.sql
    ```
 
 2. **Fix de foreign keys** (si es necesario):
+
    ```sql
    -- Ejecuta el contenido de fix_foreign_keys.sql
    ```
@@ -137,6 +140,7 @@ Abre [http://localhost:3000](http://localhost:3000)
 ### Opción A: Vercel (Recomendado para Next.js)
 
 1. **Deploy a Vercel**:
+
    ```bash
    vercel
    ```
@@ -152,16 +156,19 @@ Abre [http://localhost:3000](http://localhost:3000)
 Si prefieres usar Supabase Edge Functions:
 
 1. **Instalar CLI**:
+
    ```bash
    npm install -g supabase
    ```
 
 2. **Deploy función**:
+
    ```bash
    supabase functions deploy report-worker
    ```
 
 3. **Configurar secretos**:
+
    ```bash
    supabase secrets set NEXTJS_URL=https://tu-app.vercel.app
    supabase secrets set FUNCTION_SECRET=tu_secret
@@ -264,6 +271,7 @@ El código incluye un "auth seam" listo para implementar:
 1. **Descomentar funciones** en `src/lib/supabase/auth.ts`
 2. **Activar middleware** en `src/middleware.ts`
 3. **Habilitar RLS** en Supabase:
+
    ```sql
    ALTER TABLE public.report_jobs ENABLE ROW LEVEL SECURITY;
    ALTER TABLE public.report_tasks ENABLE ROW LEVEL SECURITY;
@@ -297,12 +305,15 @@ El código incluye un "auth seam" listo para implementar:
   ```bash
   curl -X POST http://localhost:3000/api/worker/process-tasks \
     -H "Authorization: Bearer tu_secret"
+  ```
 
 ### "Invalid schema" (PGRST106)
 
 Este proyecto usa el schema **`public`** (default de Supabase). Si ves `Invalid schema`, es porque el cliente está forzando un schema no expuesto.
 
 - Asegúrate de **no** configurar `db.schema` a un schema custom
+  ```
+
   ```
 
 ### Errores de Storage

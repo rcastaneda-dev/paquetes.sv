@@ -7,7 +7,7 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
     return (
       <div
         ref={ref}
-        className={`rounded-lg border bg-card text-card-foreground shadow-sm ${className}`}
+        className={`bg-card text-card-foreground rounded-lg border shadow-sm ${className}`}
         {...props}
       >
         {children}
@@ -21,11 +21,7 @@ Card.displayName = 'Card';
 export const CardHeader = forwardRef<HTMLDivElement, CardProps>(
   ({ className = '', children, ...props }, ref) => {
     return (
-      <div
-        ref={ref}
-        className={`flex flex-col space-y-1.5 p-6 ${className}`}
-        {...props}
-      >
+      <div ref={ref} className={`flex flex-col space-y-1.5 p-6 ${className}`} {...props}>
         {children}
       </div>
     );

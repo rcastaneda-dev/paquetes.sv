@@ -5,12 +5,14 @@
 ### Dependencies Installed
 
 **ESLint:**
+
 - `@typescript-eslint/eslint-plugin` - TypeScript-specific linting rules
 - `@typescript-eslint/parser` - Parses TypeScript for ESLint
 - `eslint-config-prettier` - Disables conflicting ESLint rules
 - `eslint-plugin-prettier` - Runs Prettier as an ESLint rule
 
 **Prettier:**
+
 - `prettier` - Code formatter
 - `prettier-plugin-tailwindcss` - Auto-sorts Tailwind classes
 
@@ -76,22 +78,26 @@
 ## 🎯 Key Features
 
 ### Auto-Formatting
+
 - **On Save**: Files auto-format when you save in VS Code
 - **On Commit**: Optional pre-commit hooks (see LINTING.md)
 - **Manual**: `npm run format` to format all files
 
 ### Linting Rules
+
 - **TypeScript**: Strict type checking, no `any` warnings
 - **React**: Next.js best practices, no unused imports
 - **Console**: Warn on `console.log`, allow `error/warn/info`
 - **Unused Vars**: Warn unless prefixed with `_`
 
 ### Tailwind CSS
+
 - **Auto-sort**: Classes automatically organized
 - **Consistent**: Same order across all files
 - **Plugin**: `prettier-plugin-tailwindcss`
 
 ### VS Code Integration
+
 - **IntelliSense**: Real-time error highlighting
 - **Quick Fix**: Cmd/Ctrl + . to fix issues
 - **Format**: Shift + Alt/Option + F to format
@@ -152,10 +158,12 @@ npm run build         # Fail on build errors
 ### Ignored Patterns
 
 **ESLint ignores:**
+
 - `node_modules/`, `.next/`, `out/`, `build/`, `dist/`
 - `*.config.js` files
 
 **Prettier ignores:**
+
 - Same as ESLint plus:
 - `*.sql` (preserve original formatting)
 - Lock files
@@ -165,6 +173,7 @@ npm run build         # Fail on build errors
 ### For New Developers
 
 1. **Install dependencies**:
+
    ```bash
    npm install
    ```
@@ -182,6 +191,7 @@ npm run build         # Fail on build errors
 ### Optional Enhancements
 
 1. **Pre-commit hooks** (see LINTING.md)
+
    ```bash
    npm install --save-dev husky lint-staged
    ```
@@ -203,18 +213,21 @@ npm run build         # Fail on build errors
 ## ✨ Benefits
 
 ### Code Quality
+
 - ✅ Consistent formatting across team
 - ✅ Catch errors before runtime
 - ✅ TypeScript best practices enforced
 - ✅ No debates about code style
 
 ### Developer Experience
+
 - ✅ Auto-format on save (no manual work)
 - ✅ Real-time error feedback
 - ✅ Quick fixes with one click
 - ✅ Consistent across editors
 
 ### Team Collaboration
+
 - ✅ No formatting diffs in PRs
 - ✅ Focus reviews on logic, not style
 - ✅ New developers onboard faster
@@ -226,10 +239,10 @@ npm run build         # Fail on build errors
 
 ```typescript
 // Inconsistent formatting, type issues
-const fetchData = async ( ) : Promise<any>=>{
-const response=await fetch("/api/data")
-return response.json()
-}
+const fetchData = async (): Promise<any> => {
+  const response = await fetch('/api/data');
+  return response.json();
+};
 ```
 
 ### After ESLint/Prettier
@@ -247,12 +260,16 @@ const fetchData = async (): Promise<Student[]> => {
 To verify the setup is working:
 
 1. **Create a test file**:
+
    ```typescript
    // test.ts
-   const x=1;const y=2;console.log(x+y)
+   const x = 1;
+   const y = 2;
+   console.log(x + y);
    ```
 
 2. **Save the file** - Should auto-format to:
+
    ```typescript
    const x = 1;
    const y = 2;

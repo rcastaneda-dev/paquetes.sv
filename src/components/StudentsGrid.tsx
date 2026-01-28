@@ -61,7 +61,13 @@ const columns: ColumnDef<StudentQueryRow>[] = [
   },
 ];
 
-export function StudentsGrid({ students, totalCount, currentPage, pageSize, onPageChange }: StudentsGridProps) {
+export function StudentsGrid({
+  students,
+  totalCount,
+  currentPage,
+  pageSize,
+  onPageChange,
+}: StudentsGridProps) {
   const table = useReactTable({
     data: students,
     columns,
@@ -78,17 +84,18 @@ export function StudentsGrid({ students, totalCount, currentPage, pageSize, onPa
     <div className="space-y-4">
       {/* Results summary */}
       <div className="text-sm text-muted-foreground">
-        Mostrando {students.length > 0 ? (currentPage - 1) * pageSize + 1 : 0} - {Math.min(currentPage * pageSize, totalCount)} de {totalCount} estudiantes
+        Mostrando {students.length > 0 ? (currentPage - 1) * pageSize + 1 : 0} -{' '}
+        {Math.min(currentPage * pageSize, totalCount)} de {totalCount} estudiantes
       </div>
 
       {/* Table */}
-      <div className="border rounded-lg overflow-hidden">
+      <div className="overflow-hidden rounded-lg border">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-muted">
-              {table.getHeaderGroups().map((headerGroup) => (
+              {table.getHeaderGroups().map(headerGroup => (
                 <tr key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
+                  {headerGroup.headers.map(header => (
                     <th
                       key={header.id}
                       className="px-4 py-3 text-left text-sm font-medium"
@@ -102,9 +109,9 @@ export function StudentsGrid({ students, totalCount, currentPage, pageSize, onPa
             </thead>
             <tbody>
               {table.getRowModel().rows.length > 0 ? (
-                table.getRowModel().rows.map((row) => (
+                table.getRowModel().rows.map(row => (
                   <tr key={row.id} className="border-t hover:bg-muted/50">
-                    {row.getVisibleCells().map((cell) => (
+                    {row.getVisibleCells().map(cell => (
                       <td key={cell.id} className="px-4 py-3 text-sm">
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </td>
@@ -113,7 +120,10 @@ export function StudentsGrid({ students, totalCount, currentPage, pageSize, onPa
                 ))
               ) : (
                 <tr>
-                  <td colSpan={columns.length} className="px-4 py-8 text-center text-muted-foreground">
+                  <td
+                    colSpan={columns.length}
+                    className="px-4 py-8 text-center text-muted-foreground"
+                  >
                     No se encontraron estudiantes. Ajusta los filtros y busca nuevamente.
                   </td>
                 </tr>

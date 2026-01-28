@@ -55,15 +55,18 @@ git add . && git commit -m "Remove old ZIP route" && git push
 ## 📁 File Locations
 
 ### API Routes (Vercel)
+
 - `src/app/api/bulk/jobs/[jobId]/create-zip-job/route.ts` - Create job
 - `src/app/api/bulk/jobs/[jobId]/zip-job-status/route.ts` - Poll status
 
 ### Worker (Railway)
+
 - `worker/zip-worker/index.ts` - Main logic
 - `worker/zip-worker/package.json` - Dependencies
 - `worker/zip-worker/Dockerfile` - Container
 
 ### Database
+
 - `supabase/migrations/024_add_zip_jobs_queue.sql` - Migration
 
 ## 🔍 Troubleshooting Commands
@@ -112,12 +115,12 @@ rm -rf supabase/functions/zip-rollup-worker
 
 ## 📊 Performance
 
-| Metric | Value |
-|--------|-------|
-| Processing Time | 60-120s per region |
-| ZIP Size | ~500MB per region |
-| PDF Count | ~3,000 per region |
-| Success Rate | 100% (no 413 errors) |
+| Metric          | Value                |
+| --------------- | -------------------- |
+| Processing Time | 60-120s per region   |
+| ZIP Size        | ~500MB per region    |
+| PDF Count       | ~3,000 per region    |
+| Success Rate    | 100% (no 413 errors) |
 
 ## 🔐 Environment Variables (Railway)
 
@@ -143,18 +146,21 @@ COMPRESSION_LEVEL=6
 ## 🆘 Quick Fixes
 
 ### Worker not picking up jobs
+
 ```bash
 railway restart
 railway logs
 ```
 
 ### Jobs stuck in queue
+
 ```bash
 railway logs  # Check for errors
 railway variables  # Verify env vars set
 ```
 
 ### Still getting 413 errors
+
 ```bash
 # Ensure old route is deleted
 ls src/app/api/bulk/jobs/[jobId]/zip-region/route.ts

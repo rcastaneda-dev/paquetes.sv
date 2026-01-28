@@ -174,7 +174,6 @@ export default function JobDetailPage() {
     }
   };
 
-
   const handleCancelJob = async () => {
     if (!job) return;
 
@@ -382,15 +381,14 @@ export default function JobDetailPage() {
                       className="h-auto flex-col items-start p-4"
                     >
                       <span className="text-lg font-semibold capitalize">{region}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {statusText}
-                      </span>
+                      <span className="text-xs text-muted-foreground">{statusText}</span>
                     </Button>
                   );
                 })}
               </div>
               <p className="text-xs text-muted-foreground">
-                💡 Los ZIPs se generan en segundo plano (1-3 minutos). La descarga comenzará automáticamente cuando esté listo.
+                💡 Los ZIPs se generan en segundo plano (1-3 minutos). La descarga comenzará
+                automáticamente cuando esté listo.
               </p>
             </CardContent>
           </Card>

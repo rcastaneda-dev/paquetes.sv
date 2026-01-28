@@ -29,12 +29,5 @@
     "react/prop-types": "off",
     "no-console": ["warn", { "allow": ["warn", "error", "info"] }]
   },
-  "ignorePatterns": [
-    "node_modules/",
-    ".next/",
-    "out/",
-    "build/",
-    "dist/",
-    "*.config.js"
-  ]
+  "ignorePatterns": ["node_modules/", ".next/", "out/", "build/", "dist/", "*.config.js"]
 }

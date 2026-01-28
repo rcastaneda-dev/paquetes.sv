@@ -3,6 +3,7 @@
 ## System Design
 
 This application follows a **serverless architecture** pattern with:
+
 - **Frontend**: Next.js App Router (Server + Client Components)
 - **Backend**: Supabase (PostgreSQL + Storage + RPC)
 - **Workers**: Async task processing via Vercel Cron or Supabase Edge Functions
@@ -130,11 +131,13 @@ public.report_tasks
 **Problem**: Generating 100+ PDFs synchronously would exceed serverless timeouts (10-60s).
 
 **Solution**:
+
 - Break work into small tasks (one per school+grade)
 - Process in batches via cron (5 tasks/minute)
 - Store state in database for resumability
 
 **Benefits**:
+
 - No timeouts
 - Retryable on failure
 - Progress tracking
@@ -145,6 +148,7 @@ public.report_tasks
 **Problem**: Creating ZIP while generating PDFs blocks workers and risks timeout.
 
 **Solution**:
+
 - Generate all PDFs first
 - Create ZIP in a separate pass (direct bundle.zip, no multi-part)
 - Only when all PDFs complete
@@ -152,6 +156,7 @@ public.report_tasks
 - Optimized compression (level 6) for balance of speed/size
 
 **Benefits**:
+
 - Simpler error handling
 - Better resource utilization
 - ZIP creation can retry independently
@@ -162,12 +167,14 @@ public.report_tasks
 **Problem**: Complex joins and business logic duplicated between API routes.
 
 **Solution**:
+
 - Encapsulate queries in PostgreSQL functions
 - Single source of truth
 - Easy to optimize (indexes, query plans)
 - Security via SECURITY DEFINER
 
 **Benefits**:
+
 - DRY (Don't Repeat Yourself)
 - Performance (server-side execution)
 - Type safety via TypeScript interfaces
@@ -177,11 +184,13 @@ public.report_tasks
 **Problem**: Multiple worker instances could claim the same tasks.
 
 **Solution**:
+
 ```sql
 SELECT ... FOR UPDATE SKIP LOCKED
 ```
 
 **Benefits**:
+
 - Lock-free concurrency
 - Workers don't block each other
 - Safe for horizontal scaling
@@ -191,11 +200,13 @@ SELECT ... FOR UPDATE SKIP LOCKED
 **Problem**: Large tables could blow memory limits (256MB-1GB on serverless).
 
 **Solution**:
+
 - PDFKit generates stream (not full buffer)
 - Stream directly to Storage
 - Garbage collected incrementally
 
 **Benefits**:
+
 - Constant memory usage
 - Handles tables with 1000+ rows
 - Faster time-to-first-byte
@@ -205,17 +216,20 @@ SELECT ... FOR UPDATE SKIP LOCKED
 ### Server Components (RSC)
 
 Used for:
+
 - Initial data fetching
 - SEO-critical content
 - Reduce client bundle size
 
 Currently **not** used heavily because:
+
 - Most pages need interactivity (filters, pagination)
 - Future enhancement: static school/grade lists
 
 ### Client Components
 
 Used for:
+
 - Interactive forms (FiltersPanel)
 - Data tables (StudentsGrid)
 - Real-time updates (JobProgress polling)
@@ -225,6 +239,7 @@ Used for:
 ### API Routes (Route Handlers)
 
 Pattern:
+
 ```typescript
 export async function GET(request: NextRequest) {
   // 1. Parse query params
@@ -234,6 +249,7 @@ export async function GET(request: NextRequest) {
 ```
 
 All follow RESTful conventions:
+
 - GET: Read operations
 - POST: Create operations
 - No DELETE (soft deletes via status)
@@ -243,6 +259,7 @@ All follow RESTful conventions:
 ### Bucket: `reports`
 
 Structure:
+
 ```
 reports/
 ├── {jobId}/
@@ -254,6 +271,7 @@ reports/
 **Retention**: Implement cleanup cron to delete old jobs (e.g., > 30 days).
 
 **Access**:
+
 - PDFs: Private (only via signed URLs)
 - ZIPs: Private (only via signed URLs)
 - Signed URLs: 1 hour expiry
@@ -344,14 +362,14 @@ reports/
 
 ## Technology Choices Rationale
 
-| Technology | Why? | Alternatives Considered |
-|-----------|------|------------------------|
-| Next.js 14 | App Router, RSC, API routes in one | Remix, SvelteKit |
-| TypeScript | Type safety, great DX | JavaScript (too risky) |
-| Supabase | PostgreSQL + Storage + Auth + RPC | Firebase (less SQL flexibility), AWS (too complex) |
-| PDFKit | Streaming, lightweight | Puppeteer (heavy), @react-pdf/renderer (slower) |
-| TanStack Table | Best React table lib | AG Grid (overkill), custom (too much work) |
-| Vercel Cron | Built-in, zero config | AWS Lambda + EventBridge (complex), custom server (ops burden) |
+| Technology     | Why?                               | Alternatives Considered                                        |
+| -------------- | ---------------------------------- | -------------------------------------------------------------- |
+| Next.js 14     | App Router, RSC, API routes in one | Remix, SvelteKit                                               |
+| TypeScript     | Type safety, great DX              | JavaScript (too risky)                                         |
+| Supabase       | PostgreSQL + Storage + Auth + RPC  | Firebase (less SQL flexibility), AWS (too complex)             |
+| PDFKit         | Streaming, lightweight             | Puppeteer (heavy), @react-pdf/renderer (slower)                |
+| TanStack Table | Best React table lib               | AG Grid (overkill), custom (too much work)                     |
+| Vercel Cron    | Built-in, zero config              | AWS Lambda + EventBridge (complex), custom server (ops burden) |
 
 ## Future Architectural Improvements
 

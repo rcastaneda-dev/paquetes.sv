@@ -22,6 +22,7 @@ Complete guide for deploying the ZIP worker using Railway's web dashboard (no CL
 4. Authorize Railway to access your GitHub account
 
 **What you'll see:**
+
 - GitHub OAuth authorization page
 - Permission request for Railway
 
@@ -37,6 +38,7 @@ Complete guide for deploying the ZIP worker using Railway's web dashboard (no CL
 2. Click **"+ New Project"** (center of screen)
 
 **What you'll see:**
+
 - Modal with deployment options:
   - Deploy from GitHub repo
   - Deploy from Template
@@ -49,6 +51,7 @@ Complete guide for deploying the ZIP worker using Railway's web dashboard (no CL
 2. Railway will show a list of your GitHub repositories
 
 **If you don't see your repo:**
+
 - Click "Configure GitHub App" (bottom of list)
 - Grant Railway access to specific repos
 - Select `paquetes.sv` repository
@@ -60,6 +63,7 @@ Complete guide for deploying the ZIP worker using Railway's web dashboard (no CL
 2. Click on it
 
 **What happens:**
+
 - Railway creates a new project
 - Automatically detects this is a monorepo
 - May start building from root (we'll fix this)
@@ -74,6 +78,7 @@ Complete guide for deploying the ZIP worker using Railway's web dashboard (no CL
 2. Click on the service card
 
 **What you'll see:**
+
 - Service overview page with tabs:
   - Deployments
   - Metrics
@@ -88,6 +93,7 @@ Complete guide for deploying the ZIP worker using Railway's web dashboard (no CL
 3. Find **"Root Directory"** field
 
 **Enter:**
+
 ```
 worker/zip-worker
 ```
@@ -100,13 +106,14 @@ Still in Settings → Build section:
 
 **Check these settings:**
 
-| Setting | Value | Notes |
-|---------|-------|-------|
-| Builder | `DOCKERFILE` | Should auto-detect |
-| Dockerfile Path | `Dockerfile` | Default, correct |
-| Build Command | (empty) | Not needed for Dockerfile |
+| Setting         | Value        | Notes                     |
+| --------------- | ------------ | ------------------------- |
+| Builder         | `DOCKERFILE` | Should auto-detect        |
+| Dockerfile Path | `Dockerfile` | Default, correct          |
+| Build Command   | (empty)      | Not needed for Dockerfile |
 
 **If Builder shows "NIXPACKS":**
+
 - Click the dropdown
 - Select **"DOCKERFILE"**
 - Railway will use your Dockerfile instead
@@ -135,9 +142,9 @@ Still in Settings → Build section:
 
 **You'll need:**
 
-| Variable | Location in Supabase |
-|----------|---------------------|
-| Project URL | API → Project URL → Copy |
+| Variable         | Location in Supabase                             |
+| ---------------- | ------------------------------------------------ |
+| Project URL      | API → Project URL → Copy                         |
 | Service Role Key | API → Service role → Copy (click "Reveal" first) |
 
 ⚠️ **Warning:** The Service Role key is **secret**. Never commit it to git or share publicly.
@@ -156,6 +163,7 @@ Variable Value: https://your-project.supabase.co
 ```
 
 **Example:**
+
 ```
 NEXT_PUBLIC_SUPABASE_URL=https://abcdefghijk.supabase.co
 ```
@@ -170,6 +178,7 @@ Variable Value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJ...
 ```
 
 **Example:**
+
 ```
 SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFiY2RlZmdoaWprIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTY0NTAwMDAwMCwiZXhwIjoxOTYwMDAwMDAwfQ.abc123...
 ```
@@ -196,6 +205,7 @@ Variable Value: 6
 ```
 
 **What they do:**
+
 - `POLL_INTERVAL_MS`: How often worker checks for jobs (5000 = every 5 seconds)
 - `DOWNLOAD_BATCH_SIZE`: PDFs downloaded in parallel (50 = good balance)
 - `COMPRESSION_LEVEL`: ZIP compression (1-9, higher = smaller but slower)
@@ -205,10 +215,12 @@ Variable Value: 6
 After adding all variables, you should see:
 
 **Required (2):**
+
 - ✅ `NEXT_PUBLIC_SUPABASE_URL`
 - ✅ `SUPABASE_SERVICE_ROLE_KEY`
 
 **Optional (3):**
+
 - ✅ `POLL_INTERVAL_MS` (if added)
 - ✅ `DOWNLOAD_BATCH_SIZE` (if added)
 - ✅ `COMPRESSION_LEVEL` (if added)
@@ -247,6 +259,7 @@ If auto-deploy didn't trigger:
 **Build typically takes:** 2-5 minutes (first time)
 
 **What Railway is doing:**
+
 ```
 1. Cloning your GitHub repo
 2. Navigating to worker/zip-worker
@@ -265,6 +278,7 @@ If auto-deploy didn't trigger:
 3. You'll see build output in real-time
 
 **Expected log output during build:**
+
 ```
 Building...
 #1 [internal] load build definition from Dockerfile
@@ -286,6 +300,7 @@ Successfully tagged railway/...
 2. Go to **"Logs"** tab
 
 **Expected logs (worker is running):**
+
 ```
 🚀 ZIP Worker starting...
 📊 Config: Poll interval=5000ms, Batch size=50, Compression=6
@@ -298,12 +313,14 @@ Successfully tagged railway/...
 The worker is now polling your database every 5 seconds for queued ZIP jobs.
 
 **To test:**
+
 1. Go to your frontend app
 2. Complete a report job
 3. Click a regional download button (e.g., "Download Oriental")
 4. Switch back to Railway logs
 
 **You should see:**
+
 ```
 📦 Processing ZIP job: abc-123
    Report: def-456, Region: ORIENTAL
@@ -328,6 +345,7 @@ The worker is now polling your database every 5 seconds for queued ZIP jobs.
 **Enable:** Turn it ON (should be blue)
 
 **What this does:**
+
 - Every `git push` to your main branch
 - Automatically redeploys the worker
 - No manual deployment needed
@@ -350,11 +368,13 @@ The worker is now polling your database every 5 seconds for queued ZIP jobs.
 2. Scroll to **"Resources"** section
 
 **Default allocation (Hobby Plan - $5/mo):**
+
 - Memory: Up to 8GB (shared)
 - CPU: Shared
 - vCPU: 0.5-1
 
 **This is sufficient for:**
+
 - 20-50 ZIP jobs per week
 - Regional ZIPs (~500MB each)
 - Processing time: 60-120 seconds per job
@@ -386,6 +406,7 @@ The worker is now polling your database every 5 seconds for queued ZIP jobs.
    - Network I/O
 
 **Normal values:**
+
 - CPU: 10-40% (spikes to 80% during ZIP generation)
 - Memory: 200-800MB (spikes to 1-1.5GB during processing)
 - Network: Spikes during PDF downloads and ZIP uploads
@@ -477,16 +498,19 @@ LIMIT 1;
 ```
 Error: Missing required environment variables
 ```
+
 **Fix:** Add `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` in Variables tab
 
 ```
 Error: connect ECONNREFUSED
 ```
+
 **Fix:** Check Supabase URL is correct (should start with `https://`)
 
 ```
 Out of memory
 ```
+
 **Fix:** Reduce `DOWNLOAD_BATCH_SIZE` to `30` or upgrade Railway plan
 
 ### Issue: Worker running but not processing jobs
@@ -502,15 +526,18 @@ Out of memory
    - Should start with `eyJ...`
 
 3. **Jobs in queue**
+
    ```sql
    SELECT * FROM zip_jobs WHERE status = 'queued';
    ```
+
    - If empty, create a job via frontend
 
 4. **Migration applied**
    ```sql
    SELECT * FROM zip_jobs LIMIT 1;
    ```
+
    - If error, run: `supabase db push`
 
 ### Issue: Can't find my repository
@@ -554,6 +581,7 @@ After following this guide, verify:
 ## Cost
 
 **Railway Hobby Plan:** $5/month
+
 - Includes: 500 hours of usage
 - Sufficient for: Unlimited ZIP generations
 - Worker runs 24/7
@@ -572,4 +600,3 @@ After following this guide, verify:
 ---
 
 **Questions?** Check the troubleshooting section above or [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md) for more details.
-

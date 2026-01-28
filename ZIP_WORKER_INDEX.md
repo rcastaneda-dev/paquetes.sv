@@ -18,25 +18,25 @@ Complete documentation for the background worker architecture that solves Supaba
 
 ### Deployment & Setup
 
-| Document | Description | When to Use |
-|----------|-------------|-------------|
-| **[QUICK_REFERENCE.md](./QUICK_REFERENCE.md)** | Cheat sheet with commands | Quick deploy, troubleshooting |
-| **[DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md)** | Complete deployment walkthrough | First-time deployment |
-| **[RAILWAY_UI_DEPLOYMENT.md](./RAILWAY_UI_DEPLOYMENT.md)** | Railway UI visual guide | Prefer UI over CLI |
+| Document                                                   | Description                     | When to Use                   |
+| ---------------------------------------------------------- | ------------------------------- | ----------------------------- |
+| **[QUICK_REFERENCE.md](./QUICK_REFERENCE.md)**             | Cheat sheet with commands       | Quick deploy, troubleshooting |
+| **[DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md)**           | Complete deployment walkthrough | First-time deployment         |
+| **[RAILWAY_UI_DEPLOYMENT.md](./RAILWAY_UI_DEPLOYMENT.md)** | Railway UI visual guide         | Prefer UI over CLI            |
 
 ### Cleanup & Maintenance
 
-| Document | Description | When to Use |
-|----------|-------------|-------------|
-| **[FILES_TO_DELETE.md](./FILES_TO_DELETE.md)** | Complete deletion checklist | After deployment |
-| **[CLEANUP_GUIDE.md](./CLEANUP_GUIDE.md)** | Detailed cleanup instructions | Removing old infrastructure |
+| Document                                       | Description                   | When to Use                 |
+| ---------------------------------------------- | ----------------------------- | --------------------------- |
+| **[FILES_TO_DELETE.md](./FILES_TO_DELETE.md)** | Complete deletion checklist   | After deployment            |
+| **[CLEANUP_GUIDE.md](./CLEANUP_GUIDE.md)**     | Detailed cleanup instructions | Removing old infrastructure |
 
 ### Technical Details
 
-| Document | Description | When to Use |
-|----------|-------------|-------------|
-| **[IMPLEMENTATION_SUMMARY.md](./IMPLEMENTATION_SUMMARY.md)** | Architecture & technical details | Understanding the system |
-| **[worker/zip-worker/README.md](./worker/zip-worker/README.md)** | Worker-specific documentation | Worker configuration, tuning |
+| Document                                                         | Description                      | When to Use                  |
+| ---------------------------------------------------------------- | -------------------------------- | ---------------------------- |
+| **[IMPLEMENTATION_SUMMARY.md](./IMPLEMENTATION_SUMMARY.md)**     | Architecture & technical details | Understanding the system     |
+| **[worker/zip-worker/README.md](./worker/zip-worker/README.md)** | Worker-specific documentation    | Worker configuration, tuning |
 
 ---
 
@@ -80,29 +80,35 @@ Complete documentation for the background worker architecture that solves Supaba
 ### For Developers
 
 **Must read:**
+
 - [IMPLEMENTATION_SUMMARY.md](./IMPLEMENTATION_SUMMARY.md) - Technical architecture
 - [worker/zip-worker/README.md](./worker/zip-worker/README.md) - Worker internals
 
 **Nice to have:**
+
 - [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md) - Understanding deployment flow
 
 ### For DevOps/SRE
 
 **Must read:**
+
 - [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md) - Deployment process
 - [RAILWAY_UI_DEPLOYMENT.md](./RAILWAY_UI_DEPLOYMENT.md) - Railway setup
 - [worker/zip-worker/README.md](./worker/zip-worker/README.md) - Monitoring & maintenance
 
 **Nice to have:**
+
 - [IMPLEMENTATION_SUMMARY.md](./IMPLEMENTATION_SUMMARY.md) - System overview
 
 ### For Project Managers
 
 **Must read:**
+
 - [QUICK_REFERENCE.md](./QUICK_REFERENCE.md) - Overview and cost
 - [IMPLEMENTATION_SUMMARY.md](./IMPLEMENTATION_SUMMARY.md) - Summary & metrics
 
 **Nice to have:**
+
 - [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md) - Deployment timeline
 
 ---
@@ -139,13 +145,13 @@ Complete documentation for the background worker architecture that solves Supaba
 
 ## 📊 Documentation Statistics
 
-| Category | Count | Files |
-|----------|-------|-------|
-| **Deployment Guides** | 3 | QUICK_REFERENCE, DEPLOYMENT_GUIDE, RAILWAY_UI_DEPLOYMENT |
-| **Cleanup Guides** | 2 | FILES_TO_DELETE, CLEANUP_GUIDE |
-| **Technical Docs** | 2 | IMPLEMENTATION_SUMMARY, worker/README |
-| **Index** | 1 | This file |
-| **Total** | **8** | All documentation |
+| Category              | Count | Files                                                    |
+| --------------------- | ----- | -------------------------------------------------------- |
+| **Deployment Guides** | 3     | QUICK_REFERENCE, DEPLOYMENT_GUIDE, RAILWAY_UI_DEPLOYMENT |
+| **Cleanup Guides**    | 2     | FILES_TO_DELETE, CLEANUP_GUIDE                           |
+| **Technical Docs**    | 2     | IMPLEMENTATION_SUMMARY, worker/README                    |
+| **Index**             | 1     | This file                                                |
+| **Total**             | **8** | All documentation                                        |
 
 ---
 
@@ -204,9 +210,9 @@ If documentation is unclear or missing information:
 
 ## 📝 Documentation Versions
 
-| Date | Version | Changes |
-|------|---------|---------|
-| 2026-01-27 | 1.0.0 | Initial documentation set |
+| Date       | Version | Changes                   |
+| ---------- | ------- | ------------------------- |
+| 2026-01-27 | 1.0.0   | Initial documentation set |
 
 ---
 
@@ -224,22 +230,26 @@ If documentation is unclear or missing information:
 Use this to verify you've reviewed all necessary documentation:
 
 ### Before Deployment
+
 - [ ] Read [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md)
 - [ ] Review [RAILWAY_UI_DEPLOYMENT.md](./RAILWAY_UI_DEPLOYMENT.md) (if using UI)
 - [ ] Have [QUICK_REFERENCE.md](./QUICK_REFERENCE.md) open for commands
 
 ### During Deployment
+
 - [ ] Follow [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md) step-by-step
 - [ ] Set environment variables (see [RAILWAY_UI_DEPLOYMENT.md](./RAILWAY_UI_DEPLOYMENT.md))
 - [ ] Verify each step completes successfully
 
 ### After Deployment
+
 - [ ] Execute cleanup from [FILES_TO_DELETE.md](./FILES_TO_DELETE.md)
 - [ ] Verify with checklist in [CLEANUP_GUIDE.md](./CLEANUP_GUIDE.md)
 - [ ] Test regional ZIP downloads
 - [ ] Monitor worker logs for 24 hours
 
 ### For Understanding
+
 - [ ] Read [IMPLEMENTATION_SUMMARY.md](./IMPLEMENTATION_SUMMARY.md)
 - [ ] Review architecture diagrams
 - [ ] Understand TUS upload process

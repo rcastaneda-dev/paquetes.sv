@@ -17,6 +17,7 @@ src/app/api/bulk/jobs/[jobId]/zip-region/route.ts
 **Why:** This route caused 413 errors by trying to upload large ZIPs through Vercel. Replaced by `create-zip-job` and `zip-job-status` routes.
 
 **Delete command:**
+
 ```bash
 rm src/app/api/bulk/jobs/[jobId]/zip-region/route.ts
 ```
@@ -33,6 +34,7 @@ supabase/functions/zip-rollup-worker/
 **Why:** These folders are empty (already cleaned up). The new architecture uses Railway worker instead of Supabase Edge Functions.
 
 **Delete command:**
+
 ```bash
 cd supabase/functions
 rm -rf zip-part-worker zip-rollup-worker
@@ -43,6 +45,7 @@ rm -rf zip-part-worker zip-rollup-worker
 ## ✅ Files to Keep (DO NOT DELETE)
 
 ### API Routes
+
 ```
 ✅ src/app/api/bulk/jobs/[jobId]/create-zip-job/route.ts       (NEW - creates jobs)
 ✅ src/app/api/bulk/jobs/[jobId]/zip-job-status/route.ts      (NEW - polls status)
@@ -51,6 +54,7 @@ rm -rf zip-part-worker zip-rollup-worker
 ```
 
 ### Worker
+
 ```
 ✅ worker/zip-worker/                                          (NEW - entire folder)
    ├── index.ts                                               (worker logic)
@@ -64,11 +68,13 @@ rm -rf zip-part-worker zip-rollup-worker
 ```
 
 ### Frontend
+
 ```
 ✅ src/app/bulk/[jobId]/page.tsx                              (updated for new flow)
 ```
 
 ### Database
+
 ```
 ✅ supabase/migrations/024_add_zip_jobs_queue.sql             (NEW - zip_jobs table)
 ✅ All other migrations                                        (keep all)
@@ -86,11 +92,13 @@ rm -rf zip-part-worker zip-rollup-worker
    - `zip-rollup-worker` ❌ Delete if exists
 
 **How to delete:**
+
 - Click the function name
 - Click "Delete" (trash icon)
 - Confirm deletion
 
 **Keep these functions:**
+
 - ✅ `pdf-worker` (if exists)
 - ✅ `report-worker` (if exists)
 - ✅ `scheduler` (if exists)
@@ -111,6 +119,7 @@ rm -rf zip-part-worker zip-rollup-worker
 ```
 
 **Already removed** (in migration 022):
+
 ```
 ❌ public.report_zip_parts (already deleted, no action needed)
 ```
@@ -128,6 +137,7 @@ rm -rf zip-part-worker zip-rollup-worker
 ```
 
 **Keep these functions:**
+
 ```
 ✅ Keep: claim_next_zip_job()           (NEW)
 ✅ Keep: update_zip_job_status()        (NEW)
@@ -228,20 +238,21 @@ git push origin main
 
 ## 📊 What Changed - Summary Table
 
-| Component | Before | After | Action |
-|-----------|--------|-------|--------|
-| **API Route** | `zip-region` (sync) | `create-zip-job` + `zip-job-status` | Delete old |
-| **Generation** | Vercel function | Railway worker | Deploy worker |
-| **Upload Method** | Standard (fails >6MB) | TUS (works to 50GB) | Automatic |
-| **Edge Functions** | zip-part-worker, zip-rollup-worker | None | Delete folders |
-| **Database Table** | report_zip_parts | zip_jobs | Already migrated |
-| **Frontend Flow** | Synchronous wait | Async polling | Already updated |
+| Component          | Before                             | After                               | Action           |
+| ------------------ | ---------------------------------- | ----------------------------------- | ---------------- |
+| **API Route**      | `zip-region` (sync)                | `create-zip-job` + `zip-job-status` | Delete old       |
+| **Generation**     | Vercel function                    | Railway worker                      | Deploy worker    |
+| **Upload Method**  | Standard (fails >6MB)              | TUS (works to 50GB)                 | Automatic        |
+| **Edge Functions** | zip-part-worker, zip-rollup-worker | None                                | Delete folders   |
+| **Database Table** | report_zip_parts                   | zip_jobs                            | Already migrated |
+| **Frontend Flow**  | Synchronous wait                   | Async polling                       | Already updated  |
 
 ---
 
 ## 📝 Files Created vs. Deleted
 
 ### Created (15 new files)
+
 ```
 ✅ supabase/migrations/024_add_zip_jobs_queue.sql
 ✅ src/app/api/bulk/jobs/[jobId]/create-zip-job/route.ts
@@ -263,6 +274,7 @@ git push origin main
 ```
 
 ### Deleted (3 files/folders)
+
 ```
 ❌ src/app/api/bulk/jobs/[jobId]/zip-region/route.ts
 ❌ supabase/functions/zip-part-worker/
@@ -270,6 +282,7 @@ git push origin main
 ```
 
 ### Net Change
+
 ```
 +15 files created
 -3 files/folders deleted

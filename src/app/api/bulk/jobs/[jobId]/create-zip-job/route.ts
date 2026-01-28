@@ -96,7 +96,10 @@ export async function POST(request: NextRequest, { params }: { params: { jobId: 
     }
 
     // If job exists and is processing or queued, return status
-    if (existingZipJob && (existingZipJob.status === 'processing' || existingZipJob.status === 'queued')) {
+    if (
+      existingZipJob &&
+      (existingZipJob.status === 'processing' || existingZipJob.status === 'queued')
+    ) {
       return NextResponse.json({
         zipJobId: existingZipJob.id,
         region: regionLower,

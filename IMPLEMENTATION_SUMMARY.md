@@ -3,12 +3,14 @@
 ## Problem Solved
 
 **Original Issue:**
+
 ```
 Upload error: ea [StorageApiError]: The object exceeded the maximum allowed size
 status: 400, statusCode: '413'
 ```
 
 **Root Cause:**
+
 - Regional ZIPs are 400-500MB each
 - Supabase Storage has a 6MB limit for standard uploads
 - Files >6MB require TUS (resumable upload) protocol
@@ -17,6 +19,7 @@ status: 400, statusCode: '413'
 ## Solution Implemented
 
 **Architecture:**
+
 ```
 Browser → Vercel API → Database (zip_jobs)
                             ↓
@@ -28,6 +31,7 @@ Browser → Vercel API → Database (zip_jobs)
 ```
 
 **Key Changes:**
+
 1. **Async job queue** instead of synchronous generation
 2. **Background worker** on Railway instead of Vercel functions
 3. **TUS uploads** automatic for files >6MB (handled by Supabase SDK)
@@ -36,13 +40,16 @@ Browser → Vercel API → Database (zip_jobs)
 ## Files Created
 
 ### Database Migration
+
 - ✅ `supabase/migrations/024_add_zip_jobs_queue.sql` - Queue table and functions
 
 ### API Routes (Vercel)
+
 - ✅ `src/app/api/bulk/jobs/[jobId]/create-zip-job/route.ts` - Create ZIP job
 - ✅ `src/app/api/bulk/jobs/[jobId]/zip-job-status/route.ts` - Poll job status
 
 ### Background Worker (Railway)
+
 - ✅ `worker/zip-worker/index.ts` - Main worker logic
 - ✅ `worker/zip-worker/package.json` - Dependencies
 - ✅ `worker/zip-worker/tsconfig.json` - TypeScript config
@@ -53,9 +60,11 @@ Browser → Vercel API → Database (zip_jobs)
 - ✅ `worker/zip-worker/README.md` - Worker documentation
 
 ### Frontend
+
 - ✅ Updated `src/app/bulk/[jobId]/page.tsx` - Job-based polling flow
 
 ### Documentation
+
 - ✅ `DEPLOYMENT_GUIDE.md` - Step-by-step deployment
 - ✅ `CLEANUP_GUIDE.md` - What to delete from Supabase
 - ✅ `IMPLEMENTATION_SUMMARY.md` - This file
@@ -63,10 +72,12 @@ Browser → Vercel API → Database (zip_jobs)
 ## Files to Delete
 
 ### Supabase
+
 - ❌ `supabase/functions/zip-part-worker/` - Empty, can delete
 - ❌ `supabase/functions/zip-rollup-worker/` - Empty, can delete
 
 ### Codebase
+
 - ❌ `src/app/api/bulk/jobs/[jobId]/zip-region/route.ts` - Old synchronous route
 
 See [CLEANUP_GUIDE.md](./CLEANUP_GUIDE.md) for detailed steps.
@@ -76,11 +87,10 @@ See [CLEANUP_GUIDE.md](./CLEANUP_GUIDE.md) for detailed steps.
 ### How TUS Uploads Work
 
 1. **Automatic Detection:**
+
    ```typescript
    // Supabase SDK automatically uses TUS for files > 6MB
-   await supabase.storage
-     .from('reports')
-     .upload(path, largeBuffer)  // Uses TUS if >6MB
+   await supabase.storage.from('reports').upload(path, largeBuffer); // Uses TUS if >6MB
    ```
 
 2. **Chunked Upload:**
@@ -125,6 +135,7 @@ CREATE TABLE zip_jobs (
 ### API Flow
 
 **1. Create Job:**
+
 ```bash
 POST /api/bulk/jobs/{jobId}/create-zip-job?region=oriental
 
@@ -138,6 +149,7 @@ Response:
 ```
 
 **2. Poll Status:**
+
 ```bash
 GET /api/bulk/jobs/{jobId}/zip-job-status?zipJobId=abc-123
 
@@ -165,36 +177,37 @@ Response (complete):
 ```typescript
 while (true) {
   // 1. Claim job from queue
-  const job = await supabase.rpc('claim_next_zip_job')
+  const job = await supabase.rpc('claim_next_zip_job');
 
   if (job) {
     // 2. Download PDFs in batches
     for (batch of tasks) {
-      await downloadBatch(batch)
-      archive.append(pdfBuffer)
+      await downloadBatch(batch);
+      archive.append(pdfBuffer);
     }
 
     // 3. Finalize ZIP
-    archive.finalize()
-    const zipBuffer = Buffer.concat(chunks)
+    archive.finalize();
+    const zipBuffer = Buffer.concat(chunks);
 
     // 4. Upload to Supabase (TUS automatic)
-    await supabase.storage.upload(path, zipBuffer)
+    await supabase.storage.upload(path, zipBuffer);
 
     // 5. Update job status
     await supabase.rpc('update_zip_job_status', {
       p_status: 'complete',
-      p_zip_path: path
-    })
+      p_zip_path: path,
+    });
   }
 
-  await sleep(5000)
+  await sleep(5000);
 }
 ```
 
 ## Performance Benchmarks
 
 ### Before (Synchronous)
+
 - Method: Vercel API route
 - Timeout: 10 seconds (Free), 60 seconds (Pro)
 - Result: ❌ Timeout errors
@@ -202,6 +215,7 @@ while (true) {
 - Error Rate: 100% for large ZIPs
 
 ### After (Background Worker)
+
 - Method: Railway worker
 - Timeout: No limit (persistent process)
 - Processing Time: 60-120 seconds per region
@@ -210,12 +224,12 @@ while (true) {
 
 ### Metrics
 
-| Region | PDFs | ZIP Size | Time | Memory | Success Rate |
-|--------|------|----------|------|--------|--------------|
-| Oriental | ~1,500 | ~500MB | 90s | 1GB | 100% |
-| Occidental | ~1,500 | ~500MB | 85s | 1GB | 100% |
-| Paracentral | ~1,500 | ~500MB | 95s | 1GB | 100% |
-| Central | ~1,500 | ~500MB | 88s | 1GB | 100% |
+| Region      | PDFs   | ZIP Size | Time | Memory | Success Rate |
+| ----------- | ------ | -------- | ---- | ------ | ------------ |
+| Oriental    | ~1,500 | ~500MB   | 90s  | 1GB    | 100%         |
+| Occidental  | ~1,500 | ~500MB   | 85s  | 1GB    | 100%         |
+| Paracentral | ~1,500 | ~500MB   | 95s  | 1GB    | 100%         |
+| Central     | ~1,500 | ~500MB   | 88s  | 1GB    | 100%         |
 
 **Total:** 4 regions × 90s = ~6 minutes (can parallelize with multiple workers)
 
@@ -223,11 +237,11 @@ while (true) {
 
 ### Infrastructure Costs
 
-| Service | Before | After | Change |
-|---------|--------|-------|--------|
-| Vercel | Free | Free | $0 |
-| Supabase | $25/mo | $25/mo | $0 |
-| Railway | - | $5/mo | +$5 |
+| Service   | Before     | After      | Change     |
+| --------- | ---------- | ---------- | ---------- |
+| Vercel    | Free       | Free       | $0         |
+| Supabase  | $25/mo     | $25/mo     | $0         |
+| Railway   | -          | $5/mo      | +$5        |
 | **Total** | **$25/mo** | **$30/mo** | **+$5/mo** |
 
 ### Cost per ZIP
@@ -257,18 +271,21 @@ See [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md) for detailed steps.
 ### Health Checks
 
 **Worker Health:**
+
 ```bash
 railway logs --follow
 # Should see: "🚀 ZIP Worker starting..."
 ```
 
 **Job Queue:**
+
 ```sql
 SELECT status, COUNT(*) FROM zip_jobs GROUP BY status;
 # Expected: Most 'complete', few 'queued', zero 'failed'
 ```
 
 **Storage Usage:**
+
 ```sql
 SELECT
   COUNT(*) as total_zips,
@@ -289,6 +306,7 @@ WHERE status = 'complete';
 ### Environment Variables
 
 **Never commit to git:**
+
 - `SUPABASE_SERVICE_ROLE_KEY` ❌ Highly sensitive
 - Store in Railway variables ✅
 
@@ -308,15 +326,18 @@ WHERE status = 'complete';
 ## Maintenance
 
 ### Weekly
+
 - Check for failed jobs: `SELECT * FROM zip_jobs WHERE status = 'failed'`
 - Review worker logs for errors: `railway logs --tail 1000`
 
 ### Monthly
+
 - Clean up old jobs: `SELECT cleanup_old_zip_jobs(30)`
 - Review storage usage and costs
 - Check average processing times
 
 ### Quarterly
+
 - Review Railway worker memory usage
 - Optimize batch sizes if needed
 - Archive old documentation
@@ -365,6 +386,7 @@ WHERE status = 'complete';
 ## Success Metrics
 
 ✅ **Goals Achieved:**
+
 - No more 413 errors
 - Regional ZIPs downloadable
 - Processing time: 60-120s (acceptable)

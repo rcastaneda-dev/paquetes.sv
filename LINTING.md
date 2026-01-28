@@ -5,11 +5,13 @@ This project uses ESLint and Prettier for code quality and formatting.
 ## What's Configured
 
 ### ESLint
+
 - **Next.js rules**: `next/core-web-vitals`
 - **TypeScript rules**: `@typescript-eslint/recommended`
 - **Prettier integration**: `plugin:prettier/recommended`
 
 ### Prettier
+
 - **Single quotes** for strings
 - **Semicolons** always
 - **100 character** line width
@@ -39,19 +41,24 @@ npm run type-check
 ## VS Code Integration
 
 ### Recommended Extensions
+
 The project includes `.vscode/extensions.json` with recommended extensions:
+
 - ESLint (`dbaeumer.vscode-eslint`)
 - Prettier (`esbenp.prettier-vscode`)
 - Tailwind CSS IntelliSense (`bradlc.vscode-tailwindcss`)
 - TypeScript (`ms-vscode.vscode-typescript-next`)
 
 Install them via:
+
 1. Open Command Palette (Cmd/Ctrl + Shift + P)
 2. Type "Show Recommended Extensions"
 3. Install all
 
 ### Auto-Format on Save
+
 The `.vscode/settings.json` enables:
+
 - Format on save with Prettier
 - Auto-fix ESLint errors on save
 - Consistent line endings (LF)
@@ -71,13 +78,8 @@ Then add to `package.json`:
 ```json
 {
   "lint-staged": {
-    "*.{js,jsx,ts,tsx}": [
-      "eslint --fix",
-      "prettier --write"
-    ],
-    "*.{json,css,md}": [
-      "prettier --write"
-    ]
+    "*.{js,jsx,ts,tsx}": ["eslint --fix", "prettier --write"],
+    "*.{json,css,md}": ["prettier --write"]
   }
 }
 ```
@@ -118,13 +120,13 @@ Edit `.eslintrc.json` to adjust rules:
 
 ```json
 {
-  "semi": true,                    // Semicolons required
-  "trailingComma": "es5",          // Trailing commas where valid in ES5
-  "singleQuote": true,             // Single quotes for strings
-  "printWidth": 100,               // Max line length
-  "tabWidth": 2,                   // 2 spaces per tab
-  "arrowParens": "avoid",          // Omit parens when possible
-  "endOfLine": "lf"                // Unix line endings
+  "semi": true, // Semicolons required
+  "trailingComma": "es5", // Trailing commas where valid in ES5
+  "singleQuote": true, // Single quotes for strings
+  "printWidth": 100, // Max line length
+  "tabWidth": 2, // 2 spaces per tab
+  "arrowParens": "avoid", // Omit parens when possible
+  "endOfLine": "lf" // Unix line endings
 }
 ```
 
@@ -149,14 +151,18 @@ module.exports = {
 ## Ignoring Files
 
 ### ESLint Ignore
+
 Configured in `.eslintrc.json` under `ignorePatterns`:
+
 - `node_modules/`
 - `.next/`
 - `out/`, `build/`, `dist/`
 - `*.config.js`
 
 ### Prettier Ignore
+
 Listed in `.prettierignore`:
+
 - Build outputs
 - Dependencies
 - Lock files
@@ -205,6 +211,7 @@ Next.js will fail the build if ESLint errors exist (warnings won't fail).
 ### Prettier vs ESLint Conflicts
 
 If rules conflict:
+
 1. `eslint-config-prettier` is already installed (disables conflicting ESLint rules)
 2. Prettier runs last in the config chain
 3. Use `npm run format` to auto-fix
@@ -225,11 +232,13 @@ If rules conflict:
 ### Line Ending Issues (CRLF vs LF)
 
 Enforced as LF (Unix) via:
+
 - `.prettierrc.json` → `"endOfLine": "lf"`
 - `.editorconfig` → `end_of_line = lf`
 - `.vscode/settings.json` → `"files.eol": "\n"`
 
 On Windows, configure git:
+
 ```bash
 git config --global core.autocrlf false
 ```

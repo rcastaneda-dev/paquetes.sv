@@ -20,7 +20,7 @@ export function getAuthContext(request: NextRequest): AuthContext {
   // 1. Supabase session cookie
   // 2. JWT token in Authorization header
   // 3. Or other auth mechanism
-  
+
   return {
     userId: null,
     isAuthenticated: false,
@@ -37,7 +37,7 @@ export async function getServerAuthContext(): Promise<AuthContext> {
   // const cookieStore = cookies();
   // const supabase = createServerClient(cookieStore);
   // const { data: { session } } = await supabase.auth.getSession();
-  // 
+  //
   // if (session) {
   //   return {
   //     userId: session.user.id,
@@ -45,7 +45,7 @@ export async function getServerAuthContext(): Promise<AuthContext> {
   //     roles: session.user.user_metadata?.roles || [],
   //   };
   // }
-  
+
   return {
     userId: null,
     isAuthenticated: false,
@@ -79,7 +79,7 @@ export function requireAuth(context: AuthContext): void {
  */
 export function requireRole(context: AuthContext, requiredRole: string | string[]): void {
   requireAuth(context);
-  
+
   if (!hasRole(context, requiredRole)) {
     throw new Error('Insufficient permissions');
   }

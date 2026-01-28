@@ -25,6 +25,7 @@ Creates bundle.zip asynchronously
 ```
 
 **Issues:**
+
 - 300s timeout limit on Vercel (even Enterprise)
 - Complex drain-loop logic to work around timeouts
 - Delayed availability (user has to wait for cron)
@@ -62,6 +63,7 @@ Returns signed URL for existing bundle (no regeneration)
 ```
 
 **Benefits:**
+
 - **Manual trigger** - User controls when to generate ZIP
 - **Retry workflow** - Users can retry failed tasks before bundling
 - No timeout limits (Edge Functions handle large jobs)
@@ -72,24 +74,29 @@ Returns signed URL for existing bundle (no regeneration)
 ## Files Changed
 
 ### Created
+
 - `supabase/functions/create-bundle-zip/index.ts` - New Edge Function
 - `supabase/functions/create-bundle-zip/README.md` - Documentation
 
 ### Modified
+
 - `src/app/api/bulk/jobs/[jobId]/download/route.ts` - Now calls Edge Function
 - `supabase/functions/report-worker/index.ts` - Removed ZIP mode
 
 ### Deleted
+
 - `src/app/api/worker/create-zip/route.ts` - Old Vercel worker
 
 ## Deployment Steps
 
 1. Deploy the new Edge Function:
+
    ```bash
    supabase functions deploy create-bundle-zip
    ```
 
 2. Verify environment variables are set:
+
    ```bash
    # These should already be configured
    supabase secrets list
@@ -132,6 +139,7 @@ Since Deno doesn't have `archiver` (Node.js library), the Edge Function implemen
 ## Frontend Impact
 
 No changes needed! The frontend still calls the same endpoint:
+
 ```typescript
 const response = await fetch(`/api/bulk/jobs/${jobId}/download`);
 ```
@@ -141,11 +149,13 @@ The only difference is the response is now faster and more reliable.
 ## Monitoring
 
 Check Edge Function logs:
+
 ```bash
 supabase functions logs create-bundle-zip
 ```
 
 Look for:
+
 - "Creating bundle.zip for job {jobId}"
 - "Progress: X/Y PDFs added to ZIP"
 - "Bundle created with X PDFs, size: Y bytes"

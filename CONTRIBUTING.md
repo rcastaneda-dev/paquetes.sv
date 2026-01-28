@@ -3,11 +3,13 @@
 ## Development Setup
 
 1. **Install dependencies**:
+
    ```bash
    npm install
    ```
 
 2. **Configure environment**:
+
    ```bash
    cp .env.example .env
    # Fill in your Supabase credentials
@@ -90,6 +92,7 @@ type(scope): description
 ```
 
 **Types**:
+
 - `feat`: New feature
 - `fix`: Bug fix
 - `docs`: Documentation changes
@@ -99,6 +102,7 @@ type(scope): description
 - `chore`: Maintenance tasks
 
 **Examples**:
+
 ```
 feat(bulk): add excel export functionality
 fix(api): handle missing student sizes correctly
@@ -128,31 +132,37 @@ chore(deps): update dependencies
 ### Where to Add New Code
 
 **New UI Component**:
+
 ```
 src/components/YourComponent.tsx
 ```
 
 **New API Route**:
+
 ```
 src/app/api/your-feature/route.ts
 ```
 
 **New Page**:
+
 ```
 src/app/your-page/page.tsx
 ```
 
 **New Utility Function**:
+
 ```
 src/lib/your-category/yourUtil.ts
 ```
 
 **New Type Definition**:
+
 ```
 src/types/yourTypes.ts  (or add to database.ts if DB-related)
 ```
 
 **Database Migration**:
+
 ```
 supabase/migrations/00X_description.sql
 ```
@@ -213,6 +223,7 @@ Before submitting PR:
 ### Future: Automated Tests
 
 When implementing tests:
+
 - Unit tests: Vitest
 - Component tests: React Testing Library
 - E2E tests: Playwright or Cypress
@@ -222,6 +233,7 @@ When implementing tests:
 ### When to Document
 
 Always document:
+
 - New features (update README.md)
 - API changes (update ARCHITECTURE.md)
 - Setup changes (update SETUP.md)
@@ -267,6 +279,7 @@ export function generateStudentReportPDF(options: PDFGeneratorOptions): Readable
 
 1. Create route file: `src/app/api/your-endpoint/route.ts`
 2. Implement handler:
+
    ```typescript
    import { NextRequest, NextResponse } from 'next/server';
    import { supabaseServer } from '@/lib/supabase/server';
@@ -277,13 +290,11 @@ export function generateStudentReportPDF(options: PDFGeneratorOptions): Readable
        return NextResponse.json({ data });
      } catch (error) {
        console.error('Error:', error);
-       return NextResponse.json(
-         { error: 'Internal server error' },
-         { status: 500 }
-       );
+       return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
      }
    }
    ```
+
 3. Add types to `src/types/database.ts` if needed
 4. Test locally
 

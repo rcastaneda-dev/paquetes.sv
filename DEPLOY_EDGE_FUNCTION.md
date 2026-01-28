@@ -32,6 +32,7 @@ supabase link --project-ref <your-project-ref>
 ```
 
 To find your project ref:
+
 - Go to Supabase Dashboard
 - Settings → General → Reference ID
 
@@ -42,6 +43,7 @@ supabase functions deploy create-bundle-zip
 ```
 
 Expected output:
+
 ```
 Deploying function create-bundle-zip...
 Bundled create-bundle-zip in XX ms
@@ -68,10 +70,12 @@ supabase secrets list
 ```
 
 Should show:
+
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY`
 
 If missing, set them:
+
 ```bash
 supabase secrets set SUPABASE_URL=<your-url>
 supabase secrets set SUPABASE_SERVICE_ROLE_KEY=<your-key>
@@ -82,6 +86,7 @@ supabase secrets set SUPABASE_SERVICE_ROLE_KEY=<your-key>
 After deployment, try clicking "Generate ZIP" again in your app.
 
 Or test directly:
+
 ```bash
 curl "https://<your-project>.supabase.co/functions/v1/create-bundle-zip?jobId=<job-id>" \
   -H "Authorization: Bearer <your-anon-key>"
@@ -104,6 +109,7 @@ If you prefer using the UI:
 ### Still getting 401?
 
 1. **Check the function is deployed:**
+
    ```bash
    supabase functions list
    ```
@@ -123,6 +129,7 @@ If you prefer using the UI:
 ### Function deploys but errors?
 
 Check the logs:
+
 ```bash
 supabase functions logs create-bundle-zip --tail
 ```
@@ -130,6 +137,7 @@ supabase functions logs create-bundle-zip --tail
 ### Environment variables not set?
 
 Get them from your Supabase Dashboard:
+
 - Settings → API → Project URL (SUPABASE_URL)
 - Settings → API → service_role key (SUPABASE_SERVICE_ROLE_KEY)
 

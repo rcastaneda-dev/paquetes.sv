@@ -69,9 +69,7 @@ export async function GET(request: NextRequest, { params }: { params: { jobId: s
         region: zipJob.region,
         status: zipJob.status,
         downloadUrl,
-        zipSizeMB: zipJob.zip_size_bytes
-          ? (zipJob.zip_size_bytes / 1024 / 1024).toFixed(2)
-          : null,
+        zipSizeMB: zipJob.zip_size_bytes ? (zipJob.zip_size_bytes / 1024 / 1024).toFixed(2) : null,
         pdfCount: zipJob.pdf_count,
         error: zipJob.error,
         attemptCount: zipJob.attempt_count,
@@ -87,10 +85,7 @@ export async function GET(request: NextRequest, { params }: { params: { jobId: s
     }
 
     // Otherwise, return all ZIP jobs for this report (optionally filtered by region)
-    let query = supabase
-      .from('zip_jobs')
-      .select('*')
-      .eq('report_job_id', reportJobId);
+    let query = supabase.from('zip_jobs').select('*').eq('report_job_id', reportJobId);
 
     if (region) {
       query = query.eq('region', region.toLowerCase());

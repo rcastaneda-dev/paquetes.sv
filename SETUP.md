@@ -17,12 +17,15 @@ npm install
 ### 2. Configurar Supabase
 
 #### Crear proyecto
+
 1. Ve a https://supabase.com/dashboard
 2. Crea un nuevo proyecto
 3. Espera a que termine de configurarse (~2 minutos)
 
 #### Obtener credenciales
+
 En Settings > API:
+
 - Copia la `URL` del proyecto
 - Copia la `anon/public` key
 - Copia la `service_role` key (¡mantenla secreta!)
@@ -32,16 +35,19 @@ En Settings > API:
 En SQL Editor de Supabase, ejecuta estos scripts **en orden**:
 
 **Script 1: Schema Base**
+
 ```sql
 -- Pega el contenido completo de paquetes_schema.sql
 ```
 
 **Script 2: Fix Foreign Keys** (si ya tenías datos)
+
 ```sql
 -- Pega el contenido completo de fix_foreign_keys.sql
 ```
 
 **Script 3: Infraestructura de Reportes**
+
 ```sql
 -- Pega el contenido completo de supabase/migrations/001_add_reporting_tables.sql
 ```
@@ -97,15 +103,18 @@ Abre http://localhost:3000
 ### 5. Probar funcionalidad
 
 #### Test de consultas
+
 1. Ve a la página principal
 2. Busca una escuela
 3. Selecciona un grado
 4. Haz clic en "Buscar"
 
 #### Test de reportes masivos
+
 ⚠️ **Nota**: Los workers (cron) no funcionan en desarrollo local.
 
 Para probar localmente:
+
 ```bash
 # Manualmente trigger el worker
 curl -X POST http://localhost:3000/api/worker/process-tasks \
@@ -117,6 +126,7 @@ curl -X POST http://localhost:3000/api/worker/process-tasks \
 ### Opción A: Vercel (Recomendado)
 
 1. **Push a GitHub**:
+
    ```bash
    git init
    git add .
@@ -233,6 +243,7 @@ Esto ocurre si tu cliente intenta usar un schema no expuesto. En este proyecto, 
 ## Siguiente Paso
 
 Una vez todo funcione, revisa el [README.md](./README.md) para:
+
 - Entender la arquitectura completa
 - Ver mejoras futuras
 - Implementar autenticación

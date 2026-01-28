@@ -5,6 +5,7 @@ A standalone Node.js worker that processes ZIP generation jobs in the background
 ## Overview
 
 This worker:
+
 - Polls the `zip_jobs` table for queued jobs
 - Downloads PDFs from Supabase Storage in batches
 - Creates ZIP archives with streaming compression
@@ -132,10 +133,12 @@ railway up
 ### Environment Variables (Railway)
 
 Required:
+
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY`
 
 Optional:
+
 - `POLL_INTERVAL_MS` (default: 5000)
 - `DOWNLOAD_BATCH_SIZE` (default: 50)
 - `COMPRESSION_LEVEL` (default: 6)
@@ -216,11 +219,13 @@ Ensure worker has 2GB+ memory.
 ### Check Worker Logs
 
 **Railway:**
+
 ```bash
 railway logs
 ```
 
 **Docker:**
+
 ```bash
 docker logs -f <container-id>
 ```
@@ -274,6 +279,7 @@ GROUP BY region;
 ### Worker Not Picking Up Jobs
 
 **Check:**
+
 1. Worker is running: `railway logs` or `docker ps`
 2. Database connection: Verify `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`
 3. Jobs exist: `SELECT * FROM zip_jobs WHERE status = 'queued'`
@@ -289,6 +295,7 @@ GROUP BY region;
 ### Worker Crashes with OOM (Out of Memory)
 
 **Solutions:**
+
 1. Reduce batch size: `DOWNLOAD_BATCH_SIZE=20`
 2. Increase worker memory in Railway/Render
 3. Lower compression: `COMPRESSION_LEVEL=3`
@@ -311,12 +318,12 @@ WHERE status = 'processing'
 
 ### Regional ZIP Generation Times
 
-| Region | PDFs | ZIP Size | Time | Memory |
-|--------|------|----------|------|--------|
-| Oriental | ~1,500 | ~500MB | 60-120s | ~1GB |
-| Occidental | ~1,500 | ~500MB | 60-120s | ~1GB |
-| Paracentral | ~1,500 | ~500MB | 60-120s | ~1GB |
-| Central | ~1,500 | ~500MB | 60-120s | ~1GB |
+| Region      | PDFs   | ZIP Size | Time    | Memory |
+| ----------- | ------ | -------- | ------- | ------ |
+| Oriental    | ~1,500 | ~500MB   | 60-120s | ~1GB   |
+| Occidental  | ~1,500 | ~500MB   | 60-120s | ~1GB   |
+| Paracentral | ~1,500 | ~500MB   | 60-120s | ~1GB   |
+| Central     | ~1,500 | ~500MB   | 60-120s | ~1GB   |
 
 **Total:** 4-8 minutes for all regions (can run in parallel with multiple workers)
 
@@ -339,14 +346,17 @@ WHERE status = 'processing'
 ### Cost Estimates
 
 **Low volume (20 ZIPs/week):**
+
 - Railway Hobby: $5/mo
 - Total: $5/mo
 
 **Medium volume (100 ZIPs/week):**
+
 - Railway Developer: $20/mo
 - Total: $20/mo
 
 **High volume (500+ ZIPs/week):**
+
 - Railway Pro: $50/mo (2 workers)
 - Total: $50/mo
 
@@ -394,6 +404,7 @@ After deploying:
 ## Support
 
 For issues:
+
 1. Check logs first
 2. Verify environment variables
 3. Test database connection

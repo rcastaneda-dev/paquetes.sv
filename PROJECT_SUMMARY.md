@@ -84,6 +84,7 @@ paquetes.sv/
 ## 🎯 Key Features Implemented
 
 ### 1. Ad-hoc Queries
+
 - **School autocomplete** with server-side search
 - **Grade dropdown** with dynamic data
 - **Paginated table** (50 rows per page)
@@ -91,6 +92,7 @@ paquetes.sv/
 - Columns: NIE, Name, Sex, Age, Grade, School, Shirt, Pants, Shoes
 
 ### 2. Bulk Report Generation
+
 - **One-click** generation of all reports
 - **Job tracking** with unique IDs
 - **Task-based** architecture (one task per school+grade)
@@ -101,6 +103,7 @@ paquetes.sv/
 - **Signed URLs** for secure downloads (1 hour expiry)
 
 ### 3. Worker System
+
 - **Cron-based** processing (every minute for PDFs, every 5 minutes for ZIPs)
 - **Batch processing** (5 tasks at a time)
 - **Concurrent-safe** with SKIP LOCKED queries
@@ -109,6 +112,7 @@ paquetes.sv/
 - **Status tracking** (pending → running → complete/failed)
 
 ### 4. Database Design
+
 - **Report jobs table** for tracking bulk operations
 - **Report tasks table** for granular task management
 - **8 RPC functions** for efficient queries:
@@ -122,12 +126,14 @@ paquetes.sv/
   - `get_job_progress` - Progress stats
 
 ### 5. Storage Strategy
+
 - **Supabase Storage** for PDFs and ZIPs
 - Organized by job ID: `reports/{jobId}/{school}-{grade}.pdf`
 - **Signed URLs** for secure access
 - **Policy-based** access control
 
 ### 6. Auth Infrastructure (Ready but Not Active)
+
 - Middleware placeholders
 - Auth context utilities
 - Role-based access functions
@@ -135,27 +141,29 @@ paquetes.sv/
 
 ## 🛠️ Technologies Used
 
-| Category | Technology | Purpose |
-|----------|-----------|---------|
-| Framework | Next.js 14 | App Router, SSR, API routes |
-| Language | TypeScript | Type safety |
-| Styling | Tailwind CSS | Utility-first CSS |
-| Database | Supabase (PostgreSQL) | Data storage, RPC functions |
-| Storage | Supabase Storage | PDF and ZIP files |
-| PDF Generation | PDFKit | Streaming PDF creation |
-| ZIP Creation | Archiver | Bundle multiple PDFs |
-| Data Table | TanStack Table | Advanced table features |
-| Worker | Vercel Cron | Scheduled task processing |
+| Category           | Technology              | Purpose                        |
+| ------------------ | ----------------------- | ------------------------------ |
+| Framework          | Next.js 14              | App Router, SSR, API routes    |
+| Language           | TypeScript              | Type safety                    |
+| Styling            | Tailwind CSS            | Utility-first CSS              |
+| Database           | Supabase (PostgreSQL)   | Data storage, RPC functions    |
+| Storage            | Supabase Storage        | PDF and ZIP files              |
+| PDF Generation     | PDFKit                  | Streaming PDF creation         |
+| ZIP Creation       | Archiver                | Bundle multiple PDFs           |
+| Data Table         | TanStack Table          | Advanced table features        |
+| Worker             | Vercel Cron             | Scheduled task processing      |
 | Alternative Worker | Supabase Edge Functions | Optional worker implementation |
 
 ## 📊 Data Flow
 
 ### Query Flow
+
 ```
 User → FiltersPanel → API Route → Supabase RPC → PostgreSQL → API Route → StudentsGrid → User
 ```
 
 ### Bulk Generation Flow
+
 ```
 User → "Generate PDFs" → Create Job → Create Tasks
     ↓
@@ -169,12 +177,14 @@ User → "Download ZIP" → Get Signed URL → Download
 ## 🔒 Security Considerations
 
 ### Current (No Auth)
+
 - ✅ API routes are public (as specified)
 - ✅ Storage requires signed URLs
 - ✅ Worker endpoints protected by secret header
 - ✅ Service role key kept server-side only
 
 ### Future (With Auth)
+
 - 🔲 Enable RLS on report tables
 - 🔲 Middleware to check sessions
 - 🔲 Role-based access (admin, viewer, etc.)
@@ -183,12 +193,14 @@ User → "Download ZIP" → Get Signed URL → Download
 ## 📈 Scalability
 
 ### Current Limits
+
 - **Students**: Unlimited (paginated)
 - **Concurrent jobs**: ~20 (single cron instance)
 - **PDF size**: ~1000 rows (streaming handles it)
 - **ZIP size**: ~500 PDFs (~50MB)
 
 ### Scale Solutions
+
 - Horizontal workers (multiple Edge Functions)
 - Queue system (BullMQ + Redis)
 - CDN for ZIP files
@@ -234,6 +246,7 @@ User → "Download ZIP" → Get Signed URL → Download
 ### Linting & Formatting
 
 Complete ESLint and Prettier setup:
+
 - Auto-format on save in VS Code
 - TypeScript-specific rules
 - Tailwind CSS class sorting
@@ -243,12 +256,14 @@ Complete ESLint and Prettier setup:
 ## 🚀 Deployment Options
 
 ### Option A: Vercel (Recommended)
+
 1. Push to GitHub
 2. Import in Vercel
 3. Add environment variables
 4. Deploy (crons auto-configured)
 
 ### Option B: Other Hosting + Supabase Edge Functions
+
 1. Deploy Next.js app to any host
 2. Deploy `supabase/functions/report-worker`
 3. Configure Supabase cron to call Edge Function
@@ -256,18 +271,21 @@ Complete ESLint and Prettier setup:
 ## 🎯 Future Enhancements
 
 ### High Priority
+
 - [ ] Implement authentication (infrastructure ready)
 - [ ] Add cleanup cron for old reports
 - [ ] Export to Excel (in addition to PDF)
 - [ ] Email notifications on job completion
 
 ### Medium Priority
+
 - [ ] Advanced filters (size ranges, missing sizes)
 - [ ] Dashboard with statistics
 - [ ] Bulk edit student data
 - [ ] Custom PDF templates
 
 ### Low Priority
+
 - [ ] Real-time updates (WebSockets vs polling)
 - [ ] Multi-tenancy support
 - [ ] White-label capabilities
@@ -276,6 +294,7 @@ Complete ESLint and Prettier setup:
 ## ✨ Highlights
 
 This implementation demonstrates:
+
 - **Modern Next.js patterns** (App Router, Server Components, API Routes)
 - **Scalable async architecture** (task-based processing)
 - **Production-grade code** (error handling, retries, logging)
@@ -287,6 +306,7 @@ This implementation demonstrates:
 ## 🙏 Credits
 
 Built following best practices from:
+
 - Next.js documentation
 - Supabase documentation
 - React patterns and conventions

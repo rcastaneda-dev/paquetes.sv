@@ -2,7 +2,6 @@
 const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
-
   },
   /**
    * PDFKit loads built-in font metric files at runtime (e.g. Helvetica.afm).
@@ -13,11 +12,11 @@ const nextConfig = {
     '**/*': ['node_modules/pdfkit/js/data/**'],
   },
   experimental: {
-    serverComponentsExternalPackages: ["pdfkit"],
+    serverComponentsExternalPackages: ['pdfkit'],
     serverActions: {
       bodySizeLimit: '2mb',
     },
   },
-}
+};
 
-module.exports = nextConfig
+module.exports = nextConfig;
