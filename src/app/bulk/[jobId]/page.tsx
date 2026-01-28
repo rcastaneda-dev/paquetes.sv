@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
@@ -450,7 +450,11 @@ export default function JobDetailPage() {
         {/* Tasks list */}
         <Card>
           <CardHeader>
-            <CardTitle>Tareas ({progress?.total_tasks ?? 0})</CardTitle>
+            <CardTitle>PDFs ({progress?.total_tasks ?? 0})</CardTitle>
+            <CardDescription>
+              Busca y filtra PDFs individuales por código CE o nombre. Haz clic en el título para
+              descargar.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             {/* Search and Filter Controls */}
