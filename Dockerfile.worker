@@ -1,0 +1,35 @@
+# Multi-stage build for ZIP Worker
+# This Dockerfile is designed to be run from the REPO ROOT
+# Railway will use this when dockerfilePath points to it
+
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Copy package files from worker directory
+COPY worker/zip-worker/package*.json ./
+
+# Install dependencies
+RUN npm ci --only=production
+
+# Copy worker source code
+COPY worker/zip-worker/ ./
+
+# Build TypeScript
+RUN npm run build
+
+# Production image
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Copy built files and dependencies
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json ./
+
+# Run as non-root user
+USER node
+
+# Start worker
+CMD ["node", "dist/index.js"]

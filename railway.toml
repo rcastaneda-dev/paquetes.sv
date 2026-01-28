@@ -1,8 +1,9 @@
 [build]
 builder = "DOCKERFILE"
-dockerfilePath = "Dockerfile"
-# CRITICAL: Set working directory to worker folder
-workingDirectory = "worker/zip-worker"
+# Use Dockerfile designed for repo root context
+dockerfilePath = "Dockerfile.worker"
+# Only rebuild when worker files change
+watchPaths = ["worker/zip-worker/**", "Dockerfile.worker"]
 
 [deploy]
 restartPolicyType = "ON_FAILURE"
