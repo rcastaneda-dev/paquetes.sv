@@ -1,0 +1,18 @@
+# Railway should only build the worker, not the Next.js app
+# This file tells Railway what to ignore when building
+
+# Ignore Next.js app
+/src
+/public
+/styles
+/.next
+/next.config.js
+/next-env.d.ts
+
+# Ignore other directories
+/supabase
+/docs
+/.vercel
+
+# Keep worker directory
+!/worker
