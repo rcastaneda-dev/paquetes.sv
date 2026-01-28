@@ -293,8 +293,8 @@ export default function JobDetailPage() {
                 </div>
               )}
               <p className="text-sm text-muted-foreground">
-                Haz clic en una región para generar y descargar el archivo ZIP (~1,500 PDFs por
-                región, toma 30-60 segundos)
+                Haz clic en una región para generar y descargar el archivo ZIP (~3,000 PDFs por
+                región: tallas y etiquetas, toma 30-60 segundos)
               </p>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {['oriental', 'occidental', 'paracentral', 'central'].map(region => (

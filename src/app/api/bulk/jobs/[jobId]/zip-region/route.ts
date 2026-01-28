@@ -6,8 +6,8 @@ import archiver from 'archiver';
  * Generate a regional ZIP file on-demand.
  *
  * This endpoint generates a ZIP for a specific region (oriental, occidental, paracentral, central)
- * synchronously within the Vercel function timeout. Since each region has ~1,500 PDFs,
- * this completes in 30-60 seconds.
+ * synchronously within the Vercel function timeout. Each region contains both "tallas" and "etiquetas"
+ * PDFs for all schools in that region (approximately ~3,000 PDFs total per region).
  *
  * Query params:
  *   ?region=oriental|occidental|paracentral|central
@@ -16,10 +16,11 @@ import archiver from 'archiver';
  * 1. Check if ZIP already exists for this region
  * 2. If exists, return signed URL
  * 3. Query database for PDFs in this region (filter by pdf_path)
- * 4. Download PDFs in parallel batches
- * 5. Stream into ZIP archive
- * 6. Upload to storage
- * 7. Return signed URL
+ * 4. For each school, download both tallas and etiquetas PDFs
+ * 5. Download PDFs in parallel batches
+ * 6. Stream into ZIP archive with folder structure preserved
+ * 7. Upload to storage
+ * 8. Return signed URL
  */
 export async function GET(request: NextRequest, { params }: { params: { jobId: string } }) {
   const startTime = Date.now();
@@ -92,6 +93,7 @@ export async function GET(request: NextRequest, { params }: { params: { jobId: s
 
     // Fetch tasks with PDFs from this region using database
     // PDF paths are stored as: jobId/REGION/DEPARTAMENTO/MUNICIPIO/school-tallas.pdf
+    // We'll use these paths to derive both tallas and etiquetas PDF paths
     const { data: tasks, error: tasksError } = await supabase
       .from('report_tasks')
       .select('id, pdf_path, school_codigo_ce, grado')
@@ -113,7 +115,9 @@ export async function GET(request: NextRequest, { params }: { params: { jobId: s
       );
     }
 
-    console.log(`Found ${tasks.length} PDFs for ${regionUpper}`);
+    console.log(
+      `Found ${tasks.length} schools in ${regionUpper} (will generate ~${tasks.length * 2} PDFs including tallas and etiquetas)`
+    );
 
     // Create ZIP archive
     const archive = archiver('zip', {
@@ -124,8 +128,10 @@ export async function GET(request: NextRequest, { params }: { params: { jobId: s
     archive.on('data', (chunk: Buffer) => chunks.push(chunk));
 
     // Download and add PDFs in parallel batches
+    // Process both tallas and etiquetas PDFs for each school
     const BATCH_SIZE = 20;
     let completed = 0;
+    const totalExpectedPdfs = tasks.length * 2; // Each school has 2 PDFs
 
     for (let i = 0; i < tasks.length; i += BATCH_SIZE) {
       const batch = tasks.slice(i, i + BATCH_SIZE);
@@ -133,43 +139,71 @@ export async function GET(request: NextRequest, { params }: { params: { jobId: s
       await Promise.all(
         batch.map(async task => {
           try {
-            const { data: pdfData, error: downloadError } = await supabase.storage
-              .from('reports')
-              .download(task.pdf_path);
+            // Derive etiquetas path from tallas path
+            // task.pdf_path is the tallas path: jobId/REGION/DEPT/DIST/school-tallas.pdf
+            const etiquetasPath = task.pdf_path.replace('-tallas.pdf', '-etiquetas.pdf');
 
-            if (downloadError || !pdfData) {
-              console.error(`Failed to download ${task.pdf_path}`);
-              return;
+            // Download both PDFs in parallel
+            const [tallasResult, etiquetasResult] = await Promise.allSettled([
+              supabase.storage.from('reports').download(task.pdf_path),
+              supabase.storage.from('reports').download(etiquetasPath),
+            ]);
+
+            // Process tallas PDF
+            if (tallasResult.status === 'fulfilled' && tallasResult.value.data) {
+              const buffer = Buffer.from(await tallasResult.value.data.arrayBuffer());
+
+              // Preserve folder structure from region onwards
+              // Input: jobId/REGION/DEPARTAMENTO/MUNICIPIO/80107-tallas.pdf
+              // Output: DEPARTAMENTO/MUNICIPIO/80107-tallas.pdf
+              const pathParts = task.pdf_path.split('/');
+              const regionIndex = pathParts.findIndex(
+                (part: string) => part.toUpperCase() === regionUpper
+              );
+              const relativePath =
+                regionIndex >= 0
+                  ? pathParts.slice(regionIndex + 1).join('/') // Keep everything after REGION
+                  : pathParts[pathParts.length - 1]; // Fallback to just filename
+
+              archive.append(buffer, { name: relativePath });
+              completed++;
+            } else {
+              console.error(`Failed to download tallas PDF: ${task.pdf_path}`);
             }
 
-            const buffer = Buffer.from(await pdfData.arrayBuffer());
+            // Process etiquetas PDF
+            if (etiquetasResult.status === 'fulfilled' && etiquetasResult.value.data) {
+              const buffer = Buffer.from(await etiquetasResult.value.data.arrayBuffer());
 
-            // Preserve folder structure from region onwards
-            // Input: jobId/REGION/DEPARTAMENTO/MUNICIPIO/80107-tallas.pdf
-            // Output: DEPARTAMENTO/MUNICIPIO/80107-tallass.pdf
-            const pathParts = task.pdf_path.split('/');
-            const regionIndex = pathParts.findIndex(
-              (part: string) => part.toUpperCase() === regionUpper
-            );
-            const relativePath =
-              regionIndex >= 0
-                ? pathParts.slice(regionIndex + 1).join('/') // Keep everything after REGION
-                : pathParts[pathParts.length - 1]; // Fallback to just filename
+              // Preserve folder structure for etiquetas
+              // Input: jobId/REGION/DEPARTAMENTO/MUNICIPIO/80107-etiquetas.pdf
+              // Output: DEPARTAMENTO/MUNICIPIO/80107-etiquetas.pdf
+              const pathParts = etiquetasPath.split('/');
+              const regionIndex = pathParts.findIndex(
+                (part: string) => part.toUpperCase() === regionUpper
+              );
+              const relativePath =
+                regionIndex >= 0
+                  ? pathParts.slice(regionIndex + 1).join('/')
+                  : pathParts[pathParts.length - 1];
 
-            archive.append(buffer, { name: relativePath });
-            completed++;
+              archive.append(buffer, { name: relativePath });
+              completed++;
+            } else {
+              console.error(`Failed to download etiquetas PDF: ${etiquetasPath}`);
+            }
 
             if (completed % 100 === 0) {
-              console.log(`Progress: ${completed}/${tasks.length} PDFs`);
+              console.log(`Progress: ${completed}/${totalExpectedPdfs} PDFs`);
             }
           } catch (err) {
-            console.error(`Error processing ${task.pdf_path}:`, err);
+            console.error(`Error processing task ${task.id}:`, err);
           }
         })
       );
     }
 
-    console.log(`Added ${completed} PDFs to archive`);
+    console.log(`Added ${completed} PDFs to archive (${tasks.length} schools × 2 PDF types)`);
 
     // Finalize ZIP
     archive.finalize();
@@ -208,9 +242,11 @@ export async function GET(request: NextRequest, { params }: { params: { jobId: s
       region: regionLower,
       downloadUrl: signedUrl?.signedUrl,
       pdfCount: completed,
+      schoolCount: tasks.length,
       zipSizeMB: parseFloat(zipSizeMB),
       generationTimeSeconds: parseFloat(elapsedSeconds),
       cached: false,
+      message: `Included ${completed} PDFs (${tasks.length} schools × 2 types: tallas and etiquetas)`,
     });
   } catch (error) {
     const elapsedSeconds = ((Date.now() - startTime) / 1000).toFixed(1);
