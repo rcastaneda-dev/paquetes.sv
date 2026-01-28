@@ -58,7 +58,10 @@ export async function GET(request: NextRequest, { params }: { params: { jobId: s
     }
 
     if (job.status !== 'complete' && job.status !== 'failed') {
-      return NextResponse.json({ error: 'Job must be complete before creating ZIP' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Job must be complete before creating ZIP' },
+        { status: 400 }
+      );
     }
 
     const regionLower = region.toLowerCase();
@@ -73,7 +76,9 @@ export async function GET(request: NextRequest, { params }: { params: { jobId: s
     if (existingZip && existingZip.length > 0) {
       console.log(`ZIP already exists for ${regionLower}, returning cached version`);
 
-      const { data: signedUrl } = await supabase.storage.from('reports').createSignedUrl(zipPath, 3600);
+      const { data: signedUrl } = await supabase.storage
+        .from('reports')
+        .createSignedUrl(zipPath, 3600);
 
       return NextResponse.json({
         region: regionLower,
@@ -102,7 +107,10 @@ export async function GET(request: NextRequest, { params }: { params: { jobId: s
     }
 
     if (!tasks || tasks.length === 0) {
-      return NextResponse.json({ error: `No PDFs found for region: ${regionUpper}` }, { status: 404 });
+      return NextResponse.json(
+        { error: `No PDFs found for region: ${regionUpper}` },
+        { status: 404 }
+      );
     }
 
     console.log(`Found ${tasks.length} PDFs for ${regionUpper}`);
@@ -138,12 +146,15 @@ export async function GET(request: NextRequest, { params }: { params: { jobId: s
 
             // Preserve folder structure from region onwards
             // Input: jobId/REGION/DEPARTAMENTO/MUNICIPIO/80107-tallas.pdf
-            // Output: DEPARTAMENTO/MUNICIPIO/80107-tallas.pdf
+            // Output: DEPARTAMENTO/MUNICIPIO/80107-tallass.pdf
             const pathParts = task.pdf_path.split('/');
-            const regionIndex = pathParts.findIndex(part => part.toUpperCase() === regionUpper);
-            const relativePath = regionIndex >= 0
-              ? pathParts.slice(regionIndex + 1).join('/')  // Keep everything after REGION
-              : pathParts[pathParts.length - 1];  // Fallback to just filename
+            const regionIndex = pathParts.findIndex(
+              (part: string) => part.toUpperCase() === regionUpper
+            );
+            const relativePath =
+              regionIndex >= 0
+                ? pathParts.slice(regionIndex + 1).join('/') // Keep everything after REGION
+                : pathParts[pathParts.length - 1]; // Fallback to just filename
 
             archive.append(buffer, { name: relativePath });
             completed++;
@@ -173,10 +184,12 @@ export async function GET(request: NextRequest, { params }: { params: { jobId: s
     console.log(`ZIP created: ${zipSizeMB} MB`);
 
     // Upload to storage
-    const { error: uploadError } = await supabase.storage.from('reports').upload(zipPath, zipBuffer, {
-      contentType: 'application/zip',
-      upsert: true,
-    });
+    const { error: uploadError } = await supabase.storage
+      .from('reports')
+      .upload(zipPath, zipBuffer, {
+        contentType: 'application/zip',
+        upsert: true,
+      });
 
     if (uploadError) {
       console.error('Upload error:', uploadError);
@@ -184,7 +197,9 @@ export async function GET(request: NextRequest, { params }: { params: { jobId: s
     }
 
     // Generate signed URL
-    const { data: signedUrl } = await supabase.storage.from('reports').createSignedUrl(zipPath, 3600);
+    const { data: signedUrl } = await supabase.storage
+      .from('reports')
+      .createSignedUrl(zipPath, 3600);
 
     const elapsedSeconds = ((Date.now() - startTime) / 1000).toFixed(1);
     console.log(`ZIP generation completed in ${elapsedSeconds}s`);
