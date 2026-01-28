@@ -142,32 +142,16 @@ export default function HomePage() {
           <CardContent className="space-y-6">
             <FiltersPanel onFilterChange={handleFilterChange} onSearch={handleSearch} />
 
-            <div className="flex items-center justify-end gap-2">
-              <Button
-                variant="outline"
-                onClick={handlePrint}
-                disabled={!canPrint || isPrinting}
-                title={
-                  !canPrint
-                    ? 'Selecciona una escuela y realiza una búsqueda para imprimir.'
-                    : undefined
-                }
-              >
-                {isPrinting ? 'Generando PDF...' : 'Imprimir (PDF)'}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={handlePrintLabels}
-                disabled={!canPrint || isPrintingLabels}
-                title={
-                  !canPrint
-                    ? 'Selecciona una escuela y realiza una búsqueda para imprimir etiquetas.'
-                    : undefined
-                }
-              >
-                {isPrintingLabels ? 'Generando PDF...' : 'Imprimir Etiquetas (PDF)'}
-              </Button>
-            </div>
+            {canPrint && (
+              <div className="flex items-center justify-end gap-2">
+                <Button variant="outline" onClick={handlePrint} disabled={isPrinting}>
+                  {isPrinting ? 'Generando PDF...' : 'Imprimir (PDF)'}
+                </Button>
+                <Button variant="outline" onClick={handlePrintLabels} disabled={isPrintingLabels}>
+                  {isPrintingLabels ? 'Generando PDF...' : 'Imprimir Etiquetas (PDF)'}
+                </Button>
+              </div>
+            )}
 
             {isLoading ? (
               <div className="py-12 text-center">
