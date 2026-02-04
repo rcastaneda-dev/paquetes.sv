@@ -1,5 +1,47 @@
 import PDFDocument from 'pdfkit';
 import type { StudentReportRow } from '@/types/database';
+import fs from 'fs';
+import path from 'path';
+
+// Export agreement report generators
+export {
+  generateCajasPDF,
+  generateCamisasPDF,
+  generatePantalonesPDF,
+  generateZapatosPDF,
+} from './generators-agreement';
+
+/**
+ * Helper: Add GOES logo to the top-right corner of the current page
+ * Preserves the current Y position so it doesn't affect document flow
+ */
+function addLogoToPage(doc: PDFDocumentInstance, pageWidth: number) {
+  const logoPath = path.join(process.cwd(), 'public', 'goes_logo.png');
+
+  // Check if logo exists
+  if (fs.existsSync(logoPath)) {
+    // Save current Y position to restore after adding logo
+    const savedY = doc.y;
+
+    const logoWidth = 50;
+    const logoHeight = 50;
+    const rightMargin = 40;
+    const topMargin = 20;
+    const logoX = pageWidth - logoWidth - rightMargin;
+    const logoY = topMargin;
+
+    doc.image(logoPath, logoX, logoY, {
+      width: logoWidth,
+      height: logoHeight,
+      fit: [logoWidth, logoHeight],
+      align: 'center',
+      valign: 'center',
+    });
+
+    // Restore Y position so logo doesn't affect subsequent content
+    doc.y = savedY;
+  }
+}
 
 export interface PDFGeneratorOptions {
   schoolName: string;
@@ -26,6 +68,7 @@ export function generateStudentReportPDF(options: PDFGeneratorOptions): PDFDocum
   const generatedAtLabel = new Date().toLocaleString('es-SV');
 
   const drawDocumentHeader = () => {
+    addLogoToPage(doc, doc.page.width);
     doc.fontSize(18).text(`Escuela: ${schoolName}`, { align: 'left' });
     doc.fontSize(18).text(`Código: ${codigo_ce}`, { align: 'left' });
     doc.moveDown(2);
@@ -131,11 +174,34 @@ export function generateStudentReportPDF(options: PDFGeneratorOptions): PDFDocum
     currentY = doc.y + 2;
   };
 
+  const calculateTextHeight = (text: string, width: number, fontSize: number): number => {
+    // PDFKit's heightOfString calculates the height text will occupy
+    doc.fontSize(fontSize);
+    return doc.heightOfString(text, { width });
+  };
+
   const drawStudentRow = (student: StudentReportRow, displayIndex: number) => {
+    // Calculate required height for this row based on longest text
+    doc.font('Helvetica').fontSize(10);
+    const nameHeight = calculateTextHeight(
+      student.nombre_estudiante || '',
+      columnWidths.name - 10,
+      10
+    );
+    const pantsHeight = calculateTextHeight(
+      student.pantalon_falda || 'N/A',
+      columnWidths.pants - 10,
+      10
+    );
+
+    // Use maximum height needed, with minimum of 25 and padding
+    const contentHeight = Math.max(nameHeight, pantsHeight);
+    const dynamicRowHeight = Math.max(rowHeight, contentHeight + 12);
+
     let x = 50;
 
     // No. (Correlative)
-    doc.rect(x, currentY, columnWidths.no, rowHeight).stroke();
+    doc.rect(x, currentY, columnWidths.no, dynamicRowHeight).stroke();
     doc.text(displayIndex.toString(), x + 5, currentY + 8, {
       width: columnWidths.no - 10,
       align: 'center',
@@ -143,16 +209,14 @@ export function generateStudentReportPDF(options: PDFGeneratorOptions): PDFDocum
     x += columnWidths.no;
 
     // Name
-    doc.rect(x, currentY, columnWidths.name, rowHeight).stroke();
-    doc.text(student.nombre_estudiante || '', x + 5, currentY + 8, {
+    doc.rect(x, currentY, columnWidths.name, dynamicRowHeight).stroke();
+    doc.text(student.nombre_estudiante || '', x + 5, currentY + 6, {
       width: columnWidths.name - 10,
-      height: rowHeight - 4,
-      ellipsis: true,
     });
     x += columnWidths.name;
 
     // Sex
-    doc.rect(x, currentY, columnWidths.sex, rowHeight).stroke();
+    doc.rect(x, currentY, columnWidths.sex, dynamicRowHeight).stroke();
     doc.text(student.sexo || '', x + 5, currentY + 8, {
       width: columnWidths.sex - 10,
       align: 'center',
@@ -160,7 +224,7 @@ export function generateStudentReportPDF(options: PDFGeneratorOptions): PDFDocum
     x += columnWidths.sex;
 
     // Age
-    doc.rect(x, currentY, columnWidths.age, rowHeight).stroke();
+    doc.rect(x, currentY, columnWidths.age, dynamicRowHeight).stroke();
     doc.text(student.edad?.toString() || 'N/A', x + 5, currentY + 8, {
       width: columnWidths.age - 10,
       align: 'center',
@@ -168,7 +232,7 @@ export function generateStudentReportPDF(options: PDFGeneratorOptions): PDFDocum
     x += columnWidths.age;
 
     // Shirt
-    doc.rect(x, currentY, columnWidths.shirt, rowHeight).stroke();
+    doc.rect(x, currentY, columnWidths.shirt, dynamicRowHeight).stroke();
     doc.text(student.camisa || 'N/A', x + 5, currentY + 8, {
       width: columnWidths.shirt - 10,
       align: 'center',
@@ -176,21 +240,21 @@ export function generateStudentReportPDF(options: PDFGeneratorOptions): PDFDocum
     x += columnWidths.shirt;
 
     // Pants/Skirt
-    doc.rect(x, currentY, columnWidths.pants, rowHeight).stroke();
-    doc.text(student.pantalon_falda || 'N/A', x + 5, currentY + 8, {
+    doc.rect(x, currentY, columnWidths.pants, dynamicRowHeight).stroke();
+    doc.text(student.pantalon_falda || 'N/A', x + 5, currentY + 6, {
       width: columnWidths.pants - 10,
       align: 'center',
     });
     x += columnWidths.pants;
 
     // Shoes
-    doc.rect(x, currentY, columnWidths.shoe, rowHeight).stroke();
+    doc.rect(x, currentY, columnWidths.shoe, dynamicRowHeight).stroke();
     doc.text(student.zapato || 'N/A', x + 5, currentY + 8, {
       width: columnWidths.shoe - 10,
       align: 'center',
     });
 
-    currentY += rowHeight;
+    currentY += dynamicRowHeight;
   };
 
   doc.font('Helvetica').fontSize(10);
@@ -212,7 +276,19 @@ export function generateStudentReportPDF(options: PDFGeneratorOptions): PDFDocum
     doc.font('Helvetica').fontSize(10);
 
     for (let i = 0; i < gradeStudents.length; i++) {
-      if (currentY + rowHeight > bottomLimitY) {
+      // Pre-calculate row height to check if we need a new page
+      const student = gradeStudents[i];
+      doc.font('Helvetica').fontSize(10);
+      const nameHeight = doc.heightOfString(student.nombre_estudiante || '', {
+        width: columnWidths.name - 10,
+      });
+      const pantsHeight = doc.heightOfString(student.pantalon_falda || 'N/A', {
+        width: columnWidths.pants - 10,
+      });
+      const contentHeight = Math.max(nameHeight, pantsHeight);
+      const estimatedRowHeight = Math.max(rowHeight, contentHeight + 12);
+
+      if (currentY + estimatedRowHeight > bottomLimitY) {
         addPageWithHeader();
         ensureSpace(48 + rowHeight);
         drawGradeTitle(grade);
@@ -220,7 +296,7 @@ export function generateStudentReportPDF(options: PDFGeneratorOptions): PDFDocum
         doc.font('Helvetica').fontSize(10);
       }
 
-      drawStudentRow(gradeStudents[i], i + 1);
+      drawStudentRow(student, i + 1);
     }
   }
 
@@ -258,6 +334,7 @@ export function generateStudentLabelsPDF(options: PDFGeneratorOptions): PDFDocum
   const generatedAtLabel = new Date().toLocaleString('es-SV');
 
   const drawDocumentHeader = () => {
+    addLogoToPage(doc, doc.page.width);
     doc.fontSize(18).text(`Escuela: ${schoolName}`, { align: 'left' });
     doc.fontSize(18).text(`Código: ${codigo_ce}`, { align: 'left' });
     doc.moveDown(2);
@@ -348,11 +425,29 @@ export function generateStudentLabelsPDF(options: PDFGeneratorOptions): PDFDocum
     currentY = doc.y + 2;
   };
 
+  const calculateTextHeight = (text: string, width: number, fontSize: number): number => {
+    doc.fontSize(fontSize);
+    return doc.heightOfString(text, { width });
+  };
+
   const drawStudentRow = (student: StudentReportRow, displayIndex: number) => {
+    // Calculate required height for this row based on longest text
+    doc.font('Helvetica').fontSize(10);
+    const schoolNameHeight = calculateTextHeight(schoolName, columnWidths.escuela - 10, 10);
+    const studentNameHeight = calculateTextHeight(
+      student.nombre_estudiante || '',
+      columnWidths.nombre - 10,
+      10
+    );
+
+    // Use maximum height needed, with minimum of 25 and padding
+    const contentHeight = Math.max(schoolNameHeight, studentNameHeight);
+    const dynamicRowHeight = Math.max(rowHeight, contentHeight + 12);
+
     let x = 50;
 
     // No. (Correlative)
-    doc.rect(x, currentY, columnWidths.no, rowHeight).stroke();
+    doc.rect(x, currentY, columnWidths.no, dynamicRowHeight).stroke();
     doc.text(displayIndex.toString(), x + 5, currentY + 8, {
       width: columnWidths.no - 10,
       align: 'center',
@@ -360,7 +455,7 @@ export function generateStudentLabelsPDF(options: PDFGeneratorOptions): PDFDocum
     x += columnWidths.no;
 
     // Código CE
-    doc.rect(x, currentY, columnWidths.codigo_ce, rowHeight).stroke();
+    doc.rect(x, currentY, columnWidths.codigo_ce, dynamicRowHeight).stroke();
     doc.text(codigo_ce, x + 5, currentY + 8, {
       width: columnWidths.codigo_ce - 10,
       align: 'center',
@@ -368,23 +463,19 @@ export function generateStudentLabelsPDF(options: PDFGeneratorOptions): PDFDocum
     x += columnWidths.codigo_ce;
 
     // Escuela
-    doc.rect(x, currentY, columnWidths.escuela, rowHeight).stroke();
-    doc.text(schoolName, x + 5, currentY + 8, {
+    doc.rect(x, currentY, columnWidths.escuela, dynamicRowHeight).stroke();
+    doc.text(schoolName, x + 5, currentY + 6, {
       width: columnWidths.escuela - 10,
-      height: rowHeight - 4,
-      ellipsis: true,
     });
     x += columnWidths.escuela;
 
     // Nombre Estudiante
-    doc.rect(x, currentY, columnWidths.nombre, rowHeight).stroke();
-    doc.text(student.nombre_estudiante || '', x + 5, currentY + 8, {
+    doc.rect(x, currentY, columnWidths.nombre, dynamicRowHeight).stroke();
+    doc.text(student.nombre_estudiante || '', x + 5, currentY + 6, {
       width: columnWidths.nombre - 10,
-      height: rowHeight - 4,
-      ellipsis: true,
     });
 
-    currentY += rowHeight;
+    currentY += dynamicRowHeight;
   };
 
   doc.font('Helvetica').fontSize(10);
@@ -407,8 +498,21 @@ export function generateStudentLabelsPDF(options: PDFGeneratorOptions): PDFDocum
     drawGradeTitle(grade);
 
     for (let i = 0; i < gradeStudents.length; i++) {
+      // Pre-calculate row height to check if we have space
+      const student = gradeStudents[i];
+      doc.font('Helvetica').fontSize(10);
+      const schoolNameHeight = doc.heightOfString(schoolName, {
+        width: columnWidths.escuela - 10,
+      });
+      const studentNameHeight = doc.heightOfString(student.nombre_estudiante || '', {
+        width: columnWidths.nombre - 10,
+      });
+      const contentHeight = Math.max(schoolNameHeight, studentNameHeight);
+      const estimatedRowHeight = Math.max(rowHeight, contentHeight + 12);
+      const estimatedLabelHeight = rowHeight + estimatedRowHeight; // Header + data row
+
       // Check if we have space for header + row + spacing
-      if (currentY + labelHeight + labelSpacing > bottomLimitY) {
+      if (currentY + estimatedLabelHeight + labelSpacing > bottomLimitY) {
         addPageWithHeader();
         ensureSpace(48);
         drawGradeTitle(grade);
@@ -419,7 +523,7 @@ export function generateStudentLabelsPDF(options: PDFGeneratorOptions): PDFDocum
       doc.font('Helvetica').fontSize(10);
 
       // Draw student row
-      drawStudentRow(gradeStudents[i], i + 1);
+      drawStudentRow(student, i + 1);
 
       // Add blank line spacing after each label
       currentY += labelSpacing;

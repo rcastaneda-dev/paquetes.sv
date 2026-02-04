@@ -25,8 +25,10 @@ export default function HomePage() {
   const [totalCount, setTotalCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
-  const [isPrinting, setIsPrinting] = useState(false);
-  const [isPrintingLabels, setIsPrintingLabels] = useState(false);
+  const [isGeneratingCajas, setIsGeneratingCajas] = useState(false);
+  const [isGeneratingCamisas, setIsGeneratingCamisas] = useState(false);
+  const [isGeneratingPantalones, setIsGeneratingPantalones] = useState(false);
+  const [isGeneratingZapatos, setIsGeneratingZapatos] = useState(false);
   const pageSize = 50;
 
   const fetchStudents = async (page: number = 1) => {
@@ -86,12 +88,12 @@ export default function HomePage() {
     [filters]
   );
 
-  const canPrint = !!lastSearchFilters?.school_codigo_ce;
+  const canGenerateReports = !!lastSearchFilters?.school_codigo_ce;
 
-  const handlePrint = async () => {
+  const handleGenerateCajas = async () => {
     if (!lastSearchFilters?.school_codigo_ce) return;
 
-    setIsPrinting(true);
+    setIsGeneratingCajas(true);
     try {
       const params = new URLSearchParams();
       params.set('school_codigo_ce', lastSearchFilters.school_codigo_ce);
@@ -99,17 +101,16 @@ export default function HomePage() {
         params.set('grado', lastSearchFilters.grado);
       }
 
-      // Open the generated PDF in a new tab; user can Print -> Save as PDF.
-      window.open(`/api/students/print?${params.toString()}`, '_blank', 'noopener,noreferrer');
+      window.open(`/api/reports/cajas?${params.toString()}`, '_blank', 'noopener,noreferrer');
     } finally {
-      setIsPrinting(false);
+      setIsGeneratingCajas(false);
     }
   };
 
-  const handlePrintLabels = async () => {
+  const handleGenerateCamisas = async () => {
     if (!lastSearchFilters?.school_codigo_ce) return;
 
-    setIsPrintingLabels(true);
+    setIsGeneratingCamisas(true);
     try {
       const params = new URLSearchParams();
       params.set('school_codigo_ce', lastSearchFilters.school_codigo_ce);
@@ -117,14 +118,43 @@ export default function HomePage() {
         params.set('grado', lastSearchFilters.grado);
       }
 
-      // Open the generated labels PDF in a new tab
-      window.open(
-        `/api/students/print-labels?${params.toString()}`,
-        '_blank',
-        'noopener,noreferrer'
-      );
+      window.open(`/api/reports/camisas?${params.toString()}`, '_blank', 'noopener,noreferrer');
     } finally {
-      setIsPrintingLabels(false);
+      setIsGeneratingCamisas(false);
+    }
+  };
+
+  const handleGeneratePantalones = async () => {
+    if (!lastSearchFilters?.school_codigo_ce) return;
+
+    setIsGeneratingPantalones(true);
+    try {
+      const params = new URLSearchParams();
+      params.set('school_codigo_ce', lastSearchFilters.school_codigo_ce);
+      if (lastSearchFilters.grado) {
+        params.set('grado', lastSearchFilters.grado);
+      }
+
+      window.open(`/api/reports/pantalones?${params.toString()}`, '_blank', 'noopener,noreferrer');
+    } finally {
+      setIsGeneratingPantalones(false);
+    }
+  };
+
+  const handleGenerateZapatos = async () => {
+    if (!lastSearchFilters?.school_codigo_ce) return;
+
+    setIsGeneratingZapatos(true);
+    try {
+      const params = new URLSearchParams();
+      params.set('school_codigo_ce', lastSearchFilters.school_codigo_ce);
+      if (lastSearchFilters.grado) {
+        params.set('grado', lastSearchFilters.grado);
+      }
+
+      window.open(`/api/reports/zapatos?${params.toString()}`, '_blank', 'noopener,noreferrer');
+    } finally {
+      setIsGeneratingZapatos(false);
     }
   };
 
@@ -133,7 +163,7 @@ export default function HomePage() {
       <header className="border-b">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold">Paquetes SV</h1>
+            <h1 className="text-2xl font-bold">Paquetes.sv</h1>
             <Link href="/bulk">
               <Button variant="outline">Reportes Masivos</Button>
             </Link>
@@ -149,14 +179,55 @@ export default function HomePage() {
           <CardContent className="space-y-6">
             <FiltersPanel onFilterChange={handleFilterChange} onSearch={handleSearch} />
 
-            {canPrint && (
-              <div className="flex items-center justify-end gap-2">
-                <Button variant="outline" onClick={handlePrint} disabled={isPrinting}>
-                  {isPrinting ? 'Generando PDF...' : 'Imprimir (PDF)'}
-                </Button>
-                <Button variant="outline" onClick={handlePrintLabels} disabled={isPrintingLabels}>
-                  {isPrintingLabels ? 'Generando PDF...' : 'Imprimir Etiquetas (PDF)'}
-                </Button>
+            {canGenerateReports && (
+              <div className="flex flex-col gap-3">
+                <div className="text-sm font-medium text-muted-foreground">Generar Reportes:</div>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  <Button
+                    variant="outline"
+                    onClick={handleGenerateCajas}
+                    disabled={isGeneratingCajas}
+                    className="h-auto flex-col py-3"
+                  >
+                    <span className="text-base font-semibold">Cajas</span>
+                    <span className="text-xs text-muted-foreground">
+                      {isGeneratingCajas ? 'Generando...' : 'PDF'}
+                    </span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleGenerateCamisas}
+                    disabled={isGeneratingCamisas}
+                    className="h-auto flex-col py-3"
+                  >
+                    <span className="text-base font-semibold">Camisas</span>
+                    <span className="text-xs text-muted-foreground">
+                      {isGeneratingCamisas ? 'Generando...' : 'PDF'}
+                    </span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleGeneratePantalones}
+                    disabled={isGeneratingPantalones}
+                    className="h-auto flex-col py-3"
+                  >
+                    <span className="text-base font-semibold">Pantalones</span>
+                    <span className="text-xs text-muted-foreground">
+                      {isGeneratingPantalones ? 'Generando...' : 'PDF'}
+                    </span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleGenerateZapatos}
+                    disabled={isGeneratingZapatos}
+                    className="h-auto flex-col py-3"
+                  >
+                    <span className="text-base font-semibold">Zapatos</span>
+                    <span className="text-xs text-muted-foreground">
+                      {isGeneratingZapatos ? 'Generando...' : 'PDF'}
+                    </span>
+                  </Button>
+                </div>
               </div>
             )}
 
