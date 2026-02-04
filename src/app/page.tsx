@@ -158,6 +158,40 @@ export default function HomePage() {
     }
   };
 
+  // Debug handlers for random 10-school PDFs
+  const handleDebugCajas = () => {
+    window.open('/api/reports/debug-random?type=cajas&limit=10', '_blank', 'noopener,noreferrer');
+  };
+
+  const handleDebugCamisas = () => {
+    window.open(
+      '/api/reports/debug-random?type=camisas&limit=10',
+      '_blank',
+      'noopener,noreferrer'
+    );
+  };
+
+  const handleDebugPantalones = () => {
+    window.open(
+      '/api/reports/debug-random?type=pantalones&limit=10',
+      '_blank',
+      'noopener,noreferrer'
+    );
+  };
+
+  const handleDebugZapatos = () => {
+    window.open(
+      '/api/reports/debug-random?type=zapatos&limit=10',
+      '_blank',
+      'noopener,noreferrer'
+    );
+  };
+
+  // Show debug buttons in development or if explicitly enabled
+  const showDebugButtons =
+    process.env.NODE_ENV !== 'production' ||
+    process.env.NEXT_PUBLIC_ENABLE_DEBUG_BUTTONS === 'true';
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b">
@@ -226,6 +260,48 @@ export default function HomePage() {
                     <span className="text-xs text-muted-foreground">
                       {isGeneratingZapatos ? 'Generando...' : 'PDF'}
                     </span>
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {showDebugButtons && (
+              <div className="flex flex-col gap-3 border-t pt-6">
+                <div className="text-sm font-medium text-amber-600 dark:text-amber-400">
+                  Debug: Generar PDFs con 10 escuelas aleatorias
+                </div>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  <Button
+                    variant="outline"
+                    onClick={handleDebugCajas}
+                    className="h-auto flex-col border-amber-300 py-3 hover:bg-amber-50 dark:border-amber-700 dark:hover:bg-amber-950"
+                  >
+                    <span className="text-base font-semibold">Cajas</span>
+                    <span className="text-xs text-muted-foreground">10 escuelas</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleDebugCamisas}
+                    className="h-auto flex-col border-amber-300 py-3 hover:bg-amber-50 dark:border-amber-700 dark:hover:bg-amber-950"
+                  >
+                    <span className="text-base font-semibold">Camisas</span>
+                    <span className="text-xs text-muted-foreground">10 escuelas</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleDebugPantalones}
+                    className="h-auto flex-col border-amber-300 py-3 hover:bg-amber-50 dark:border-amber-700 dark:hover:bg-amber-950"
+                  >
+                    <span className="text-base font-semibold">Pantalones</span>
+                    <span className="text-xs text-muted-foreground">10 escuelas</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleDebugZapatos}
+                    className="h-auto flex-col border-amber-300 py-3 hover:bg-amber-50 dark:border-amber-700 dark:hover:bg-amber-950"
+                  >
+                    <span className="text-base font-semibold">Zapatos</span>
+                    <span className="text-xs text-muted-foreground">10 escuelas</span>
                   </Button>
                 </div>
               </div>
