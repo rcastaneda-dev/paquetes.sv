@@ -86,6 +86,7 @@ export interface StudentQueryRow {
   school_codigo_ce: string;
   nombre_ce: string;
   departamento: string;
+  distrito: string;
   fecha_inicio: string;
   camisa: string;
   tipo_de_camisa: string;

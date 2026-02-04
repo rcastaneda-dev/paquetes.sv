@@ -97,3 +97,33 @@ export function buildReportEtiquetasStorageKey(args: {
   const safeDistrito = toSafePathSegment(distrito || 'N/A', 80);
   return `${jobId}/${safeRegion}/${safeDepartamento}/${safeDistrito}/${safeSchool}-etiquetas.pdf`;
 }
+
+/**
+ * Build the Storage object key for agreement reports (new hierarchy).
+ * Format: `{jobId}/{fechaInicio}/{categoryFolder}/{fileName}`
+ *
+ * Category folders:
+ * - estudiantes (Cajas)
+ * - camisa (Camisas)
+ * - prenda_inferior (Pantalones/Falda/Short)
+ * - zapatos (Zapatos)
+ *
+ * @example
+ * buildAgreementReportStorageKey({
+ *   jobId: "abc-123",
+ *   fechaInicio: "2023-10-25",
+ *   categoryFolder: "zapatos",
+ *   fileName: "detalle_zapatos.pdf"
+ * })
+ * → "abc-123/2023-10-25/zapatos/detalle_zapatos.pdf"
+ */
+export function buildAgreementReportStorageKey(args: {
+  jobId: string;
+  fechaInicio: string; // YYYY-MM-DD format
+  categoryFolder: 'estudiantes' | 'camisa' | 'prenda_inferior' | 'zapatos';
+  fileName: string;
+}): string {
+  const { jobId, fechaInicio, categoryFolder, fileName } = args;
+  const safeFileName = toSafePathSegment(fileName, 100);
+  return `${jobId}/${fechaInicio}/${categoryFolder}/${safeFileName}`;
+}

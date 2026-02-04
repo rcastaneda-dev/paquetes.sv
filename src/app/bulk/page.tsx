@@ -14,7 +14,10 @@ export default function BulkReportsPage() {
   const [jobs, setJobs] = useState<ReportJob[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
+  const [isCreatingCategory, setIsCreatingCategory] = useState(false);
   const [isDeletingPast, setIsDeletingPast] = useState(false);
+  const [showCategoryForm, setShowCategoryForm] = useState(false);
+  const [fechaInicio, setFechaInicio] = useState('');
 
   const fetchJobs = async () => {
     try {
@@ -56,6 +59,38 @@ export default function BulkReportsPage() {
       alert('Error al crear el trabajo');
     } finally {
       setIsCreating(false);
+    }
+  };
+
+  const handleCreateCategoryJob = async () => {
+    if (!fechaInicio) {
+      alert('Por favor selecciona una fecha de inicio');
+      return;
+    }
+
+    setIsCreatingCategory(true);
+    try {
+      const response = await fetch('/api/bulk/jobs/category', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fecha_inicio: fechaInicio }),
+      });
+      const data = await response.json();
+
+      if (data.error) {
+        alert(`Error: ${data.error}`);
+        return;
+      }
+
+      alert(`Trabajo de categorías creado exitosamente! ID: ${data.jobId}`);
+      setShowCategoryForm(false);
+      setFechaInicio('');
+      fetchJobs();
+    } catch (error) {
+      console.error('Error creating category job:', error);
+      alert('Error al crear el trabajo de categorías');
+    } finally {
+      setIsCreatingCategory(false);
     }
   };
 
@@ -124,7 +159,7 @@ export default function BulkReportsPage() {
       <header className="border-b">
         <div className="container mx-auto px-4 py-4">
           <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
-            <h1 className="text-xl font-bold sm:text-2xl">Paquetes SV - Reportes Masivos</h1>
+            <h1 className="text-xl font-bold sm:text-2xl">Paquetes.sv - Reportes Masivos</h1>
             <Link href="/">
               <Button variant="outline" className="whitespace-nowrap px-3 text-sm sm:px-4">
                 Volver a Consultas
@@ -163,10 +198,49 @@ export default function BulkReportsPage() {
                 >
                   {isCreating ? 'Creando...' : 'Generar Todos los PDFs'}
                 </Button>
+                <Button
+                  onClick={() => setShowCategoryForm(!showCategoryForm)}
+                  variant="outline"
+                  className="whitespace-nowrap px-3 text-sm sm:px-4"
+                >
+                  {showCategoryForm ? 'Cancelar' : 'Reportes por Categoría'}
+                </Button>
               </div>
             </div>
           </CardHeader>
           <CardContent>
+            {showCategoryForm && (
+              <div className="mb-6 rounded-lg border border-primary/20 bg-primary/5 p-4">
+                <h3 className="mb-3 text-sm font-semibold">
+                  Nuevo Trabajo de Reportes por Categoría
+                </h3>
+                <p className="mb-4 text-xs text-muted-foreground">
+                  Este tipo de trabajo genera 4 reportes (Cajas, Camisas, Pantalones, Zapatos)
+                  agrupados por código CE para estudiantes de la fecha seleccionada.
+                </p>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                  <div className="flex-1">
+                    <label htmlFor="fecha-inicio" className="mb-1 block text-sm font-medium">
+                      Fecha de Inicio
+                    </label>
+                    <input
+                      id="fecha-inicio"
+                      type="date"
+                      value={fechaInicio}
+                      onChange={e => setFechaInicio(e.target.value)}
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    />
+                  </div>
+                  <Button
+                    onClick={handleCreateCategoryJob}
+                    disabled={isCreatingCategory || !fechaInicio}
+                    className="whitespace-nowrap"
+                  >
+                    {isCreatingCategory ? 'Creando...' : 'Crear Trabajo'}
+                  </Button>
+                </div>
+              </div>
+            )}
             {isLoading ? (
               <div className="py-12 text-center">
                 <div className="inline-block h-8 w-8 animate-spin rounded-full border-b-2 border-primary"></div>
