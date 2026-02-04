@@ -43,10 +43,6 @@ export async function POST(request: NextRequest) {
     const allJobIds = new Set<string>();
     let didRequeueStale = false;
 
-    console.log(
-      `Worker drain started: maxRuntime=${maxRuntime}ms, batchSize=${batchSize}, concurrency=${concurrency}`
-    );
-
     // Drain queue until time budget exhausted or no more tasks
     while (Date.now() - startTime < maxRuntime) {
       // Claim pending tasks
@@ -83,26 +79,20 @@ export async function POST(request: NextRequest) {
 
           if (requeueError) {
             console.error('Error requeuing stale running tasks:', requeueError);
-            console.log('No more pending tasks, exiting drain loop');
             break;
           }
 
           const count =
             typeof requeuedCount === 'number' ? requeuedCount : Number(requeuedCount ?? 0);
           if (count > 0) {
-            console.log(`Requeued ${count} stale running task(s), continuing drain loop`);
             continue;
           }
         }
 
-        console.log('No more pending tasks, exiting drain loop');
         break;
       }
 
       batchCount++;
-      console.log(
-        `Processing batch ${batchCount}: ${tasks.length} tasks with concurrency=${concurrency}`
-      );
 
       // Process tasks with concurrency limit to avoid memory spikes
       const results = await processTasksWithConcurrencyLimit(tasks, concurrency);
@@ -117,13 +107,10 @@ export async function POST(request: NextRequest) {
       // Collect job IDs for completion check
       tasks.forEach(t => allJobIds.add(t.job_id));
 
-      console.log(`Batch ${batchCount} complete: ${successful} succeeded, ${failed} failed`);
-
       // Check if approaching time limit (leave 2s buffer)
       const elapsed = Date.now() - startTime;
       const remaining = maxRuntime - elapsed;
       if (remaining < 2000) {
-        console.log(`Approaching time limit (${remaining}ms remaining), stopping drain loop`);
         break;
       }
     }
@@ -132,7 +119,6 @@ export async function POST(request: NextRequest) {
 
     // Check if any jobs are now complete
     if (allJobIds.size > 0) {
-      console.log(`Checking completion for ${allJobIds.size} jobs`);
       for (const jobId of allJobIds) {
         await checkAndCompleteJob(jobId);
       }
@@ -174,8 +160,6 @@ async function processTasksWithConcurrencyLimit(
 
 async function processTask(task: ClaimedTask): Promise<void> {
   try {
-    console.log(`Processing task ${task.task_id} for ${task.school_codigo_ce} - ${task.grado}`);
-
     const schoolCodigoCe = (task.school_codigo_ce || '').trim();
     const rawGrado = (task.grado || '').trim();
     const isAllGrades =
@@ -194,7 +178,6 @@ async function processTask(task: ClaimedTask): Promise<void> {
     }
 
     if (job.status === 'cancelled') {
-      console.log(`Task ${task.task_id} belongs to cancelled job ${task.job_id}, skipping`);
       // Task is already marked cancelled by the cancel RPC, just return
       return;
     }
@@ -228,7 +211,6 @@ async function processTask(task: ClaimedTask): Promise<void> {
     const studentRows = students as StudentReportRow[];
 
     if (studentRows.length === 0) {
-      console.log(`No students found for ${task.school_codigo_ce} - ${task.grado}, skipping`);
       // Mark as complete even though no students (empty report)
       await supabaseServer.rpc('update_task_status', {
         p_task_id: task.task_id,
@@ -311,8 +293,6 @@ async function processTask(task: ClaimedTask): Promise<void> {
       p_pdf_path: fileName,
       p_error: null,
     });
-
-    console.log(`Task ${task.task_id} completed successfully`);
   } catch (error) {
     console.error(`Task ${task.task_id} failed:`, error);
 
@@ -328,36 +308,62 @@ async function processTask(task: ClaimedTask): Promise<void> {
   }
 }
 
+/**
+ * Type guard to check if an object is AsyncIterable
+ */
+function isAsyncIterable(obj: unknown): obj is AsyncIterable<unknown> {
+  return (
+    obj !== null &&
+    typeof obj === 'object' &&
+    Symbol.asyncIterator in obj &&
+    typeof (obj as Record<symbol, unknown>)[Symbol.asyncIterator] === 'function'
+  );
+}
+
+/**
+ * Type for event emitter-like streams
+ */
+interface StreamLike {
+  on(event: 'data', listener: (chunk: Buffer | Uint8Array | string) => void): void;
+  on(event: 'end' | 'finish', listener: () => void): void;
+  on(event: 'error', listener: (error: Error) => void): void;
+}
+
+/**
+ * Type guard to check if an object is a stream-like object
+ */
+function isStreamLike(obj: unknown): obj is StreamLike {
+  return obj !== null && typeof obj === 'object' && 'on' in obj && typeof obj.on === 'function';
+}
+
 function toBuffer(streamLike: unknown): Promise<Buffer> {
   // Case 1: AsyncIterable (Node Readable streams support this in many cases)
-  if (
-    streamLike &&
-    typeof streamLike === 'object' &&
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    typeof (streamLike as any)[Symbol.asyncIterator] === 'function'
-  ) {
+  if (isAsyncIterable(streamLike)) {
     return (async () => {
       const chunks: Buffer[] = [];
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      for await (const chunk of streamLike as any) {
-        chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+      for await (const chunk of streamLike) {
+        if (Buffer.isBuffer(chunk)) {
+          chunks.push(chunk);
+        } else if (chunk instanceof Uint8Array) {
+          chunks.push(Buffer.from(chunk));
+        } else if (typeof chunk === 'string') {
+          chunks.push(Buffer.from(chunk));
+        }
       }
       return Buffer.concat(chunks);
     })();
   }
 
   // Case 2: EventEmitter-style stream (covers pdfkit + pdfkit.standalone output)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const s = streamLike as any;
-  if (s && typeof s.on === 'function') {
+  if (isStreamLike(streamLike)) {
     return new Promise<Buffer>((resolve, reject) => {
       const chunks: Buffer[] = [];
-      s.on('data', (chunk: unknown) => {
-        chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk as any));
+      streamLike.on('data', chunk => {
+        chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
       });
-      s.on('end', () => resolve(Buffer.concat(chunks)));
-      s.on('finish', () => resolve(Buffer.concat(chunks)));
-      s.on('error', reject);
+      streamLike.on('end', () => resolve(Buffer.concat(chunks)));
+      streamLike.on('finish', () => resolve(Buffer.concat(chunks)));
+      streamLike.on('error', reject);
     });
   }
 
@@ -381,7 +387,6 @@ async function checkAndCompleteJob(jobId: string): Promise<void> {
 
     // Don't override cancelled jobs
     if (job.status === 'cancelled') {
-      console.log(`Job ${jobId} is cancelled, skipping completion check`);
       return;
     }
 
@@ -414,8 +419,6 @@ async function checkAndCompleteJob(jobId: string): Promise<void> {
       })
       .eq('id', jobId)
       .eq('status', job.status); // Only update if status hasn't changed (extra safety)
-
-    console.log(`Job ${jobId} marked as ${newStatus}`);
 
     // If this job is part of a batch, update the batch status
     const { data: jobData } = await supabaseServer

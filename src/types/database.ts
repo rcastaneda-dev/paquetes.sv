@@ -6,14 +6,10 @@ export interface School {
   codigo_ce: string;
   nombre_ce: string;
   departamento: string;
-  region: string;
-  ruta: string;
   municipio: string;
   distrito: string;
   direccion: string;
   zona: string;
-  latitud: number | null;
-  longitud: number | null;
 }
 
 export interface Student {
@@ -24,7 +20,6 @@ export interface Student {
   edad: number | null;
   grado: string;
   grado_ok: string;
-  bodega_produccion: string;
 }
 
 export interface UniformSize {
@@ -77,7 +72,6 @@ export interface StudentReportRow {
   sexo: string;
   edad: number | null;
   grado: string;
-  bodega_produccion: string;
   camisa: string;
   pantalon_falda: string;
   zapato: string;
@@ -89,11 +83,14 @@ export interface StudentQueryRow {
   sexo: string;
   edad: number | null;
   grado: string;
-  bodega_produccion: string;
   school_codigo_ce: string;
   nombre_ce: string;
+  departamento: string;
+  fecha_inicio: string;
   camisa: string;
+  tipo_de_camisa: string;
   pantalon_falda: string;
+  t_pantalon_falda_short: string;
   zapato: string;
   total_count: number;
 }

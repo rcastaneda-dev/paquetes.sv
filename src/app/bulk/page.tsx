@@ -3,8 +3,10 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+
 import { Button } from '@/components/ui/Button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+
 import type { ReportJob } from '@/types/database';
 
 export default function BulkReportsPage() {
@@ -173,7 +175,9 @@ export default function BulkReportsPage() {
             ) : jobs.length === 0 ? (
               <div className="py-12 text-center text-muted-foreground">
                 <p>No hay trabajos aún.</p>
-                <p className="mt-2 text-sm">Haz clic en "Generar Todos los PDFs" para crear uno.</p>
+                <p className="mt-2 text-sm">
+                  Haz clic en &quot;Generar Todos los PDFs&quot; para crear uno.
+                </p>
               </div>
             ) : (
               <div className="space-y-4">

@@ -1,12 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
+import Link from 'next/link';
+
 import { FiltersPanel } from '@/components/FiltersPanel';
 import { StudentsGrid } from '@/components/StudentsGrid';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+
 import type { StudentQueryRow } from '@/types/database';
-import Link from 'next/link';
 
 export default function HomePage() {
   const [filters, setFilters] = useState<{ school_codigo_ce: string | null; grado: string | null }>(
@@ -60,24 +62,29 @@ export default function HomePage() {
     }
   };
 
-  const handleFilterChange = (newFilters: {
-    school_codigo_ce: string | null;
-    grado: string | null;
-  }) => {
-    setFilters(newFilters);
-    if (!newFilters.school_codigo_ce && !newFilters.grado) {
-      setLastSearchFilters(null);
-    }
-  };
+  const handleFilterChange = useCallback(
+    (newFilters: { school_codigo_ce: string | null; grado: string | null }) => {
+      setFilters(newFilters);
+      if (!newFilters.school_codigo_ce && !newFilters.grado) {
+        setLastSearchFilters(null);
+      }
+    },
+    []
+  );
 
-  const handleSearch = () => {
+  const handleSearch = useCallback(() => {
     setLastSearchFilters(filters);
     fetchStudents(1);
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters]);
 
-  const handlePageChange = (page: number) => {
-    fetchStudents(page);
-  };
+  const handlePageChange = useCallback(
+    (page: number) => {
+      fetchStudents(page);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [filters]
+  );
 
   const canPrint = !!lastSearchFilters?.school_codigo_ce;
 

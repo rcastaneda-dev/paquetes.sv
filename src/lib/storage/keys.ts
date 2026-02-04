@@ -97,27 +97,3 @@ export function buildReportEtiquetasStorageKey(args: {
   const safeDistrito = toSafePathSegment(distrito || 'N/A', 80);
   return `${jobId}/${safeRegion}/${safeDepartamento}/${safeDistrito}/${safeSchool}-etiquetas.pdf`;
 }
-
-/**
- * Build a safe filename for a PDF entry inside a ZIP archive.
- * Format: `{schoolCodigoCe}-{safeGrado}.pdf`
- *
- * This ensures ZIP entries are ASCII-safe and compatible with all
- * extraction tools (Windows, macOS, Linux).
- *
- * @example
- * buildZipPdfEntryName({
- *   schoolCodigoCe: "72006",
- *   grado: "Séptimo Grado"
- * })
- * → "72006-Septimo-Grado.pdf"
- */
-export function buildZipPdfEntryName(args: { schoolCodigoCe: string; grado: string }): string {
-  const { schoolCodigoCe, grado } = args;
-  const safeSchool = toSafePathSegment(schoolCodigoCe, 50);
-  const safeGrado = toSafePathSegment(grado, 80);
-  if (grado === 'ALL') {
-    return `${safeSchool}.pdf`;
-  }
-  return `${safeSchool}-${safeGrado}.pdf`;
-}

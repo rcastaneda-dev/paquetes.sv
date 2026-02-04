@@ -1,16 +1,20 @@
 'use client';
 
+import { memo, useMemo } from 'react';
 import type { JobProgress as JobProgressType } from '@/types/database';
 
 interface JobProgressProps {
   progress: JobProgressType;
 }
 
-export function JobProgress({ progress }: JobProgressProps) {
-  const completionPercentage =
-    progress.total_tasks > 0
-      ? Math.round((progress.complete_tasks / progress.total_tasks) * 100)
-      : 0;
+export const JobProgress = memo(function JobProgress({ progress }: JobProgressProps) {
+  const completionPercentage = useMemo(
+    () =>
+      progress.total_tasks > 0
+        ? Math.round((progress.complete_tasks / progress.total_tasks) * 100)
+        : 0,
+    [progress.complete_tasks, progress.total_tasks]
+  );
 
   return (
     <div className="space-y-4">
@@ -39,7 +43,7 @@ export function JobProgress({ progress }: JobProgressProps) {
       </div>
     </div>
   );
-}
+});
 
 interface StatCardProps {
   label: string;
@@ -47,7 +51,7 @@ interface StatCardProps {
   variant?: 'default' | 'muted' | 'info' | 'success' | 'error' | 'warning';
 }
 
-function StatCard({ label, value, variant = 'default' }: StatCardProps) {
+const StatCard = memo(function StatCard({ label, value, variant = 'default' }: StatCardProps) {
   const variantStyles = {
     default: 'border-border',
     muted: 'border-muted-foreground/20',
@@ -63,4 +67,4 @@ function StatCard({ label, value, variant = 'default' }: StatCardProps) {
       <div className="break-words text-sm text-muted-foreground">{label}</div>
     </div>
   );
-}
+});

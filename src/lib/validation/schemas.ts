@@ -43,17 +43,6 @@ export const regionSchema = z
   .transform(val => val.toLowerCase() as 'oriental' | 'occidental' | 'paracentral' | 'central');
 
 /**
- * Optional region for filtering
- */
-export const optionalRegionSchema = z.object({
-  region: z
-    .string()
-    .transform(val => val.toLowerCase())
-    .pipe(regionSchema)
-    .optional(),
-});
-
-/**
  * Search query (min 2 chars)
  * Used by: /api/schools/search
  */
@@ -70,22 +59,8 @@ export const studentFilterSchema = z
     school_codigo_ce: z.string().optional(),
     grado: z.string().optional(),
     departamento: z.string().optional(),
-    region: z.string().optional(),
   })
   .merge(paginationSchema);
-
-/**
- * ZIP job status query params
- * Used by: /api/bulk/jobs/[jobId]/zip-job-status
- */
-export const zipJobStatusQuerySchema = z.object({
-  zipJobId: z.string().uuid().optional(),
-  region: z
-    .string()
-    .transform(val => val.toLowerCase())
-    .pipe(regionSchema)
-    .optional(),
-});
 
 // ============================================================================
 // Request Body Schemas

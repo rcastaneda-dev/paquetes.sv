@@ -1,6 +1,7 @@
 'use client';
 
 import { useReactTable, getCoreRowModel, flexRender, type ColumnDef } from '@tanstack/react-table';
+import { memo, useMemo } from 'react';
 import type { StudentQueryRow } from '@/types/database';
 import { Button } from './ui/Button';
 
@@ -26,7 +27,7 @@ const columns: ColumnDef<StudentQueryRow>[] = [
   {
     accessorKey: 'sexo',
     header: 'Sexo',
-    size: 80,
+    size: 70,
   },
   {
     accessorKey: 'edad',
@@ -40,14 +41,19 @@ const columns: ColumnDef<StudentQueryRow>[] = [
     size: 100,
   },
   {
-    accessorKey: 'nombre_ce',
-    header: 'Escuela',
-    size: 200,
+    accessorKey: 'tipo_de_camisa',
+    header: 'Tipo de Camisa',
+    size: 120,
   },
   {
     accessorKey: 'camisa',
     header: 'Camisa',
     size: 80,
+  },
+  {
+    accessorKey: 't_pantalon_falda_short',
+    header: 'T. Pantalón/Falda Short',
+    size: 150,
   },
   {
     accessorKey: 'pantalon_falda',
@@ -61,24 +67,24 @@ const columns: ColumnDef<StudentQueryRow>[] = [
   },
 ];
 
-export function StudentsGrid({
+export const StudentsGrid = memo(function StudentsGrid({
   students,
   totalCount,
   currentPage,
   pageSize,
   onPageChange,
 }: StudentsGridProps) {
+  const totalPages = useMemo(() => Math.ceil(totalCount / pageSize), [totalCount, pageSize]);
+  const hasNextPage = useMemo(() => currentPage < totalPages, [currentPage, totalPages]);
+  const hasPrevPage = useMemo(() => currentPage > 1, [currentPage]);
+
   const table = useReactTable({
     data: students,
     columns,
     getCoreRowModel: getCoreRowModel(),
     manualPagination: true,
-    pageCount: Math.ceil(totalCount / pageSize),
+    pageCount: totalPages,
   });
-
-  const totalPages = Math.ceil(totalCount / pageSize);
-  const hasNextPage = currentPage < totalPages;
-  const hasPrevPage = currentPage > 1;
 
   return (
     <div className="space-y-4">
@@ -161,4 +167,4 @@ export function StudentsGrid({
       )}
     </div>
   );
-}
+});

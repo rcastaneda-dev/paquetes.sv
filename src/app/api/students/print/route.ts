@@ -42,9 +42,7 @@ async function fetchAllStudents(params: {
       p_offset: offset,
     };
 
-    const args = useExtendedRpcSignature
-      ? { ...baseArgs, p_departamento: null, p_region: null }
-      : baseArgs;
+    const args = useExtendedRpcSignature ? { ...baseArgs, p_departamento: null } : baseArgs;
 
     let { data, error } = await supabaseServer.rpc('query_students', args);
 
@@ -55,7 +53,6 @@ async function fetchAllStudents(params: {
       ({ data, error } = await supabaseServer.rpc('query_students', {
         ...baseArgs,
         p_departamento: null,
-        p_region: null,
       }));
     }
 
@@ -116,7 +113,6 @@ export async function GET(request: NextRequest) {
       sexo: s.sexo,
       edad: s.edad,
       grado: s.grado,
-      bodega_produccion: s.bodega_produccion,
       camisa: s.camisa,
       pantalon_falda: s.pantalon_falda,
       zapato: s.zapato,
