@@ -164,11 +164,7 @@ export default function HomePage() {
   };
 
   const handleDebugCamisas = () => {
-    window.open(
-      '/api/reports/debug-random?type=camisas&limit=10',
-      '_blank',
-      'noopener,noreferrer'
-    );
+    window.open('/api/reports/debug-random?type=camisas&limit=10', '_blank', 'noopener,noreferrer');
   };
 
   const handleDebugPantalones = () => {
@@ -180,11 +176,7 @@ export default function HomePage() {
   };
 
   const handleDebugZapatos = () => {
-    window.open(
-      '/api/reports/debug-random?type=zapatos&limit=10',
-      '_blank',
-      'noopener,noreferrer'
-    );
+    window.open('/api/reports/debug-random?type=zapatos&limit=10', '_blank', 'noopener,noreferrer');
   };
 
   // Show debug buttons in development or if explicitly enabled

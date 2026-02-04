@@ -81,7 +81,7 @@ export async function GET(request: NextRequest) {
       // Fetch all students for this school using the same RPC as the regular reports
       const pageSize = 2000;
       let offset = 0;
-      let schoolStudents: StudentQueryRow[] = [];
+      const schoolStudents: StudentQueryRow[] = [];
 
       while (true) {
         const { data, error } = await supabaseServer.rpc('query_students', {

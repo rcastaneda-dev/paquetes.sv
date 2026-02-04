@@ -8,7 +8,9 @@ export const dynamic = 'force-dynamic';
 
 // Schema for creating a category report job
 const createCategoryJobSchema = z.object({
-  fecha_inicio: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'fecha_inicio must be in YYYY-MM-DD format'),
+  fecha_inicio: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'fecha_inicio must be in YYYY-MM-DD format'),
 });
 
 /**
