@@ -89,9 +89,73 @@ function groupBySchool(students: StudentQueryRow[]): SchoolGroup[] {
 }
 
 /**
+ * Helper: Draw a per-school header block with DEPTO, DIST, COD, NOMBRE_CE as plain text
+ * Format:
+ *   Line 1: NOMBRE_CE: xxxxxx (COD XXXX)
+ *   Line 2: DEPTO: xxxxxx  DIST: xxxxxx
+ * Labels are bold, values are capitalized but not bold
+ * Returns the new Y position after the block
+ */
+interface SchoolHeaderBlockOptions {
+  doc: PDFDocumentInstance;
+  xStart: number;
+  yStart: number;
+  availableWidth: number;
+  school: SchoolGroup;
+  fontSize: number;
+}
+
+function drawSchoolHeaderBlock(options: SchoolHeaderBlockOptions): number {
+  const { doc, xStart, yStart, school, fontSize } = options;
+
+  let currentY = yStart;
+
+  // Line 1: NOMBRE_CE: [school name] (COD [school code])
+  doc.font('Helvetica-Bold').fontSize(fontSize);
+  doc.text('NOMBRE: ', xStart, currentY, { continued: true });
+
+  doc.font('Helvetica').fontSize(fontSize);
+  const schoolName = school.nombre_ce.toUpperCase();
+  doc.text(schoolName, { continued: true });
+
+  doc.font('Helvetica-Bold').fontSize(fontSize);
+  doc.text(' (CODIGO: ', { continued: true });
+
+  doc.font('Helvetica').fontSize(fontSize);
+  const schoolCode = school.codigo_ce.toUpperCase();
+  doc.text(schoolCode, { continued: true });
+
+  doc.font('Helvetica-Bold').fontSize(fontSize);
+  doc.text(')');
+
+  currentY = doc.y + 2;
+
+  // Line 2: DEPTO: [department]  DIST: [district]
+  doc.font('Helvetica-Bold').fontSize(fontSize);
+  doc.text('DEPARTAMENTO: ', xStart, currentY, { continued: true });
+
+  doc.font('Helvetica').fontSize(fontSize);
+  const department = (school.departamento || 'N/A').toUpperCase();
+  doc.text(department, { continued: true });
+
+  doc.font('Helvetica-Bold').fontSize(fontSize);
+  doc.text('  DISTRITO: ', { continued: true });
+
+  doc.font('Helvetica').fontSize(fontSize);
+  const district = (school.distrito || 'N/A').toUpperCase();
+  doc.text(district);
+
+  currentY = doc.y + 8; // Add spacing after header block
+
+  return currentY;
+}
+
+/**
  * PDF 1: Cajas Distribution Report
  * Grouping: By codigo_ce, then by grado_ok
  * Columns: No, Departamento, Distrito, Codigo_ce, Nombre_ce, Grado_ok, Cajas_Hombres, Cajas_Mujeres, Cajas_Totales
+ *
+ * NOTE: Cajas does NOT enforce the 5-schools-per-page limit (only overflow).
  */
 export function generateCajasPDF(options: AgreementReportOptions): PDFDocumentInstance {
   const { fechaInicio, students } = options;
@@ -121,9 +185,6 @@ export function generateCajasPDF(options: AgreementReportOptions): PDFDocumentIn
   const bottomMargin = 40;
   const maxY = pageHeight - bottomMargin;
 
-  let schoolsOnPage = 0;
-  const maxSchoolsPerPage = 5;
-
   let rowIndex = 1;
 
   for (let s = 0; s < schools.length; s++) {
@@ -150,14 +211,14 @@ export function generateCajasPDF(options: AgreementReportOptions): PDFDocumentIn
     // Estimate space needed (header + rows + summary + spacing)
     const estimatedHeight = 30 + gradeRows * 20 + 20 + 20;
 
-    // Check if we need a new page (after 5 schools or overflow)
-    if (schoolsOnPage >= maxSchoolsPerPage || currentY + estimatedHeight > maxY) {
+    // Check if we need a new page (only on overflow, NOT 5-schools limit for Cajas)
+    if (currentY + estimatedHeight > maxY) {
       doc.addPage();
       addLogoToPage(doc, doc.page.width);
       doc.fontSize(14).font('Helvetica-Bold').text(title, { align: 'center' });
+      doc.fontSize(12).font('Helvetica').text(subtitle, { align: 'center' });
       doc.moveDown(1);
       currentY = doc.y;
-      schoolsOnPage = 0;
     }
 
     // Draw table header
@@ -207,9 +268,9 @@ export function generateCajasPDF(options: AgreementReportOptions): PDFDocumentIn
         school.codigo_ce,
         school.nombre_ce,
         grade,
-        counts.hombres.toString(),
-        counts.mujeres.toString(),
-        total.toString(),
+        Math.ceil(counts.hombres * 1.15).toString(),
+        Math.ceil(counts.mujeres * 1.15).toString(),
+        Math.ceil(total * 1.15).toString(),
       ];
 
       for (let i = 0; i < rowData.length; i++) {
@@ -239,9 +300,9 @@ export function generateCajasPDF(options: AgreementReportOptions): PDFDocumentIn
       '',
       'SUBTOTAL',
       '',
-      schoolTotalH.toString(),
-      schoolTotalM.toString(),
-      schoolTotal.toString(),
+      Math.ceil(schoolTotalH * 1.15).toString(),
+      Math.ceil(schoolTotalM * 1.15).toString(),
+      Math.ceil(schoolTotal * 1.15).toString(),
     ];
 
     for (let i = 0; i < summaryData.length; i++) {
@@ -254,7 +315,6 @@ export function generateCajasPDF(options: AgreementReportOptions): PDFDocumentIn
     }
     currentY += summaryRowHeight;
     currentY += 10; // spacing between schools
-    schoolsOnPage++;
   }
 
   doc.end();
@@ -298,7 +358,18 @@ export function generateCamisasPDF(options: AgreementReportOptions): PDFDocument
   let schoolsOnPage = 0;
   const maxSchoolsPerPage = 5;
 
-  let rowIndex = 1;
+  // Layout constants (larger fonts and widths)
+  const xStart = 20;
+  const availableWidth = doc.page.width - 40; // 752pt
+  const headerFontSize = 11; // increased from 7, then from 10
+  const bodyFontSize = 9; // increased from 6, then from 8
+  const schoolHeaderFontSize = 9;
+
+  // New table structure: TIPO + 12 sizes + TOTAL
+  const tipoColWidth = 100; // increased from 60
+  const sizeColWidth = 35; // increased from 25
+  const totalColWidth = 50; // increased from 30
+  const headerHeight = 28; // increased from 20
 
   for (let s = 0; s < schools.length; s++) {
     const school = schools[s];
@@ -320,120 +391,116 @@ export function generateCamisasPDF(options: AgreementReportOptions): PDFDocument
     const tipos = Array.from(tipoMap.keys()).sort();
     const tipoRows = tipos.length;
 
-    const estimatedHeight = 30 + tipoRows * 20 + 20 + 20;
+    // Updated height estimation (school header + table header + rows + summary + spacing)
+    const schoolHeaderHeight = 50; // approximate
+    const estimatedHeight = schoolHeaderHeight + headerHeight + tipoRows * 24 + 20 + 20;
 
     if (schoolsOnPage >= maxSchoolsPerPage || currentY + estimatedHeight > maxY) {
       doc.addPage();
       addLogoToPage(doc, doc.page.width);
       doc.fontSize(14).font('Helvetica-Bold').text(title, { align: 'center' });
-      doc.moveDown(1);
+      doc.fontSize(14).font('Helvetica').text(subtitle, { align: 'center' });
+      doc.moveDown(2);
       currentY = doc.y;
       schoolsOnPage = 0;
     }
 
-    // Draw table header
-    doc.fontSize(7).font('Helvetica-Bold');
-    const fixedColWidths = [20, 60, 50, 50, 180, 60];
-    const fixedHeaders = ['NO', 'DEPARTAMENTO', 'DISTRITO', 'CODIGO_CE', 'NOMBRE_CE', 'TIPO'];
-    const sizeColWidth = 25;
-    const headerHeight = 20;
+    // Draw per-school header block
+    currentY = drawSchoolHeaderBlock({
+      doc,
+      xStart,
+      yStart: currentY,
+      availableWidth,
+      school,
+      fontSize: schoolHeaderFontSize,
+    });
 
-    let x = 20;
-    for (let i = 0; i < fixedHeaders.length; i++) {
-      doc.rect(x, currentY, fixedColWidths[i], headerHeight).stroke();
-      doc.text(fixedHeaders[i], x + 1, currentY + 5, {
-        width: fixedColWidths[i] - 2,
-        align: 'center',
-      });
-      x += fixedColWidths[i];
-    }
+    // Draw table header (TIPO + sizes + TOTAL)
+    doc.fontSize(headerFontSize).font('Helvetica-Bold');
+    let x = xStart;
+
+    // TIPO column
+    doc.rect(x, currentY, tipoColWidth, headerHeight).stroke();
+    doc.text('TIPO', x + 2, currentY + 8, {
+      width: tipoColWidth - 4,
+      align: 'center',
+    });
+    x += tipoColWidth;
 
     // Size columns
     for (const size of sizes) {
       doc.rect(x, currentY, sizeColWidth, headerHeight).stroke();
-      doc.text(size, x + 1, currentY + 5, {
-        width: sizeColWidth - 2,
+      doc.text(size, x + 2, currentY + 8, {
+        width: sizeColWidth - 4,
         align: 'center',
       });
       x += sizeColWidth;
     }
 
     // Total column
-    doc.rect(x, currentY, 30, headerHeight).stroke();
-    doc.text('TOTAL', x + 1, currentY + 5, {
-      width: 28,
+    doc.rect(x, currentY, totalColWidth, headerHeight).stroke();
+    doc.text('TOTAL', x + 2, currentY + 8, {
+      width: totalColWidth - 4,
       align: 'center',
     });
 
     currentY += headerHeight;
 
     // Draw tipo rows
-    doc.font('Helvetica').fontSize(6);
+    doc.font('Helvetica').fontSize(bodyFontSize);
     for (const tipo of tipos) {
       const sizeCounts = tipoMap.get(tipo)!;
       let rowTotal = 0;
 
-      // Calculate dynamic row height based on school name
-      const nameHeight = doc.heightOfString(school.nombre_ce, {
-        width: fixedColWidths[4] - 2,
+      // Calculate dynamic row height
+      const tipoHeight = doc.heightOfString(tipo, {
+        width: tipoColWidth - 4,
       });
-      const dynamicRowHeight = Math.max(14, nameHeight + 6);
+      const dynamicRowHeight = Math.max(20, tipoHeight + 8); // increased from 14
 
-      x = 20;
-      const fixedData = [
-        rowIndex.toString(),
-        school.departamento || '',
-        school.distrito || '',
-        school.codigo_ce,
-        school.nombre_ce,
-        tipo,
-      ];
+      x = xStart;
 
-      for (let i = 0; i < fixedData.length; i++) {
-        doc.rect(x, currentY, fixedColWidths[i], dynamicRowHeight).stroke();
-        doc.text(fixedData[i], x + 1, currentY + 2, {
-          width: fixedColWidths[i] - 2,
-          align: i === 4 ? 'left' : 'center',
-        });
-        x += fixedColWidths[i];
-      }
+      // TIPO column
+      doc.rect(x, currentY, tipoColWidth, dynamicRowHeight).stroke();
+      doc.text(tipo, x + 2, currentY + 4, {
+        width: tipoColWidth - 4,
+        align: 'center',
+      });
+      x += tipoColWidth;
 
       // Size counts
       for (const size of sizes) {
         const count = sizeCounts[size] || 0;
         rowTotal += count;
         doc.rect(x, currentY, sizeColWidth, dynamicRowHeight).stroke();
-        doc.text(count > 0 ? count.toString() : '', x + 1, currentY + 2, {
-          width: sizeColWidth - 2,
+        doc.text(count > 0 ? count.toString() : '', x + 2, currentY + 4, {
+          width: sizeColWidth - 4,
           align: 'center',
         });
         x += sizeColWidth;
       }
 
       // Total
-      doc.rect(x, currentY, 30, dynamicRowHeight).stroke();
-      doc.text(rowTotal.toString(), x + 1, currentY + 2, {
-        width: 28,
+      doc.rect(x, currentY, totalColWidth, dynamicRowHeight).stroke();
+      doc.text(rowTotal.toString(), x + 2, currentY + 4, {
+        width: totalColWidth - 4,
         align: 'center',
       });
 
       currentY += dynamicRowHeight;
-      rowIndex++;
     }
 
-    // School summary row
-    doc.font('Helvetica-Bold').fontSize(6);
-    const summaryRowHeight = 14;
-    x = 20;
-    const subtotalLabel = ['', '', '', '', 'SUBTOTAL', ''];
-    for (let i = 0; i < subtotalLabel.length; i++) {
-      doc.rect(x, currentY, fixedColWidths[i], summaryRowHeight).stroke();
-      doc.text(subtotalLabel[i], x + 1, currentY + 2, {
-        width: fixedColWidths[i] - 2,
-        align: i === 4 ? 'left' : 'center',
-      });
-      x += fixedColWidths[i];
-    }
+    // School summary row (SUBTOTAL in TIPO column)
+    doc.font('Helvetica-Bold').fontSize(bodyFontSize);
+    const summaryRowHeight = 20; // increased from 14
+    x = xStart;
+
+    doc.rect(x, currentY, tipoColWidth, summaryRowHeight).stroke();
+    doc.text('SUBTOTAL', x + 2, currentY + 4, {
+      width: tipoColWidth - 4,
+      align: 'center',
+    });
+    x += tipoColWidth;
 
     let grandTotal = 0;
     for (const size of sizes) {
@@ -445,21 +512,21 @@ export function generateCamisasPDF(options: AgreementReportOptions): PDFDocument
       grandTotal += sizeTotal;
 
       doc.rect(x, currentY, sizeColWidth, summaryRowHeight).stroke();
-      doc.text(sizeTotal > 0 ? sizeTotal.toString() : '', x + 1, currentY + 2, {
-        width: sizeColWidth - 2,
+      doc.text(sizeTotal > 0 ? sizeTotal.toString() : '', x + 2, currentY + 4, {
+        width: sizeColWidth - 4,
         align: 'center',
       });
       x += sizeColWidth;
     }
 
-    doc.rect(x, currentY, 30, summaryRowHeight).stroke();
-    doc.text(grandTotal.toString(), x + 1, currentY + 2, {
-      width: 28,
+    doc.rect(x, currentY, totalColWidth, summaryRowHeight).stroke();
+    doc.text(grandTotal.toString(), x + 2, currentY + 4, {
+      width: totalColWidth - 4,
       align: 'center',
     });
 
     currentY += summaryRowHeight;
-    currentY += 10;
+    currentY += 15; // increased spacing between schools
     schoolsOnPage++;
   }
 
@@ -505,12 +572,23 @@ export function generatePantalonesPDF(options: AgreementReportOptions): PDFDocum
   let schoolsOnPage = 0;
   const maxSchoolsPerPage = 5;
 
-  let rowIndex = 1;
+  // Layout constants (larger fonts and widths)
+  const xStart = 20;
+  const availableWidth = doc.page.width - 40; // 752pt
+  const headerFontSize = 11; // increased from 7, then from 10
+  const bodyFontSize = 9; // increased from 6, then from 8
+  const schoolHeaderFontSize = 9;
+
+  // New table structure: TIPO PRENDA + 12 sizes + TOTAL
+  const tipoPrendaColWidth = 120; // increased from 70, slightly wider than TIPO for "TIPO PRENDA"
+  const sizeColWidth = 35; // increased from 25
+  const totalColWidth = 50; // increased from 30
+  const headerHeight = 28; // increased from 20
 
   for (let s = 0; s < schools.length; s++) {
     const school = schools[s];
 
-    // Group by tipo_prend and aggregate sizes
+    // Group by tipo_prenda and aggregate sizes
     const tipoPrendMap = new Map<string, { [size: string]: number }>();
 
     for (const student of school.students) {
@@ -527,127 +605,116 @@ export function generatePantalonesPDF(options: AgreementReportOptions): PDFDocum
     const tipos = Array.from(tipoPrendMap.keys()).sort();
     const tipoRows = tipos.length;
 
-    const estimatedHeight = 30 + tipoRows * 20 + 20 + 20;
+    // Updated height estimation (school header + table header + rows + summary + spacing)
+    const schoolHeaderHeight = 50; // approximate
+    const estimatedHeight = schoolHeaderHeight + headerHeight + tipoRows * 24 + 20 + 20;
 
     if (schoolsOnPage >= maxSchoolsPerPage || currentY + estimatedHeight > maxY) {
       doc.addPage();
       addLogoToPage(doc, doc.page.width);
       doc.fontSize(14).font('Helvetica-Bold').text(title, { align: 'center' });
-      doc.moveDown(1);
+      doc.fontSize(14).font('Helvetica').text(subtitle, { align: 'center' });
+      doc.moveDown(2);
       currentY = doc.y;
       schoolsOnPage = 0;
     }
 
-    // Draw table header
-    doc.fontSize(7).font('Helvetica-Bold');
-    const fixedColWidths = [20, 60, 50, 50, 180, 70];
-    const fixedHeaders = [
-      'NO',
-      'DEPARTAMENTO',
-      'DISTRITO',
-      'CODIGO_CE',
-      'NOMBRE_CE',
-      'TIPO PRENDA',
-    ];
-    const sizeColWidth = 25;
-    const headerHeight = 20;
+    // Draw per-school header block
+    currentY = drawSchoolHeaderBlock({
+      doc,
+      xStart,
+      yStart: currentY,
+      availableWidth,
+      school,
+      fontSize: schoolHeaderFontSize,
+    });
 
-    let x = 20;
-    for (let i = 0; i < fixedHeaders.length; i++) {
-      doc.rect(x, currentY, fixedColWidths[i], headerHeight).stroke();
-      doc.text(fixedHeaders[i], x + 1, currentY + 5, {
-        width: fixedColWidths[i] - 2,
-        align: 'center',
-      });
-      x += fixedColWidths[i];
-    }
+    // Draw table header (TIPO PRENDA + sizes + TOTAL)
+    doc.fontSize(headerFontSize).font('Helvetica-Bold');
+    let x = xStart;
+
+    // TIPO PRENDA column
+    doc.rect(x, currentY, tipoPrendaColWidth, headerHeight).stroke();
+    doc.text('TIPO PRENDA', x + 2, currentY + 8, {
+      width: tipoPrendaColWidth - 4,
+      align: 'center',
+    });
+    x += tipoPrendaColWidth;
 
     // Size columns
     for (const size of sizes) {
       doc.rect(x, currentY, sizeColWidth, headerHeight).stroke();
-      doc.text(size, x + 1, currentY + 5, {
-        width: sizeColWidth - 2,
+      doc.text(size, x + 2, currentY + 8, {
+        width: sizeColWidth - 4,
         align: 'center',
       });
       x += sizeColWidth;
     }
 
     // Total column
-    doc.rect(x, currentY, 30, headerHeight).stroke();
-    doc.text('TOTAL', x + 1, currentY + 5, {
-      width: 28,
+    doc.rect(x, currentY, totalColWidth, headerHeight).stroke();
+    doc.text('TOTAL', x + 2, currentY + 8, {
+      width: totalColWidth - 4,
       align: 'center',
     });
 
     currentY += headerHeight;
 
     // Draw tipo rows
-    doc.font('Helvetica').fontSize(6);
+    doc.font('Helvetica').fontSize(bodyFontSize);
     for (const tipo of tipos) {
       const sizeCounts = tipoPrendMap.get(tipo)!;
       let rowTotal = 0;
 
-      // Calculate dynamic row height based on school name
-      const nameHeight = doc.heightOfString(school.nombre_ce, {
-        width: fixedColWidths[4] - 2,
+      // Calculate dynamic row height
+      const tipoHeight = doc.heightOfString(tipo, {
+        width: tipoPrendaColWidth - 4,
       });
-      const dynamicRowHeight = Math.max(14, nameHeight + 6);
+      const dynamicRowHeight = Math.max(20, tipoHeight + 8); // increased from 14
 
-      x = 20;
-      const fixedData = [
-        rowIndex.toString(),
-        school.departamento || '',
-        school.distrito || '',
-        school.codigo_ce,
-        school.nombre_ce,
-        tipo,
-      ];
+      x = xStart;
 
-      for (let i = 0; i < fixedData.length; i++) {
-        doc.rect(x, currentY, fixedColWidths[i], dynamicRowHeight).stroke();
-        doc.text(fixedData[i], x + 1, currentY + 2, {
-          width: fixedColWidths[i] - 2,
-          align: i === 4 ? 'left' : 'center',
-        });
-        x += fixedColWidths[i];
-      }
+      // TIPO PRENDA column
+      doc.rect(x, currentY, tipoPrendaColWidth, dynamicRowHeight).stroke();
+      doc.text(tipo, x + 2, currentY + 4, {
+        width: tipoPrendaColWidth - 4,
+        align: 'center',
+      });
+      x += tipoPrendaColWidth;
 
       // Size counts
       for (const size of sizes) {
         const count = sizeCounts[size] || 0;
         rowTotal += count;
         doc.rect(x, currentY, sizeColWidth, dynamicRowHeight).stroke();
-        doc.text(count > 0 ? count.toString() : '', x + 1, currentY + 2, {
-          width: sizeColWidth - 2,
+        doc.text(count > 0 ? count.toString() : '', x + 2, currentY + 4, {
+          width: sizeColWidth - 4,
           align: 'center',
         });
         x += sizeColWidth;
       }
 
       // Total
-      doc.rect(x, currentY, 30, dynamicRowHeight).stroke();
-      doc.text(rowTotal.toString(), x + 1, currentY + 2, {
-        width: 28,
+      doc.rect(x, currentY, totalColWidth, dynamicRowHeight).stroke();
+      doc.text(rowTotal.toString(), x + 2, currentY + 4, {
+        width: totalColWidth - 4,
         align: 'center',
       });
 
       currentY += dynamicRowHeight;
-      rowIndex++;
     }
 
-    // School summary row
-    doc.font('Helvetica-Bold').fontSize(6);
-    const summaryRowHeight = 14;
-    x = 20;
-    const subtotalLabel = ['', '', '', '', 'SUBTOTAL', ''];
-    for (let i = 0; i < subtotalLabel.length; i++) {
-      doc.rect(x, currentY, fixedColWidths[i], summaryRowHeight).stroke();
-      doc.text(subtotalLabel[i], x + 1, currentY + 2, {
-        width: fixedColWidths[i] - 2,
-        align: i === 4 ? 'left' : 'center',
-      });
-      x += fixedColWidths[i];
-    }
+    // School summary row (SUBTOTAL in TIPO PRENDA column)
+    doc.font('Helvetica-Bold').fontSize(bodyFontSize);
+    const summaryRowHeight = 20; // increased from 14
+    x = xStart;
+
+    doc.rect(x, currentY, tipoPrendaColWidth, summaryRowHeight).stroke();
+    doc.text('SUBTOTAL', x + 2, currentY + 4, {
+      width: tipoPrendaColWidth - 4,
+      align: 'center',
+    });
+    x += tipoPrendaColWidth;
 
     let grandTotal = 0;
     for (const size of sizes) {
@@ -659,21 +726,21 @@ export function generatePantalonesPDF(options: AgreementReportOptions): PDFDocum
       grandTotal += sizeTotal;
 
       doc.rect(x, currentY, sizeColWidth, summaryRowHeight).stroke();
-      doc.text(sizeTotal > 0 ? sizeTotal.toString() : '', x + 1, currentY + 2, {
-        width: sizeColWidth - 2,
+      doc.text(sizeTotal > 0 ? sizeTotal.toString() : '', x + 2, currentY + 4, {
+        width: sizeColWidth - 4,
         align: 'center',
       });
       x += sizeColWidth;
     }
 
-    doc.rect(x, currentY, 30, summaryRowHeight).stroke();
-    doc.text(grandTotal.toString(), x + 1, currentY + 2, {
-      width: 28,
+    doc.rect(x, currentY, totalColWidth, summaryRowHeight).stroke();
+    doc.text(grandTotal.toString(), x + 2, currentY + 4, {
+      width: totalColWidth - 4,
       align: 'center',
     });
 
     currentY += summaryRowHeight;
-    currentY += 10;
+    currentY += 15; // increased spacing between schools
     schoolsOnPage++;
   }
 
@@ -722,7 +789,18 @@ export function generateZapatosPDF(options: AgreementReportOptions): PDFDocument
   let schoolsOnPage = 0;
   const maxSchoolsPerPage = 5;
 
-  let rowIndex = 1;
+  // Layout constants (larger fonts and widths)
+  const xStart = 15;
+  const availableWidth = doc.page.width - 30; // 762pt
+  const headerFontSize = 10; // increased from 6, then from 9
+  const bodyFontSize = 8; // increased from 5, then from 7
+  const schoolHeaderFontSize = 9;
+
+  // New table structure: SEXO + 23 sizes + TOTAL
+  const sexoColWidth = 80; // increased from 40
+  const sizeColWidth = 25; // increased from 18
+  const totalColWidth = 40; // increased from 25
+  const headerHeight = 26; // increased from 20
 
   for (let s = 0; s < schools.length; s++) {
     const school = schools[s];
@@ -744,121 +822,116 @@ export function generateZapatosPDF(options: AgreementReportOptions): PDFDocument
     const sexos = Array.from(sexoMap.keys()).sort();
     const sexoRows = sexos.length;
 
-    const estimatedHeight = 30 + sexoRows * 20 + 20 + 20;
+    // Updated height estimation (school header + table header + rows + summary + spacing)
+    const schoolHeaderHeight = 50; // approximate
+    const estimatedHeight = schoolHeaderHeight + headerHeight + sexoRows * 24 + 20 + 20;
 
     if (schoolsOnPage >= maxSchoolsPerPage || currentY + estimatedHeight > maxY) {
       doc.addPage();
       addLogoToPage(doc, doc.page.width);
       doc.fontSize(14).font('Helvetica-Bold').text(title, { align: 'center' });
-      doc.moveDown(1);
+      doc.fontSize(14).font('Helvetica').text(subtitle, { align: 'center' });
+      doc.moveDown(2);
       currentY = doc.y;
       schoolsOnPage = 0;
     }
 
-    // Draw table header
-    doc.fontSize(6).font('Helvetica-Bold');
-    const fixedColWidths = [18, 50, 40, 40, 180, 40];
-    const fixedHeaders = ['NO', 'DEPTO', 'DIST', 'COD', 'NOMBRE_CE', 'SEXO'];
-    const sizeColWidth = 18;
-    const headerHeight = 20;
+    // Draw per-school header block
+    currentY = drawSchoolHeaderBlock({
+      doc,
+      xStart,
+      yStart: currentY,
+      availableWidth,
+      school,
+      fontSize: schoolHeaderFontSize,
+    });
 
-    let x = 15;
-    for (let i = 0; i < fixedHeaders.length; i++) {
-      doc.rect(x, currentY, fixedColWidths[i], headerHeight).stroke();
-      doc.text(fixedHeaders[i], x + 1, currentY + 5, {
-        width: fixedColWidths[i] - 2,
-        align: 'center',
-      });
-      x += fixedColWidths[i];
-    }
+    // Draw table header (SEXO + sizes + TOTAL)
+    doc.fontSize(headerFontSize).font('Helvetica-Bold');
+    let x = xStart;
+
+    // SEXO column
+    doc.rect(x, currentY, sexoColWidth, headerHeight).stroke();
+    doc.text('SEXO', x + 2, currentY + 8, {
+      width: sexoColWidth - 4,
+      align: 'center',
+    });
+    x += sexoColWidth;
 
     // Size columns (23-45)
     for (const size of sizes) {
       doc.rect(x, currentY, sizeColWidth, headerHeight).stroke();
-      doc.fontSize(5).text(size, x + 1, currentY + 5, {
-        width: sizeColWidth - 2,
+      doc.text(size, x + 2, currentY + 8, {
+        width: sizeColWidth - 4,
         align: 'center',
       });
       x += sizeColWidth;
     }
-    doc.fontSize(6); // Reset to header font size
 
     // Total column
-    doc.rect(x, currentY, 25, headerHeight).stroke();
-    doc.text('TOT', x + 1, currentY + 5, {
-      width: 23,
+    doc.rect(x, currentY, totalColWidth, headerHeight).stroke();
+    doc.text('TOTAL', x + 2, currentY + 8, {
+      width: totalColWidth - 4,
       align: 'center',
     });
 
     currentY += headerHeight;
 
     // Draw sexo rows
-    doc.font('Helvetica').fontSize(5);
+    doc.font('Helvetica').fontSize(bodyFontSize);
     for (const sexo of sexos) {
       const sizeCounts = sexoMap.get(sexo)!;
       let rowTotal = 0;
 
-      // Calculate dynamic row height based on school name
-      const nameHeight = doc.heightOfString(school.nombre_ce, {
-        width: fixedColWidths[4] - 2,
+      // Calculate dynamic row height
+      const sexoHeight = doc.heightOfString(sexo, {
+        width: sexoColWidth - 4,
       });
-      const dynamicRowHeight = Math.max(12, nameHeight + 5);
+      const dynamicRowHeight = Math.max(18, sexoHeight + 8); // increased from 12
 
-      x = 15;
-      const fixedData = [
-        rowIndex.toString(),
-        school.departamento || '',
-        school.distrito || '',
-        school.codigo_ce,
-        school.nombre_ce,
-        sexo,
-      ];
+      x = xStart;
 
-      for (let i = 0; i < fixedData.length; i++) {
-        doc.rect(x, currentY, fixedColWidths[i], dynamicRowHeight).stroke();
-        doc.text(fixedData[i], x + 1, currentY + 2, {
-          width: fixedColWidths[i] - 2,
-          align: i === 4 ? 'left' : 'center',
-        });
-        x += fixedColWidths[i];
-      }
+      // SEXO column
+      doc.rect(x, currentY, sexoColWidth, dynamicRowHeight).stroke();
+      doc.text(sexo.toUpperCase(), x + 2, currentY + 4, {
+        width: sexoColWidth - 4,
+        align: 'center',
+      });
+      x += sexoColWidth;
 
       // Size counts
       for (const size of sizes) {
         const count = sizeCounts[size] || 0;
         rowTotal += count;
         doc.rect(x, currentY, sizeColWidth, dynamicRowHeight).stroke();
-        doc.text(count > 0 ? count.toString() : '', x + 1, currentY + 2, {
-          width: sizeColWidth - 2,
+        doc.text(count > 0 ? count.toString() : '', x + 2, currentY + 4, {
+          width: sizeColWidth - 4,
           align: 'center',
         });
         x += sizeColWidth;
       }
 
       // Total
-      doc.rect(x, currentY, 25, dynamicRowHeight).stroke();
-      doc.text(rowTotal.toString(), x + 1, currentY + 2, {
-        width: 23,
+      doc.rect(x, currentY, totalColWidth, dynamicRowHeight).stroke();
+      doc.text(rowTotal.toString(), x + 2, currentY + 4, {
+        width: totalColWidth - 4,
         align: 'center',
       });
 
       currentY += dynamicRowHeight;
-      rowIndex++;
     }
 
-    // School summary row
-    doc.font('Helvetica-Bold').fontSize(5);
-    const summaryRowHeight = 12;
-    x = 15;
-    const subtotalLabel = ['', '', '', '', 'SUBTOTAL', ''];
-    for (let i = 0; i < subtotalLabel.length; i++) {
-      doc.rect(x, currentY, fixedColWidths[i], summaryRowHeight).stroke();
-      doc.text(subtotalLabel[i], x + 1, currentY + 2, {
-        width: fixedColWidths[i] - 2,
-        align: i === 4 ? 'left' : 'center',
-      });
-      x += fixedColWidths[i];
-    }
+    // School summary row (SUBTOTAL in SEXO column)
+    doc.font('Helvetica-Bold').fontSize(bodyFontSize);
+    const summaryRowHeight = 18; // increased from 12
+    x = xStart;
+
+    doc.rect(x, currentY, sexoColWidth, summaryRowHeight).stroke();
+    doc.text('SUBTOTAL', x + 2, currentY + 4, {
+      width: sexoColWidth - 4,
+      align: 'center',
+    });
+    x += sexoColWidth;
 
     let grandTotal = 0;
     for (const size of sizes) {
@@ -870,21 +943,21 @@ export function generateZapatosPDF(options: AgreementReportOptions): PDFDocument
       grandTotal += sizeTotal;
 
       doc.rect(x, currentY, sizeColWidth, summaryRowHeight).stroke();
-      doc.text(sizeTotal > 0 ? sizeTotal.toString() : '', x + 1, currentY + 2, {
-        width: sizeColWidth - 2,
+      doc.text(sizeTotal > 0 ? sizeTotal.toString() : '', x + 2, currentY + 4, {
+        width: sizeColWidth - 4,
         align: 'center',
       });
       x += sizeColWidth;
     }
 
-    doc.rect(x, currentY, 25, summaryRowHeight).stroke();
-    doc.text(grandTotal.toString(), x + 1, currentY + 2, {
-      width: 23,
+    doc.rect(x, currentY, totalColWidth, summaryRowHeight).stroke();
+    doc.text(grandTotal.toString(), x + 2, currentY + 4, {
+      width: totalColWidth - 4,
       align: 'center',
     });
 
     currentY += summaryRowHeight;
-    currentY += 10;
+    currentY += 15; // increased spacing between schools
     schoolsOnPage++;
   }
 
