@@ -179,10 +179,8 @@ export default function HomePage() {
     window.open('/api/reports/debug-random?type=zapatos&limit=10', '_blank', 'noopener,noreferrer');
   };
 
-  // Show debug buttons in development or if explicitly enabled
-  const showDebugButtons =
-    process.env.NODE_ENV !== 'production' ||
-    process.env.NEXT_PUBLIC_ENABLE_DEBUG_BUTTONS === 'true';
+  // Show debug buttons if explicitly enabled
+  const showDebugButtons = process.env.NEXT_PUBLIC_ENABLE_DEBUG_BUTTONS === 'true';
 
   return (
     <div className="min-h-screen bg-background">
