@@ -17,17 +17,6 @@ export type PDFDocumentInstance = InstanceType<typeof PDFDocument>;
 export function generateStudentReportPDF(options: PDFGeneratorOptions): PDFDocumentInstance {
   const { schoolName, codigo_ce, students } = options;
 
-  const summarizeBodega = (rows: StudentReportRow[]) => {
-    const values = Array.from(
-      new Set(rows.map(s => (s.bodega_produccion || '').trim()).filter(v => v.length > 0))
-    );
-
-    if (values.length === 0) return 'N/A';
-    if (values.length === 1) return values[0];
-    if (values.length <= 3) return values.join(', ');
-    return `${values.slice(0, 3).join(', ')} (+${values.length - 3} más)`;
-  };
-
   const doc = new PDFDocument({
     size: 'LETTER',
     layout: 'landscape',
@@ -135,11 +124,8 @@ export function generateStudentReportPDF(options: PDFGeneratorOptions): PDFDocum
     a.localeCompare(b, 'es', { numeric: true, sensitivity: 'base' })
   );
 
-  const drawGradeTitle = (grade: string, bodegaLabel: string) => {
+  const drawGradeTitle = (grade: string) => {
     doc.font('Helvetica-Bold').fontSize(16);
-
-    doc.text(`Bodega producción: ${bodegaLabel}`, 50, currentY, { align: 'left' });
-    currentY = doc.y + 8;
 
     doc.text(`Grado: ${grade}`, 50, currentY, { align: 'left' });
     currentY = doc.y + 2;
@@ -212,7 +198,6 @@ export function generateStudentReportPDF(options: PDFGeneratorOptions): PDFDocum
   for (let g = 0; g < gradeKeys.length; g++) {
     const grade = gradeKeys[g];
     const gradeStudents = studentsByGrade.get(grade) ?? [];
-    const bodegaLabel = summarizeBodega(gradeStudents);
 
     // Each grade starts on a new page (except the first one which continues after the main title)
     if (g > 0) {
@@ -222,7 +207,7 @@ export function generateStudentReportPDF(options: PDFGeneratorOptions): PDFDocum
     // Ensure there's room for: title + header + at least 1 row
     ensureSpace(48 + rowHeight + rowHeight);
 
-    drawGradeTitle(grade, bodegaLabel);
+    drawGradeTitle(grade);
     currentY = drawHeader(currentY);
     doc.font('Helvetica').fontSize(10);
 
@@ -230,7 +215,7 @@ export function generateStudentReportPDF(options: PDFGeneratorOptions): PDFDocum
       if (currentY + rowHeight > bottomLimitY) {
         addPageWithHeader();
         ensureSpace(48 + rowHeight);
-        drawGradeTitle(grade, bodegaLabel);
+        drawGradeTitle(grade);
         currentY = drawHeader(currentY);
         doc.font('Helvetica').fontSize(10);
       }
@@ -263,17 +248,6 @@ export function generateStudentReportPDF(options: PDFGeneratorOptions): PDFDocum
  */
 export function generateStudentLabelsPDF(options: PDFGeneratorOptions): PDFDocumentInstance {
   const { schoolName, codigo_ce, students } = options;
-
-  const summarizeBodega = (rows: StudentReportRow[]) => {
-    const values = Array.from(
-      new Set(rows.map(s => (s.bodega_produccion || '').trim()).filter(v => v.length > 0))
-    );
-
-    if (values.length === 0) return 'N/A';
-    if (values.length === 1) return values[0];
-    if (values.length <= 3) return values.join(', ');
-    return `${values.slice(0, 3).join(', ')} (+${values.length - 3} más)`;
-  };
 
   const doc = new PDFDocument({
     size: 'LETTER',
@@ -367,11 +341,8 @@ export function generateStudentLabelsPDF(options: PDFGeneratorOptions): PDFDocum
     a.localeCompare(b, 'es', { numeric: true, sensitivity: 'base' })
   );
 
-  const drawGradeTitle = (grade: string, bodegaLabel: string) => {
+  const drawGradeTitle = (grade: string) => {
     doc.font('Helvetica-Bold').fontSize(16);
-
-    doc.text(`Bodega producción: ${bodegaLabel}`, 50, currentY, { align: 'left' });
-    currentY = doc.y + 8;
 
     doc.text(`Grado: ${grade}`, 50, currentY, { align: 'left' });
     currentY = doc.y + 2;
@@ -424,7 +395,6 @@ export function generateStudentLabelsPDF(options: PDFGeneratorOptions): PDFDocum
   for (let g = 0; g < gradeKeys.length; g++) {
     const grade = gradeKeys[g];
     const gradeStudents = studentsByGrade.get(grade) ?? [];
-    const bodegaLabel = summarizeBodega(gradeStudents);
 
     // Each grade starts on a new page (except the first one which continues after the main title)
     if (g > 0) {
@@ -434,14 +404,14 @@ export function generateStudentLabelsPDF(options: PDFGeneratorOptions): PDFDocum
     // Ensure there's room for: title + one label (header + row + spacing)
     ensureSpace(48 + labelHeight + labelSpacing);
 
-    drawGradeTitle(grade, bodegaLabel);
+    drawGradeTitle(grade);
 
     for (let i = 0; i < gradeStudents.length; i++) {
       // Check if we have space for header + row + spacing
       if (currentY + labelHeight + labelSpacing > bottomLimitY) {
         addPageWithHeader();
         ensureSpace(48);
-        drawGradeTitle(grade, bodegaLabel);
+        drawGradeTitle(grade);
       }
 
       // Draw header for this label

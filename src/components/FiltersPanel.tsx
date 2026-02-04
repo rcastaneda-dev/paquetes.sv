@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, memo } from 'react';
 import { Input } from './ui/Input';
 import { Select } from './ui/Select';
 import { Button } from './ui/Button';
@@ -16,7 +16,10 @@ interface GradesResponse {
   source?: string;
 }
 
-export function FiltersPanel({ onFilterChange, onSearch }: FiltersPanelProps) {
+export const FiltersPanel = memo(function FiltersPanel({
+  onFilterChange,
+  onSearch,
+}: FiltersPanelProps) {
   const [schoolQuery, setSchoolQuery] = useState('');
   const [schoolResults, setSchoolResults] = useState<SchoolSearchResult[]>([]);
   const [selectedSchool, setSelectedSchool] = useState<SchoolSearchResult | null>(null);
@@ -38,11 +41,6 @@ export function FiltersPanel({ onFilterChange, onSearch }: FiltersPanelProps) {
       .then(res => res.json())
       .then((data: GradesResponse) => {
         setGrades(data.grades || []);
-
-        // Optional: warn in dev if not sourced from grado_ok
-        if (process.env.NODE_ENV === 'development' && data.source && data.source !== 'grado_ok') {
-          console.warn(`[FiltersPanel] Grades sourced from '${data.source}' instead of 'grado_ok'`);
-        }
       })
       .catch(err => console.error('Error fetching grades:', err))
       .finally(() => setIsLoadingGrades(false));
@@ -162,9 +160,7 @@ export function FiltersPanel({ onFilterChange, onSearch }: FiltersPanelProps) {
 
         {/* Action buttons */}
         <div className="flex items-end gap-2">
-          <Button onClick={onSearch}>
-            Buscar
-          </Button>
+          <Button onClick={onSearch}>Buscar</Button>
           <Button variant="outline" onClick={handleClear}>
             Limpiar
           </Button>
@@ -180,4 +176,4 @@ export function FiltersPanel({ onFilterChange, onSearch }: FiltersPanelProps) {
       )}
     </div>
   );
-}
+});

@@ -9,7 +9,7 @@ import { createValidationErrorResponse } from '@/lib/validation/errors';
 export async function GET(request: NextRequest) {
   try {
     // Validate query params with Zod
-    const { school_codigo_ce, grado, departamento, region, page, pageSize } = validateQueryParams(
+    const { school_codigo_ce, grado, departamento, page, pageSize } = validateQueryParams(
       request,
       studentFilterSchema
     );
@@ -30,7 +30,6 @@ export async function GET(request: NextRequest) {
       ({ data, error } = await supabaseServer.rpc('query_students', {
         ...baseArgs,
         p_departamento: departamento || null,
-        p_region: region || null,
       }));
     }
 

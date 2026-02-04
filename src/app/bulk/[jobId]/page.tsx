@@ -1,13 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
+import { useParams, useRouter } from 'next/navigation';
+
+import { JobProgress } from '@/components/JobProgress';
 import { Button } from '@/components/ui/Button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
-import { JobProgress } from '@/components/JobProgress';
+
 import type { ReportJob, ReportTask, JobProgress as JobProgressType } from '@/types/database';
 
 // Extended type for tasks with school information
@@ -29,7 +31,21 @@ export default function JobDetailPage() {
   const [isCancelling, setIsCancelling] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
   const [loadingRegions, setLoadingRegions] = useState<Record<string, boolean>>({});
-  const [zipJobStatuses, setZipJobStatuses] = useState<Record<string, any>>({});
+  const [zipJobStatuses, setZipJobStatuses] = useState<
+    Record<
+      string,
+      {
+        status: 'queued' | 'processing' | 'complete' | 'failed';
+        downloadUrl?: string;
+        zipSizeMB?: string;
+        pdfCount?: number;
+        error?: string;
+        progress?: {
+          message?: string;
+        };
+      }
+    >
+  >({});
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [downloadingTasks, setDownloadingTasks] = useState<Record<string, boolean>>({});

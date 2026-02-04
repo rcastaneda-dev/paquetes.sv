@@ -34,17 +34,3 @@ export function createValidationErrorResponse(error: z.ZodError): NextResponse {
 export function createUnauthorizedResponse(message = 'Unauthorized'): NextResponse {
   return NextResponse.json({ error: message }, { status: 401 });
 }
-
-/**
- * Create standardized 404 Not Found response
- */
-export function createNotFoundResponse(resource = 'Resource'): NextResponse {
-  return NextResponse.json({ error: `${resource} not found` }, { status: 404 });
-}
-
-/**
- * Create standardized 500 Internal Server Error response
- */
-export function createInternalErrorResponse(message = 'Internal server error'): NextResponse {
-  return NextResponse.json({ error: message }, { status: 500 });
-}

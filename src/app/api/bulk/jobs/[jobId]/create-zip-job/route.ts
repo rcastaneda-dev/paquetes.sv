@@ -115,10 +115,6 @@ export async function POST(request: NextRequest, { params }: { params: { jobId: 
       // If retry_zip_job returned false, it means the job wasn't in 'failed' status
       // This can happen due to a race condition where the job status changed
       if (!retryResult) {
-        console.warn(
-          `retry_zip_job returned false for job ${existingZipJob.id}. Job may have already been retried.`
-        );
-
         // Re-fetch the job to get the current status
         const { data: refreshedJob, error: refreshError } = await supabase
           .from('zip_jobs')
