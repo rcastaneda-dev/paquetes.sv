@@ -9,6 +9,7 @@ export {
   generateCamisasPDF,
   generatePantalonesPDF,
   generateZapatosPDF,
+  generateFichaPDF,
 } from './generators-agreement';
 
 /**

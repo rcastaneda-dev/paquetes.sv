@@ -179,6 +179,10 @@ export default function HomePage() {
     window.open('/api/reports/debug-random?type=zapatos&limit=10', '_blank', 'noopener,noreferrer');
   };
 
+  const handleDebugFicha = () => {
+    window.open('/api/reports/debug-random?type=ficha&limit=10', '_blank', 'noopener,noreferrer');
+  };
+
   // Show debug buttons if explicitly enabled
   const showDebugButtons = process.env.NEXT_PUBLIC_ENABLE_DEBUG_BUTTONS === 'true';
 
@@ -291,6 +295,14 @@ export default function HomePage() {
                     className="h-auto flex-col border-amber-300 py-3 hover:bg-amber-50 dark:border-amber-700 dark:hover:bg-amber-950"
                   >
                     <span className="text-base font-semibold">Zapatos</span>
+                    <span className="text-xs text-muted-foreground">10 escuelas</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleDebugFicha}
+                    className="h-auto flex-col border-amber-300 py-3 hover:bg-amber-50 dark:border-amber-700 dark:hover:bg-amber-950"
+                  >
+                    <span className="text-base font-semibold">Ficha</span>
                     <span className="text-xs text-muted-foreground">10 escuelas</span>
                   </Button>
                 </div>

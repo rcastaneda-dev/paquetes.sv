@@ -6,6 +6,7 @@ import {
   generateCamisasPDF,
   generatePantalonesPDF,
   generateZapatosPDF,
+  generateFichaPDF,
 } from '@/lib/pdf/generator';
 import type { StudentQueryRow } from '@/types/database';
 import { validateQueryParams } from '@/lib/validation/helpers';
@@ -15,7 +16,7 @@ export const dynamic = 'force-dynamic';
 
 // Schema for debug query params
 const debugQuerySchema = z.object({
-  type: z.enum(['cajas', 'camisas', 'pantalones', 'zapatos']),
+  type: z.enum(['cajas', 'camisas', 'pantalones', 'zapatos', 'ficha']),
   limit: z.coerce.number().int().min(1).max(50).default(10),
 });
 
@@ -155,6 +156,13 @@ export async function GET(request: NextRequest) {
           students: allStudents,
         });
         fileName = `debug-zapatos-${schools.length}-escuelas.pdf`;
+        break;
+      case 'ficha':
+        pdfStream = generateFichaPDF({
+          fechaInicio,
+          students: allStudents,
+        });
+        fileName = `debug-ficha-${schools.length}-escuelas.pdf`;
         break;
     }
 
