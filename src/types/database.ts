@@ -83,6 +83,7 @@ export interface StudentQueryRow {
   sexo: string;
   edad: number | null;
   grado: string;
+  grado_ok: string;
   school_codigo_ce: string;
   nombre_ce: string;
   departamento: string;

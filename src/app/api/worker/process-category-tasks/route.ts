@@ -5,6 +5,7 @@ import {
   generateCamisasPDF,
   generatePantalonesPDF,
   generateZapatosPDF,
+  generateFichaPDF,
 } from '@/lib/pdf/generator';
 import { buildAgreementReportStorageKey } from '@/lib/storage/keys';
 import type { StudentQueryRow } from '@/types/database';
@@ -199,6 +200,10 @@ async function processCategoryTask(task: {
         pdfStream = generateZapatosPDF({ fechaInicio: fecha_inicio, students });
         fileName = 'detalle_zapatos.pdf';
         break;
+      case 'distribucion_por_escuela':
+        pdfStream = generateFichaPDF({ fechaInicio: fecha_inicio, students });
+        fileName = 'ficha_distribucion.pdf';
+        break;
       default:
         throw new Error(`Unknown category: ${category}`);
     }
@@ -210,7 +215,7 @@ async function processCategoryTask(task: {
     const storagePath = buildAgreementReportStorageKey({
       jobId: job_id,
       fechaInicio: fecha_inicio,
-      categoryFolder: category as 'estudiantes' | 'camisa' | 'prenda_inferior' | 'zapatos',
+      categoryFolder: category as 'estudiantes' | 'camisa' | 'prenda_inferior' | 'zapatos' | 'distribucion_por_escuela',
       fileName: fileName,
     });
 
