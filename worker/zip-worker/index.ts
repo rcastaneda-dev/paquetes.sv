@@ -18,7 +18,7 @@ import { Readable } from 'stream';
 interface ZipJob {
   job_id: string;
   report_job_id: string;
-  job_kind: 'region' | 'category';
+  job_kind: 'region' | 'category' | 'school_bundle';
   region: string | null;
   category: string | null;
 }
@@ -35,6 +35,8 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const POLL_INTERVAL_MS = parseInt(process.env.POLL_INTERVAL_MS || '5000', 10);
 const BATCH_SIZE = parseInt(process.env.DOWNLOAD_BATCH_SIZE || '50', 10);
 const COMPRESSION_LEVEL = parseInt(process.env.COMPRESSION_LEVEL || '6', 10);
+const APP_URL = process.env.APP_URL || ''; // Next.js app URL for delegated processing
+const WORKER_SECRET = process.env.SUPABASE_FUNCTION_SECRET || process.env.CRON_SECRET || '';
 
 // Validate environment
 if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
@@ -78,11 +80,13 @@ async function main() {
 
       const job = jobs[0] as ZipJob;
       console.log(`\n📦 Processing ZIP job: ${job.job_id}`);
-      console.log(
-        `   Report: ${job.report_job_id}, Kind: ${job.job_kind}, ${
-          job.job_kind === 'region' ? `Region: ${job.region?.toUpperCase()}` : `Category: ${job.category}`
-        }`
-      );
+      const kindDetail =
+        job.job_kind === 'region'
+          ? `Region: ${job.region?.toUpperCase()}`
+          : job.job_kind === 'category'
+            ? `Category: ${job.category}`
+            : 'School Bundle (all sections)';
+      console.log(`   Report: ${job.report_job_id}, Kind: ${job.job_kind}, ${kindDetail}`);
 
       // Process the job
       await processZipJob(supabase, job);
@@ -104,6 +108,8 @@ async function processZipJob(supabase: SupabaseClient, job: ZipJob) {
       await processRegionZipJob(supabase, job, startTime);
     } else if (job.job_kind === 'category') {
       await processCategoryZipJob(supabase, job, startTime);
+    } else if (job.job_kind === 'school_bundle') {
+      await processSchoolBundleZipJob(supabase, job, startTime);
     } else {
       throw new Error(`Unknown job_kind: ${job.job_kind}`);
     }
@@ -129,153 +135,143 @@ async function processZipJob(supabase: SupabaseClient, job: ZipJob) {
 /**
  * Process a region-scoped ZIP job
  */
-async function processRegionZipJob(
-  supabase: SupabaseClient,
-  job: ZipJob,
-  startTime: number
-) {
+async function processRegionZipJob(supabase: SupabaseClient, job: ZipJob, startTime: number) {
   if (!job.region) {
     throw new Error('Region is required for region ZIP jobs');
   }
 
   const regionUpper = job.region.toUpperCase();
 
-    // 1. Fetch all completed tasks for this region from database
-    console.log(`   🔍 Fetching PDFs for region ${regionUpper}...`);
-    const { data: tasks, error: tasksError } = await supabase
-      .from('report_tasks')
-      .select('id, pdf_path, school_codigo_ce, grado')
-      .eq('job_id', job.report_job_id)
-      .eq('status', 'complete')
-      .not('pdf_path', 'is', null)
-      .ilike('pdf_path', `%/${regionUpper}/%`)
-      .order('school_codigo_ce', { ascending: true });
+  // 1. Fetch all completed tasks for this region from database
+  console.log(`   🔍 Fetching PDFs for region ${regionUpper}...`);
+  const { data: tasks, error: tasksError } = await supabase
+    .from('report_tasks')
+    .select('id, pdf_path, school_codigo_ce, grado')
+    .eq('job_id', job.report_job_id)
+    .eq('status', 'complete')
+    .not('pdf_path', 'is', null)
+    .ilike('pdf_path', `%/${regionUpper}/%`)
+    .order('school_codigo_ce', { ascending: true });
 
-    if (tasksError) {
-      throw new Error(`Failed to fetch tasks: ${tasksError.message}`);
-    }
+  if (tasksError) {
+    throw new Error(`Failed to fetch tasks: ${tasksError.message}`);
+  }
 
-    if (!tasks || tasks.length === 0) {
-      throw new Error(`No PDFs found for region ${regionUpper}`);
-    }
+  if (!tasks || tasks.length === 0) {
+    throw new Error(`No PDFs found for region ${regionUpper}`);
+  }
 
-    console.log(
-      `   ✅ Found ${tasks.length} schools (will generate ~${tasks.length * 2} PDFs: tallas + etiquetas)`
+  console.log(
+    `   ✅ Found ${tasks.length} schools (will generate ~${tasks.length * 2} PDFs: tallas + etiquetas)`
+  );
+
+  // 2. Create ZIP archive
+  const archive = archiver('zip', {
+    zlib: { level: COMPRESSION_LEVEL },
+  });
+
+  const chunks: Buffer[] = [];
+  archive.on('data', (chunk: Buffer) => chunks.push(chunk));
+
+  let pdfCount = 0;
+
+  // 3. Download PDFs in batches and add to archive
+  for (let i = 0; i < tasks.length; i += BATCH_SIZE) {
+    const batch = tasks.slice(i, i + BATCH_SIZE);
+    const batchProgress = `${i + batch.length}/${tasks.length}`;
+
+    console.log(`   📥 Downloading batch: ${batchProgress} schools`);
+
+    await Promise.all(
+      batch.map(async (task: Task) => {
+        try {
+          // Derive both tallas and etiquetas paths
+          const tallasPath = task.pdf_path;
+          const etiquetasPath = task.pdf_path.replace('-tallas.pdf', '-etiquetas.pdf');
+
+          // Download both PDFs in parallel
+          const [tallasResult, etiquetasResult] = await Promise.allSettled([
+            supabase.storage.from('reports').download(tallasPath),
+            supabase.storage.from('reports').download(etiquetasPath),
+          ]);
+
+          // Process tallas PDF
+          if (tallasResult.status === 'fulfilled' && tallasResult.value.data) {
+            const buffer = Buffer.from(await tallasResult.value.data.arrayBuffer());
+            const relativePath = getRelativePath(tallasPath, regionUpper);
+            archive.append(buffer, { name: relativePath });
+            pdfCount++;
+          } else {
+            console.warn(`   ⚠️  Failed to download tallas: ${tallasPath}`);
+          }
+
+          // Process etiquetas PDF
+          if (etiquetasResult.status === 'fulfilled' && etiquetasResult.value.data) {
+            const buffer = Buffer.from(await etiquetasResult.value.data.arrayBuffer());
+            const relativePath = getRelativePath(etiquetasPath, regionUpper);
+            archive.append(buffer, { name: relativePath });
+            pdfCount++;
+          } else {
+            console.warn(`   ⚠️  Failed to download etiquetas: ${etiquetasPath}`);
+          }
+        } catch (err) {
+          console.error(`   ❌ Error processing task ${task.id}:`, err);
+        }
+      })
     );
 
-    // 2. Create ZIP archive
-    const archive = archiver('zip', {
-      zlib: { level: COMPRESSION_LEVEL },
-    });
-
-    const chunks: Buffer[] = [];
-    archive.on('data', (chunk: Buffer) => chunks.push(chunk));
-
-    let pdfCount = 0;
-
-    // 3. Download PDFs in batches and add to archive
-    for (let i = 0; i < tasks.length; i += BATCH_SIZE) {
-      const batch = tasks.slice(i, i + BATCH_SIZE);
-      const batchProgress = `${i + batch.length}/${tasks.length}`;
-
-      console.log(`   📥 Downloading batch: ${batchProgress} schools`);
-
-      await Promise.all(
-        batch.map(async (task: Task) => {
-          try {
-            // Derive both tallas and etiquetas paths
-            const tallasPath = task.pdf_path;
-            const etiquetasPath = task.pdf_path.replace('-tallas.pdf', '-etiquetas.pdf');
-
-            // Download both PDFs in parallel
-            const [tallasResult, etiquetasResult] = await Promise.allSettled([
-              supabase.storage.from('reports').download(tallasPath),
-              supabase.storage.from('reports').download(etiquetasPath),
-            ]);
-
-            // Process tallas PDF
-            if (tallasResult.status === 'fulfilled' && tallasResult.value.data) {
-              const buffer = Buffer.from(await tallasResult.value.data.arrayBuffer());
-              const relativePath = getRelativePath(tallasPath, regionUpper);
-              archive.append(buffer, { name: relativePath });
-              pdfCount++;
-            } else {
-              console.warn(`   ⚠️  Failed to download tallas: ${tallasPath}`);
-            }
-
-            // Process etiquetas PDF
-            if (etiquetasResult.status === 'fulfilled' && etiquetasResult.value.data) {
-              const buffer = Buffer.from(await etiquetasResult.value.data.arrayBuffer());
-              const relativePath = getRelativePath(etiquetasPath, regionUpper);
-              archive.append(buffer, { name: relativePath });
-              pdfCount++;
-            } else {
-              console.warn(`   ⚠️  Failed to download etiquetas: ${etiquetasPath}`);
-            }
-          } catch (err) {
-            console.error(`   ❌ Error processing task ${task.id}:`, err);
-          }
-        })
-      );
-
-      if ((i + batch.length) % 100 === 0 || i + batch.length >= tasks.length) {
-        console.log(`   📊 Progress: ${pdfCount} PDFs added to archive`);
-      }
+    if ((i + batch.length) % 100 === 0 || i + batch.length >= tasks.length) {
+      console.log(`   📊 Progress: ${pdfCount} PDFs added to archive`);
     }
+  }
 
-    // 4. Finalize ZIP
-    console.log(`   🗜️  Finalizing ZIP archive...`);
-    archive.finalize();
+  // 4. Finalize ZIP
+  console.log(`   🗜️  Finalizing ZIP archive...`);
+  archive.finalize();
 
-    await new Promise((resolve, reject) => {
-      archive.on('end', resolve);
-      archive.on('error', reject);
-    });
+  await new Promise((resolve, reject) => {
+    archive.on('end', resolve);
+    archive.on('error', reject);
+  });
 
-    const zipBuffer = Buffer.concat(chunks);
-    const zipSizeMB = (zipBuffer.length / 1024 / 1024).toFixed(2);
-    console.log(`   ✅ ZIP created: ${zipSizeMB} MB, ${pdfCount} PDFs`);
+  const zipBuffer = Buffer.concat(chunks);
+  const zipSizeMB = (zipBuffer.length / 1024 / 1024).toFixed(2);
+  console.log(`   ✅ ZIP created: ${zipSizeMB} MB, ${pdfCount} PDFs`);
 
-    // 5. Upload ZIP to Supabase Storage
-    // NOTE: Supabase SDK automatically uses TUS for files > 6MB
-    const zipPath = `bundles/${job.report_job_id}-${job.region}.zip`;
-    console.log(`   ⬆️  Uploading to storage: ${zipPath}...`);
+  // 5. Upload ZIP to Supabase Storage
+  // NOTE: Supabase SDK automatically uses TUS for files > 6MB
+  const zipPath = `bundles/${job.report_job_id}-${job.region}.zip`;
+  console.log(`   ⬆️  Uploading to storage: ${zipPath}...`);
 
-    const { error: uploadError } = await supabase.storage
-      .from('reports')
-      .upload(zipPath, zipBuffer, {
-        contentType: 'application/zip',
-        upsert: true,
-        // TUS is used automatically for large files
-      });
+  const { error: uploadError } = await supabase.storage.from('reports').upload(zipPath, zipBuffer, {
+    contentType: 'application/zip',
+    upsert: true,
+    // TUS is used automatically for large files
+  });
 
-    if (uploadError) {
-      throw new Error(`Upload failed: ${uploadError.message}`);
-    }
+  if (uploadError) {
+    throw new Error(`Upload failed: ${uploadError.message}`);
+  }
 
-    console.log(`   ✅ Upload complete`);
+  console.log(`   ✅ Upload complete`);
 
-    // 6. Update job status to complete
-    await supabase.rpc('update_zip_job_status', {
-      p_job_id: job.job_id,
-      p_status: 'complete',
-      p_zip_path: zipPath,
-      p_zip_size_bytes: zipBuffer.length,
-      p_pdf_count: pdfCount,
-    });
+  // 6. Update job status to complete
+  await supabase.rpc('update_zip_job_status', {
+    p_job_id: job.job_id,
+    p_status: 'complete',
+    p_zip_path: zipPath,
+    p_zip_size_bytes: zipBuffer.length,
+    p_pdf_count: pdfCount,
+  });
 
-    const elapsedSeconds = ((Date.now() - startTime) / 1000).toFixed(1);
-    console.log(`   ✅ Job completed in ${elapsedSeconds}s`);
+  const elapsedSeconds = ((Date.now() - startTime) / 1000).toFixed(1);
+  console.log(`   ✅ Job completed in ${elapsedSeconds}s`);
 }
 
 /**
  * Process a category-scoped ZIP job
  */
-async function processCategoryZipJob(
-  supabase: SupabaseClient,
-  job: ZipJob,
-  startTime: number
-) {
+async function processCategoryZipJob(supabase: SupabaseClient, job: ZipJob, startTime: number) {
   if (!job.category) {
     throw new Error('Category is required for category ZIP jobs');
   }
@@ -404,6 +400,67 @@ async function processCategoryZipJob(
 
   const elapsedSeconds = ((Date.now() - startTime) / 1000).toFixed(1);
   console.log(`   ✅ Job completed in ${elapsedSeconds}s`);
+}
+
+/**
+ * Process a school-bundle ZIP job.
+ *
+ * This delegates the heavy lifting (PDF generation + ZIP assembly) to the
+ * Next.js API route at /api/worker/process-school-bundle-zip because the
+ * worker process does not have pdfkit or the rendering logic available.
+ *
+ * Flow:
+ *   1. Worker claims the job (already done by caller)
+ *   2. Worker POSTs to APP_URL/api/worker/process-school-bundle-zip
+ *   3. The API route generates PDFs, creates ZIP, uploads to Storage
+ *   4. API route returns { zipPath, zipSizeBytes, pdfCount }
+ *   5. Worker marks the job complete (or failed on error)
+ */
+async function processSchoolBundleZipJob(supabase: SupabaseClient, job: ZipJob, startTime: number) {
+  if (!APP_URL) {
+    throw new Error(
+      'APP_URL environment variable is required for school_bundle jobs. ' +
+        'Set it to the Next.js app URL (e.g. https://paquetes.sv or http://localhost:3000).'
+    );
+  }
+
+  const url = `${APP_URL}/api/worker/process-school-bundle-zip`;
+  console.log(`   🌐 Delegating to Next.js API: ${url}`);
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(WORKER_SECRET ? { 'x-worker-secret': WORKER_SECRET } : {}),
+    },
+    body: JSON.stringify({
+      zipJobId: job.job_id,
+      reportJobId: job.report_job_id,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(`API returned ${response.status}: ${errorBody}`);
+  }
+
+  const result = (await response.json()) as {
+    error?: string;
+    pdfCount?: number;
+    zipSizeMB?: string;
+  };
+
+  if (result.error) {
+    throw new Error(`API error: ${result.error}`);
+  }
+
+  // The API route handles marking the job complete/failed,
+  // but log the results here for visibility
+  const elapsedSeconds = ((Date.now() - startTime) / 1000).toFixed(1);
+  console.log(
+    `   ✅ School bundle job completed in ${elapsedSeconds}s ` +
+      `(${result.pdfCount ?? 0} PDFs, ${result.zipSizeMB ?? '?'} MB)`
+  );
 }
 
 /**

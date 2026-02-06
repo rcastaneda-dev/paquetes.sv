@@ -67,6 +67,18 @@ export default function JobDetailPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [downloadingTasks, setDownloadingTasks] = useState<Record<string, boolean>>({});
+  const [downloadingConsolidated, setDownloadingConsolidated] = useState<Record<string, boolean>>(
+    {}
+  );
+  const [schoolBundleLoading, setSchoolBundleLoading] = useState(false);
+  const [schoolBundleStatus, setSchoolBundleStatus] = useState<{
+    status: 'queued' | 'processing' | 'complete' | 'failed';
+    downloadUrl?: string;
+    zipSizeMB?: string;
+    pdfCount?: number;
+    error?: string;
+    progress?: { message?: string };
+  } | null>(null);
 
   const fetchJobDetails = async () => {
     try {
@@ -336,6 +348,133 @@ export default function JobDetailPage() {
     return labels[category] || category;
   };
 
+  const handleDownloadConsolidated = async (section: string) => {
+    try {
+      setDownloadingConsolidated(prev => ({ ...prev, [section]: true }));
+
+      const response = await fetch(`/api/bulk/jobs/${jobId}/consolidated-pdf?type=${section}`);
+
+      if (!response.ok) {
+        const data = await response.json();
+        alert(`Error: ${data.error || 'Error al generar PDF consolidado'}`);
+        return;
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+
+      const fileNames: Record<string, string> = {
+        cajas: 'consolidado_cajas.pdf',
+        ficha_uniformes: 'consolidado_uniformes.pdf',
+        ficha_zapatos: 'consolidado_zapatos.pdf',
+      };
+      a.download = fileNames[section] || `consolidado_${section}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error(`Error downloading consolidated ${section}:`, error);
+      alert(`Error al descargar PDF consolidado de ${section}`);
+    } finally {
+      setDownloadingConsolidated(prev => ({ ...prev, [section]: false }));
+    }
+  };
+
+  const handleDownloadSchoolBundle = async () => {
+    try {
+      setSchoolBundleLoading(true);
+
+      // Step 1: Create school bundle ZIP job
+      const createResponse = await fetch(
+        `/api/bulk/jobs/${jobId}/create-school-bundle-zip-job`,
+        { method: 'POST' }
+      );
+      const createData = await createResponse.json();
+
+      if (!createResponse.ok) {
+        alert(`Error: ${createData.error || 'Error al crear trabajo de ZIP'}`);
+        setSchoolBundleLoading(false);
+        return;
+      }
+
+      const zipJobId = createData.zipJobId;
+
+      // If already complete, download immediately
+      if (createData.status === 'complete' && createData.downloadUrl) {
+        window.open(createData.downloadUrl, '_blank');
+        alert(
+          `Archivo comprimido descargado\n${createData.pdfCount || 0} PDFs, ${createData.zipSizeMB || 0} MB`
+        );
+        setSchoolBundleLoading(false);
+        return;
+      }
+
+      // Step 2: Poll for completion
+      let attempts = 0;
+      const maxAttempts = 180; // 15 minutes at 5 second intervals (can be long for many schools)
+      const pollInterval = 5000;
+
+      const pollStatus = async () => {
+        try {
+          const statusResponse = await fetch(
+            `/api/bulk/jobs/${jobId}/school-bundle-zip-status?zipJobId=${zipJobId}`
+          );
+          const statusData = await statusResponse.json();
+
+          setSchoolBundleStatus(statusData);
+
+          if (statusData.status === 'complete' && statusData.downloadUrl) {
+            window.open(statusData.downloadUrl, '_blank');
+            alert(
+              `Archivo comprimido generado exitosamente!\n${statusData.pdfCount || 0} PDFs, ${statusData.zipSizeMB || 0} MB`
+            );
+            setSchoolBundleLoading(false);
+            return true;
+          }
+
+          if (statusData.status === 'failed') {
+            alert(
+              `Error al generar archivo comprimido: ${statusData.error || 'Error desconocido'}`
+            );
+            setSchoolBundleLoading(false);
+            return true;
+          }
+
+          attempts++;
+          if (attempts >= maxAttempts) {
+            alert(
+              'Tiempo de espera agotado para archivo comprimido. Por favor, intenta de nuevo más tarde.'
+            );
+            setSchoolBundleLoading(false);
+            return true;
+          }
+
+          setTimeout(pollStatus, pollInterval);
+          return false;
+        } catch (err) {
+          console.error('Error polling school bundle ZIP status:', err);
+          attempts++;
+          if (attempts >= maxAttempts) {
+            alert('Error al verificar el estado del archivo comprimido');
+            setSchoolBundleLoading(false);
+            return true;
+          }
+          setTimeout(pollStatus, pollInterval);
+          return false;
+        }
+      };
+
+      pollStatus();
+    } catch (error) {
+      console.error('Error downloading school bundle:', error);
+      alert('Error al descargar archivo comprimido');
+      setSchoolBundleLoading(false);
+    }
+  };
+
   const handleCancelJob = async () => {
     if (!job) return;
 
@@ -583,6 +722,95 @@ export default function JobDetailPage() {
                   );
                 })}
               </div>
+              <p className="text-xs text-muted-foreground">
+                💡 La descarga comenzará automáticamente cuando esté listo.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Consolidated PDFs (for category jobs) */}
+        {isCategoryJob && (job.status === 'complete' || job.status === 'failed') && (
+          <Card>
+            <CardHeader>
+              <CardTitle>PDFs Consolidados</CardTitle>
+              <CardDescription>
+                Genera un solo PDF que combina todas las escuelas para la fecha seleccionada.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                {[
+                  { key: 'cajas', label: 'Consolidado Cajas' },
+                  { key: 'ficha_uniformes', label: 'Consolidado Uniformes' },
+                  { key: 'ficha_zapatos', label: 'Consolidado Zapatos' },
+                ].map(({ key, label }) => {
+                  const isDownloading = downloadingConsolidated[key];
+                  return (
+                    <Button
+                      key={key}
+                      onClick={() => handleDownloadConsolidated(key)}
+                      disabled={isDownloading}
+                      variant="outline"
+                      className="h-auto flex-col items-start p-4"
+                    >
+                      <span className="text-lg font-semibold">{label}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {isDownloading ? 'Generando PDF...' : 'Descargar PDF'}
+                      </span>
+                    </Button>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                💡 El PDF se generará al momento y se descargará automáticamente.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* School Bundle ZIP (for category jobs) */}
+        {isCategoryJob && (job.status === 'complete' || job.status === 'failed') && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Archivo Comprimido</CardTitle>
+              <CardDescription>
+                Genera un ZIP con un PDF por cada escuela. Cada PDF combina Cajas + Uniformes +
+                Zapatos.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Button
+                onClick={handleDownloadSchoolBundle}
+                disabled={schoolBundleLoading}
+                variant="outline"
+                className="h-auto w-full flex-col items-start p-4 sm:w-auto"
+              >
+                <span className="text-lg font-semibold">Generar Archivo Comprimido</span>
+                <span className="text-xs text-muted-foreground">
+                  {schoolBundleLoading && schoolBundleStatus?.progress?.message
+                    ? schoolBundleStatus.progress.message
+                    : schoolBundleLoading
+                      ? 'Generando ZIP (puede tardar entre 3 y 10 minutos)...'
+                      : 'Un PDF por escuela (Cajas + Uniformes + Zapatos)'}
+                </span>
+              </Button>
+              {schoolBundleStatus?.status === 'complete' && schoolBundleStatus.downloadUrl && (
+                <div className="rounded-lg border border-green-200 bg-green-50 p-3 text-sm dark:border-green-800 dark:bg-green-950/20">
+                  <p className="font-medium text-green-800 dark:text-green-200">
+                    ✅ Archivo comprimido listo ({schoolBundleStatus.pdfCount} PDFs,{' '}
+                    {schoolBundleStatus.zipSizeMB} MB)
+                  </p>
+                  <a
+                    href={schoolBundleStatus.downloadUrl}
+                    className="mt-1 inline-block text-green-700 underline hover:text-green-900 dark:text-green-300 dark:hover:text-green-100"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Descargar de nuevo
+                  </a>
+                </div>
+              )}
               <p className="text-xs text-muted-foreground">
                 💡 La descarga comenzará automáticamente cuando esté listo.
               </p>
