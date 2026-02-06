@@ -6,7 +6,7 @@ import PDFDocument from 'pdfkit';
 import type { StudentQueryRow } from '@/types/database';
 import fs from 'fs';
 import path from 'path';
-import { computeFinalCount } from '@/lib/reports/vacios';
+import { computeFinalCount, fillSizeGaps } from '@/lib/reports/vacios';
 
 export type PDFDocumentInstance = InstanceType<typeof PDFDocument>;
 
@@ -411,8 +411,29 @@ export function generateCamisasPDF(options: AgreementReportOptions): PDFDocument
 
     // Draw tipo rows
     doc.font('Helvetica').fontSize(bodyFontSize);
+
+    // Pre-compute all tipo rows with gap-filling
+    const tipoFinalCounts = new Map<string, Record<string, number>>();
     for (const tipo of tipos) {
       const sizeCounts = tipoMap.get(tipo)!;
+
+      // Step 1: compute finals per size
+      const rowOriginals: Record<string, number> = {};
+      const rowFinals: Record<string, number> = {};
+      for (const size of sizes) {
+        const orig = sizeCounts[size] || 0;
+        rowOriginals[size] = orig;
+        rowFinals[size] = computeFinalCount(orig, 2).final;
+      }
+
+      // Step 2: fill interior gaps
+      const filled = fillSizeGaps(sizes, rowOriginals, rowFinals);
+      tipoFinalCounts.set(tipo, filled);
+    }
+
+    // Draw rows using gap-filled values
+    for (const tipo of tipos) {
+      const filled = tipoFinalCounts.get(tipo)!;
       let rowTotal = 0;
 
       // Calculate dynamic row height
@@ -431,13 +452,12 @@ export function generateCamisasPDF(options: AgreementReportOptions): PDFDocument
       });
       x += tipoColWidth;
 
-      // Size counts (apply vacíos transformation: multiplier=2 for clothing)
+      // Size counts (using gap-filled values)
       for (const size of sizes) {
-        const originalCount = sizeCounts[size] || 0;
-        const { final } = computeFinalCount(originalCount, 2);
-        rowTotal += final;
+        const finalCount = filled[size] || 0;
+        rowTotal += finalCount;
         doc.rect(x, currentY, sizeColWidth, dynamicRowHeight).stroke();
-        doc.text(final > 0 ? final.toString() : '', x + 2, currentY + 4, {
+        doc.text(finalCount > 0 ? finalCount.toString() : '', x + 2, currentY + 4, {
           width: sizeColWidth - 4,
           align: 'center',
         });
@@ -470,10 +490,8 @@ export function generateCamisasPDF(options: AgreementReportOptions): PDFDocument
     for (const size of sizes) {
       let sizeTotal = 0;
       for (const tipo of tipos) {
-        const sizeCounts = tipoMap.get(tipo)!;
-        const originalCount = sizeCounts[size] || 0;
-        const { final } = computeFinalCount(originalCount, 2);
-        sizeTotal += final;
+        const filled = tipoFinalCounts.get(tipo)!;
+        sizeTotal += filled[size] || 0;
       }
       grandTotal += sizeTotal;
 
@@ -612,8 +630,29 @@ export function generatePantalonesPDF(options: AgreementReportOptions): PDFDocum
 
     // Draw tipo rows
     doc.font('Helvetica').fontSize(bodyFontSize);
+
+    // Pre-compute all tipo rows with gap-filling
+    const tipoPrendaFinalCounts = new Map<string, Record<string, number>>();
     for (const tipo of tipos) {
       const sizeCounts = tipoPrendMap.get(tipo)!;
+
+      // Step 1: compute finals per size
+      const rowOriginals: Record<string, number> = {};
+      const rowFinals: Record<string, number> = {};
+      for (const size of sizes) {
+        const orig = sizeCounts[size] || 0;
+        rowOriginals[size] = orig;
+        rowFinals[size] = computeFinalCount(orig, 2).final;
+      }
+
+      // Step 2: fill interior gaps
+      const filled = fillSizeGaps(sizes, rowOriginals, rowFinals);
+      tipoPrendaFinalCounts.set(tipo, filled);
+    }
+
+    // Draw rows using gap-filled values
+    for (const tipo of tipos) {
+      const filled = tipoPrendaFinalCounts.get(tipo)!;
       let rowTotal = 0;
 
       // Calculate dynamic row height
@@ -632,13 +671,12 @@ export function generatePantalonesPDF(options: AgreementReportOptions): PDFDocum
       });
       x += tipoPrendaColWidth;
 
-      // Size counts (apply vacíos transformation: multiplier=2 for clothing)
+      // Size counts (using gap-filled values)
       for (const size of sizes) {
-        const originalCount = sizeCounts[size] || 0;
-        const { final } = computeFinalCount(originalCount, 2);
-        rowTotal += final;
+        const finalCount = filled[size] || 0;
+        rowTotal += finalCount;
         doc.rect(x, currentY, sizeColWidth, dynamicRowHeight).stroke();
-        doc.text(final > 0 ? final.toString() : '', x + 2, currentY + 4, {
+        doc.text(finalCount > 0 ? finalCount.toString() : '', x + 2, currentY + 4, {
           width: sizeColWidth - 4,
           align: 'center',
         });
@@ -671,10 +709,8 @@ export function generatePantalonesPDF(options: AgreementReportOptions): PDFDocum
     for (const size of sizes) {
       let sizeTotal = 0;
       for (const tipo of tipos) {
-        const sizeCounts = tipoPrendMap.get(tipo)!;
-        const originalCount = sizeCounts[size] || 0;
-        const { final } = computeFinalCount(originalCount, 2);
-        sizeTotal += final;
+        const filled = tipoPrendaFinalCounts.get(tipo)!;
+        sizeTotal += filled[size] || 0;
       }
       grandTotal += sizeTotal;
 
@@ -816,8 +852,29 @@ export function generateZapatosPDF(options: AgreementReportOptions): PDFDocument
 
     // Draw sexo rows
     doc.font('Helvetica').fontSize(bodyFontSize);
+
+    // Pre-compute all sexo rows with gap-filling
+    const sexoFinalCounts = new Map<string, Record<string, number>>();
     for (const sexo of sexos) {
       const sizeCounts = sexoMap.get(sexo)!;
+
+      // Step 1: compute finals per size
+      const rowOriginals: Record<string, number> = {};
+      const rowFinals: Record<string, number> = {};
+      for (const size of sizes) {
+        const orig = sizeCounts[size] || 0;
+        rowOriginals[size] = orig;
+        rowFinals[size] = computeFinalCount(orig, 1).final;
+      }
+
+      // Step 2: fill interior gaps
+      const filled = fillSizeGaps(sizes, rowOriginals, rowFinals);
+      sexoFinalCounts.set(sexo, filled);
+    }
+
+    // Draw rows using gap-filled values
+    for (const sexo of sexos) {
+      const filled = sexoFinalCounts.get(sexo)!;
       let rowTotal = 0;
 
       // Calculate dynamic row height
@@ -836,13 +893,12 @@ export function generateZapatosPDF(options: AgreementReportOptions): PDFDocument
       });
       x += sexoColWidth;
 
-      // Size counts (apply vacíos transformation: multiplier=1 for shoes)
+      // Size counts (using gap-filled values)
       for (const size of sizes) {
-        const originalCount = sizeCounts[size] || 0;
-        const { final } = computeFinalCount(originalCount, 1);
-        rowTotal += final;
+        const finalCount = filled[size] || 0;
+        rowTotal += finalCount;
         doc.rect(x, currentY, sizeColWidth, dynamicRowHeight).stroke();
-        doc.text(final > 0 ? final.toString() : '', x + 2, currentY + 4, {
+        doc.text(finalCount > 0 ? finalCount.toString() : '', x + 2, currentY + 4, {
           width: sizeColWidth - 4,
           align: 'center',
         });
@@ -875,10 +931,8 @@ export function generateZapatosPDF(options: AgreementReportOptions): PDFDocument
     for (const size of sizes) {
       let sizeTotal = 0;
       for (const sexo of sexos) {
-        const sizeCounts = sexoMap.get(sexo)!;
-        const originalCount = sizeCounts[size] || 0;
-        const { final } = computeFinalCount(originalCount, 1);
-        sizeTotal += final;
+        const filled = sexoFinalCounts.get(sexo)!;
+        sizeTotal += filled[size] || 0;
       }
       grandTotal += sizeTotal;
 
@@ -978,18 +1032,7 @@ export function generateFichaUniformesPDF(options: AgreementReportOptions): PDFD
     const itemCounts: ItemCount[] = [];
 
     // Source 1: Camisas (tipo_camisa + camisa)
-    // Sort by: alphabetic by tipo_camisa
-    const camisaMap = new Map<string, number>();
-    for (const student of school.students) {
-      const tipo = student.tipo_de_camisa;
-      const size = student.camisa;
-      if (tipo && size) {
-        const key = `CAMISA ${tipo.toUpperCase()} - ${size}`;
-        camisaMap.set(key, (camisaMap.get(key) || 0) + 1);
-      }
-    }
-    // Sort first by type (before the dash), then by size (after the dash, natural sort)
-    const camisaEntries = Array.from(camisaMap.entries());
+    // Group by tipo, apply gap-filling per tipo, then flatten
     const camisaSizeOrder = [
       'T4',
       'T6',
@@ -1005,73 +1048,86 @@ export function generateFichaUniformesPDF(options: AgreementReportOptions): PDFD
       'T2X',
     ];
 
-    function parseTypeAndSize(key: string): { type: string; size: string } {
-      // Format: 'CAMISA CELESTE - T12'
-      const match = key.match(/^(.*?)\s*-\s*(T[0-9]+|T1X|T2X)$/i);
-      if (match) {
-        return { type: match[1].trim(), size: match[2].trim().toUpperCase() };
+    // Group by tipo
+    const camisaTipoMap = new Map<string, Map<string, number>>();
+    for (const student of school.students) {
+      const tipo = student.tipo_de_camisa;
+      const size = student.camisa;
+      if (tipo && size) {
+        const tipoKey = `CAMISA ${tipo.toUpperCase()}`;
+        if (!camisaTipoMap.has(tipoKey)) {
+          camisaTipoMap.set(tipoKey, new Map());
+        }
+        const sizeMap = camisaTipoMap.get(tipoKey)!;
+        sizeMap.set(size, (sizeMap.get(size) || 0) + 1);
       }
-      // fallback, try to split
-      const [type, size = ''] = key.split('-').map(str => str.trim());
-      return { type, size: size.toUpperCase() };
     }
 
-    camisaEntries.sort((a, b) => {
-      const aParts = parseTypeAndSize(a[0]);
-      const bParts = parseTypeAndSize(b[0]);
-      // 1. sort by type
-      const typeCmp = aParts.type.localeCompare(bParts.type);
-      if (typeCmp !== 0) return typeCmp;
-      // 2. sort by size according to size order
-      const aSizeIdx = camisaSizeOrder.indexOf(aParts.size);
-      const bSizeIdx = camisaSizeOrder.indexOf(bParts.size);
-      if (aSizeIdx !== -1 && bSizeIdx !== -1) {
-        return aSizeIdx - bSizeIdx;
-      }
-      // fallback to string compare
-      return aParts.size.localeCompare(bParts.size, undefined, { numeric: true });
-    });
+    // Apply gap-filling per tipo and collect results
+    const camisaTypes = Array.from(camisaTipoMap.keys()).sort();
+    for (const tipoKey of camisaTypes) {
+      const sizeMap = camisaTipoMap.get(tipoKey)!;
 
-    for (const [key, count] of camisaEntries) {
-      if (count > 0) {
-        const { final } = computeFinalCount(count, 2);
-        itemCounts.push({ tipo_talla: key, cantidad: final });
+      // Compute finals per size
+      const rowOriginals: Record<string, number> = {};
+      const rowFinals: Record<string, number> = {};
+      for (const size of camisaSizeOrder) {
+        const orig = sizeMap.get(size) || 0;
+        rowOriginals[size] = orig;
+        rowFinals[size] = computeFinalCount(orig, 2).final;
+      }
+
+      // Apply gap-filling
+      const filled = fillSizeGaps(camisaSizeOrder, rowOriginals, rowFinals);
+
+      // Add to itemCounts (only non-zero)
+      for (const size of camisaSizeOrder) {
+        const finalCount = filled[size] || 0;
+        if (finalCount > 0) {
+          itemCounts.push({ tipo_talla: `${tipoKey} - ${size}`, cantidad: finalCount });
+        }
       }
     }
 
     // Source 2: Pantalones/Faldas (t_pantalon_falda_short + pantalon_falda)
-    // Sort first by type, then by size
-    const pantalonMap = new Map<string, number>();
+    // Group by tipo, apply gap-filling per tipo, then flatten
+    const pantalonTipoMap = new Map<string, Map<string, number>>();
     for (const student of school.students) {
       const tipo = student.t_pantalon_falda_short;
       const size = student.pantalon_falda;
       if (tipo && size) {
-        const key = `${tipo.toUpperCase()} - ${size}`;
-        pantalonMap.set(key, (pantalonMap.get(key) || 0) + 1);
+        const tipoKey = tipo.toUpperCase();
+        if (!pantalonTipoMap.has(tipoKey)) {
+          pantalonTipoMap.set(tipoKey, new Map());
+        }
+        const sizeMap = pantalonTipoMap.get(tipoKey)!;
+        sizeMap.set(size, (sizeMap.get(size) || 0) + 1);
       }
     }
-    // Sort first by type, then by size using the same logic
-    const pantalonEntries = Array.from(pantalonMap.entries());
-    pantalonEntries.sort((a, b) => {
-      const aParts = parseTypeAndSize(a[0]);
-      const bParts = parseTypeAndSize(b[0]);
-      // 1. sort by type
-      const typeCmp = aParts.type.localeCompare(bParts.type);
-      if (typeCmp !== 0) return typeCmp;
-      // 2. sort by size according to size order
-      const aSizeIdx = camisaSizeOrder.indexOf(aParts.size);
-      const bSizeIdx = camisaSizeOrder.indexOf(bParts.size);
-      if (aSizeIdx !== -1 && bSizeIdx !== -1) {
-        return aSizeIdx - bSizeIdx;
-      }
-      // fallback to string compare
-      return aParts.size.localeCompare(bParts.size, undefined, { numeric: true });
-    });
 
-    for (const [key, count] of pantalonEntries) {
-      if (count > 0) {
-        const { final } = computeFinalCount(count, 2);
-        itemCounts.push({ tipo_talla: key, cantidad: final });
+    // Apply gap-filling per tipo and collect results
+    const pantalonTypes = Array.from(pantalonTipoMap.keys()).sort();
+    for (const tipoKey of pantalonTypes) {
+      const sizeMap = pantalonTipoMap.get(tipoKey)!;
+
+      // Compute finals per size
+      const rowOriginals: Record<string, number> = {};
+      const rowFinals: Record<string, number> = {};
+      for (const size of camisaSizeOrder) {
+        const orig = sizeMap.get(size) || 0;
+        rowOriginals[size] = orig;
+        rowFinals[size] = computeFinalCount(orig, 2).final;
+      }
+
+      // Apply gap-filling
+      const filled = fillSizeGaps(camisaSizeOrder, rowOriginals, rowFinals);
+
+      // Add to itemCounts (only non-zero)
+      for (const size of camisaSizeOrder) {
+        const finalCount = filled[size] || 0;
+        if (finalCount > 0) {
+          itemCounts.push({ tipo_talla: `${tipoKey} - ${size}`, cantidad: finalCount });
+        }
       }
     }
 
@@ -1241,37 +1297,50 @@ export function generateFichaZapatosPDF(options: AgreementReportOptions): PDFDoc
     const itemCounts: ItemCount[] = [];
 
     // Source 1: Zapatos (sexo + zapato)
-    // Sort first by sexo (tipo), then by size (numeric)
-    const zapatoMap = new Map<string, number>();
+    // Group by sexo, apply gap-filling per sexo, then flatten
+    const shoeSizes: string[] = [];
+    for (let i = 23; i <= 45; i++) {
+      shoeSizes.push(i.toString());
+    }
+
+    // Group by sexo
+    const zapatoSexoMap = new Map<string, Map<string, number>>();
     for (const student of school.students) {
       const sexo = student.sexo;
       const size = student.zapato;
       if (sexo && size) {
-        const key = `${sexo.toUpperCase()} - ${size}`;
-        zapatoMap.set(key, (zapatoMap.get(key) || 0) + 1);
+        const sexoKey = sexo.toUpperCase();
+        if (!zapatoSexoMap.has(sexoKey)) {
+          zapatoSexoMap.set(sexoKey, new Map());
+        }
+        const sizeMap = zapatoSexoMap.get(sexoKey)!;
+        sizeMap.set(size, (sizeMap.get(size) || 0) + 1);
       }
     }
-    // Sort first by tipo (sexo), then by size (numeric)
-    const zapatoEntries = Array.from(zapatoMap.entries());
-    zapatoEntries.sort((a, b) => {
-      // Parse tipo and size from "HOMBRE - 38" format
-      const [aTipo, aSize] = a[0].split('-').map(s => s.trim());
-      const [bTipo, bSize] = b[0].split('-').map(s => s.trim());
 
-      // 1. Sort by tipo (sexo)
-      const tipoCmp = aTipo.localeCompare(bTipo);
-      if (tipoCmp !== 0) return tipoCmp;
+    // Apply gap-filling per sexo and collect results
+    const sexoTypes = Array.from(zapatoSexoMap.keys()).sort();
+    for (const sexoKey of sexoTypes) {
+      const sizeMap = zapatoSexoMap.get(sexoKey)!;
 
-      // 2. Sort by size numerically
-      const aSizeNum = parseInt(aSize, 10);
-      const bSizeNum = parseInt(bSize, 10);
-      return aSizeNum - bSizeNum;
-    });
+      // Compute finals per size
+      const rowOriginals: Record<string, number> = {};
+      const rowFinals: Record<string, number> = {};
+      for (const size of shoeSizes) {
+        const orig = sizeMap.get(size) || 0;
+        rowOriginals[size] = orig;
+        rowFinals[size] = computeFinalCount(orig, 1).final;
+      }
 
-    for (const [key, count] of zapatoEntries) {
-      if (count > 0) {
-        const { final } = computeFinalCount(count, 1);
-        itemCounts.push({ tipo_talla: key, cantidad: final });
+      // Apply gap-filling
+      const filled = fillSizeGaps(shoeSizes, rowOriginals, rowFinals);
+
+      // Add to itemCounts (only non-zero)
+      for (const size of shoeSizes) {
+        const finalCount = filled[size] || 0;
+        if (finalCount > 0) {
+          itemCounts.push({ tipo_talla: `${sexoKey} - ${size}`, cantidad: finalCount });
+        }
       }
     }
 
@@ -1425,23 +1494,51 @@ export function generateDayZapatosPDF(options: AgreementReportOptions): PDFDocum
 
     const itemCounts: ItemCount[] = [];
 
-    // Source 1: Zapatos (sexo + zapato) - aggregate for this school
-    // Sort by: alphabetic by sexo
-    const zapatoMap = new Map<string, number>();
+    // Source 1: Zapatos (sexo + zapato)
+    // Group by sexo, apply gap-filling per sexo, then flatten
+    const shoeSizes: string[] = [];
+    for (let i = 23; i <= 45; i++) {
+      shoeSizes.push(i.toString());
+    }
+
+    // Group by sexo
+    const zapatoSexoMap = new Map<string, Map<string, number>>();
     for (const student of school.students) {
       const sexo = student.sexo;
       const size = student.zapato;
       if (sexo && size) {
-        const key = `${sexo.toUpperCase()} - ${size}`;
-        zapatoMap.set(key, (zapatoMap.get(key) || 0) + 1);
+        const sexoKey = sexo.toUpperCase();
+        if (!zapatoSexoMap.has(sexoKey)) {
+          zapatoSexoMap.set(sexoKey, new Map());
+        }
+        const sizeMap = zapatoSexoMap.get(sexoKey)!;
+        sizeMap.set(size, (sizeMap.get(size) || 0) + 1);
       }
     }
-    // Sort alphabetically and add to itemCounts (apply vacíos transformation: multiplier=1 for shoes)
-    const sortedZapatos = Array.from(zapatoMap.entries()).sort((a, b) => a[0].localeCompare(b[0]));
-    for (const [key, count] of sortedZapatos) {
-      if (count > 0) {
-        const { final } = computeFinalCount(count, 1);
-        itemCounts.push({ tipo_talla: key, cantidad: final });
+
+    // Apply gap-filling per sexo and collect results
+    const sexoTypes = Array.from(zapatoSexoMap.keys()).sort();
+    for (const sexoKey of sexoTypes) {
+      const sizeMap = zapatoSexoMap.get(sexoKey)!;
+
+      // Compute finals per size
+      const rowOriginals: Record<string, number> = {};
+      const rowFinals: Record<string, number> = {};
+      for (const size of shoeSizes) {
+        const orig = sizeMap.get(size) || 0;
+        rowOriginals[size] = orig;
+        rowFinals[size] = computeFinalCount(orig, 1).final;
+      }
+
+      // Apply gap-filling
+      const filled = fillSizeGaps(shoeSizes, rowOriginals, rowFinals);
+
+      // Add to itemCounts (only non-zero)
+      for (const size of shoeSizes) {
+        const finalCount = filled[size] || 0;
+        if (finalCount > 0) {
+          itemCounts.push({ tipo_talla: `${sexoKey} - ${size}`, cantidad: finalCount });
+        }
       }
     }
 
@@ -1590,45 +1687,103 @@ export function generateDayUniformesPDF(options: AgreementReportOptions): PDFDoc
 
     const itemCounts: ItemCount[] = [];
 
-    // Source 1: Camisas (tipo_camisa + camisa) - aggregate for this school
-    // Sort by: alphabetic by tipo_camisa
-    const camisaMap = new Map<string, number>();
+    // Source 1: Camisas (tipo_camisa + camisa)
+    // Group by tipo, apply gap-filling per tipo, then flatten
+    const camisaSizeOrder = [
+      'T4',
+      'T6',
+      'T8',
+      'T10',
+      'T12',
+      'T14',
+      'T16',
+      'T18',
+      'T20',
+      'T22',
+      'T1X',
+      'T2X',
+    ];
+
+    // Group by tipo
+    const camisaTipoMap = new Map<string, Map<string, number>>();
     for (const student of school.students) {
       const tipo = student.tipo_de_camisa;
       const size = student.camisa;
       if (tipo && size) {
-        const key = `CAMISA ${tipo.toUpperCase()} - ${size}`;
-        camisaMap.set(key, (camisaMap.get(key) || 0) + 1);
-      }
-    }
-    // Sort alphabetically and add to itemCounts (apply vacíos transformation: multiplier=2 for clothing)
-    const sortedCamisas = Array.from(camisaMap.entries()).sort((a, b) => a[0].localeCompare(b[0]));
-    for (const [key, count] of sortedCamisas) {
-      if (count > 0) {
-        const { final } = computeFinalCount(count, 2);
-        itemCounts.push({ tipo_talla: key, cantidad: final });
+        const tipoKey = `CAMISA ${tipo.toUpperCase()}`;
+        if (!camisaTipoMap.has(tipoKey)) {
+          camisaTipoMap.set(tipoKey, new Map());
+        }
+        const sizeMap = camisaTipoMap.get(tipoKey)!;
+        sizeMap.set(size, (sizeMap.get(size) || 0) + 1);
       }
     }
 
-    // Source 2: Pantalones/Faldas (t_pantalon_falda_short + pantalon_falda) - aggregate for this school
-    // Sort by: alphabetic by t_pantalon_falda_short
-    const pantalonMap = new Map<string, number>();
+    // Apply gap-filling per tipo and collect results
+    const camisaTypes = Array.from(camisaTipoMap.keys()).sort();
+    for (const tipoKey of camisaTypes) {
+      const sizeMap = camisaTipoMap.get(tipoKey)!;
+
+      // Compute finals per size
+      const rowOriginals: Record<string, number> = {};
+      const rowFinals: Record<string, number> = {};
+      for (const size of camisaSizeOrder) {
+        const orig = sizeMap.get(size) || 0;
+        rowOriginals[size] = orig;
+        rowFinals[size] = computeFinalCount(orig, 2).final;
+      }
+
+      // Apply gap-filling
+      const filled = fillSizeGaps(camisaSizeOrder, rowOriginals, rowFinals);
+
+      // Add to itemCounts (only non-zero)
+      for (const size of camisaSizeOrder) {
+        const finalCount = filled[size] || 0;
+        if (finalCount > 0) {
+          itemCounts.push({ tipo_talla: `${tipoKey} - ${size}`, cantidad: finalCount });
+        }
+      }
+    }
+
+    // Source 2: Pantalones/Faldas (t_pantalon_falda_short + pantalon_falda)
+    // Group by tipo, apply gap-filling per tipo, then flatten
+    const pantalonTipoMap = new Map<string, Map<string, number>>();
     for (const student of school.students) {
       const tipo = student.t_pantalon_falda_short;
       const size = student.pantalon_falda;
       if (tipo && size) {
-        const key = `${tipo.toUpperCase()} - ${size}`;
-        pantalonMap.set(key, (pantalonMap.get(key) || 0) + 1);
+        const tipoKey = tipo.toUpperCase();
+        if (!pantalonTipoMap.has(tipoKey)) {
+          pantalonTipoMap.set(tipoKey, new Map());
+        }
+        const sizeMap = pantalonTipoMap.get(tipoKey)!;
+        sizeMap.set(size, (sizeMap.get(size) || 0) + 1);
       }
     }
-    // Sort alphabetically and add to itemCounts (apply vacíos transformation: multiplier=2 for clothing)
-    const sortedPantalones = Array.from(pantalonMap.entries()).sort((a, b) =>
-      a[0].localeCompare(b[0])
-    );
-    for (const [key, count] of sortedPantalones) {
-      if (count > 0) {
-        const { final } = computeFinalCount(count, 2);
-        itemCounts.push({ tipo_talla: key, cantidad: final });
+
+    // Apply gap-filling per tipo and collect results
+    const pantalonTypes = Array.from(pantalonTipoMap.keys()).sort();
+    for (const tipoKey of pantalonTypes) {
+      const sizeMap = pantalonTipoMap.get(tipoKey)!;
+
+      // Compute finals per size
+      const rowOriginals: Record<string, number> = {};
+      const rowFinals: Record<string, number> = {};
+      for (const size of camisaSizeOrder) {
+        const orig = sizeMap.get(size) || 0;
+        rowOriginals[size] = orig;
+        rowFinals[size] = computeFinalCount(orig, 2).final;
+      }
+
+      // Apply gap-filling
+      const filled = fillSizeGaps(camisaSizeOrder, rowOriginals, rowFinals);
+
+      // Add to itemCounts (only non-zero)
+      for (const size of camisaSizeOrder) {
+        const finalCount = filled[size] || 0;
+        if (finalCount > 0) {
+          itemCounts.push({ tipo_talla: `${tipoKey} - ${size}`, cantidad: finalCount });
+        }
       }
     }
 

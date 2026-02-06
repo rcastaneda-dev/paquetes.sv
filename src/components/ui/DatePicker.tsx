@@ -207,7 +207,7 @@ export function DatePicker({
         <div
           role="dialog"
           aria-label="Seleccionar fecha"
-          className="bg-popover text-popover-foreground absolute left-0 top-12 z-50 w-[320px] rounded-md border p-3 shadow-md"
+          className="dark:bg-popover dark:text-popover-foreground absolute left-0 top-12 z-[9999] w-[320px] rounded-md border border-border bg-white p-3 text-foreground shadow-2xl"
         >
           <div className="mb-2 flex items-center justify-between">
             <button
