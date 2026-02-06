@@ -79,7 +79,7 @@
 
 **Header Layout (Per School):**
 *Font: Helvetica 12pt*
-> Line 1: `NOMBRE_CE: {name} (CODIGO: {code})`
+> Line 1: `{name} (CODIGO: {code})`
 > Line 2: `DEPARTAMENTO: {depto}  DISTRITO: {dist}`
 
 **Data Source:**
@@ -103,7 +103,7 @@
 
 **Header Layout (Per School):**
 *Font: Helvetica 12pt*
-> Line 1: `NOMBRE_CE: {name} (CODIGO: {code})`
+> Line 1: `{name} (CODIGO: {code})`
 > Line 2: `DEPARTAMENTO: {depto}  DISTRITO: {dist}`
 
 **Table Columns:**
@@ -115,34 +115,132 @@
 
 ---
 
-### PDF 5: School Distribution Card (Ficha)
+### PDF 5: School Distribution Card (Ficha de uniformes)
 * **Folder Category:** `distribucion_por_escuela`
-* **Title:** `FICHA DE DISTRIBUCION POR ESCUELA`
+* **Title:** `FICHA DE DISTRIBUCION POR ESCUELA (UNIFORMES)`
 * **Subtitle:**
-    * Line 1: `ESCUELA: {nombre_ce}`
-    * Line 2: `CODIGO: {codigo_ce}`
+    * Line 1: `{nombre_ce} [CODIGO: {codigo_ce}]`
+    * Line 2: `DEPARTAMENTO: {schools.departamento} - DISTRITO: {schools.distrito}`
+    * Line 3: `ZONA: {schools.zona}`
 * **Grouping:** Single list per `codigo_ce`.
+* **Filter:** Only include rows where `Count > 0`.
 
 **Header Layout:**
 *Font: Helvetica 12pt*
 > Line 1: `Detalle por tipo y talla (solo cantidades > 0)`
 
 **Data Logic (Aggregation):**
-This report consolidates data from Shirts, Bottoms, and Shoes into a single vertical list.
+This report consolidates data from Shirts and Bottoms into a single vertical list.
 1.  **Source 1:** Camisas (`tipo_camisa` + `camisa_size`)
+1.1. **Sort by:** alphabetic by tipo_camisa
+1.2. **Style:** Capitalized
 2.  **Source 2:** Pantalones/Faldas (`t_pantalon_falda_short` + `pantalon_falda_size`)
-3.  **Source 3:** Zapatos (`sexo` + `zapato_size`)
-4.  **Filter:** Only include rows where `Count > 0`.
+2.1. **Sort by:** alphabetic by t_pantalon_falda_short
+2.2. **Style:** Capitalized
 
 **Table Columns:**
 1.  **TIPO/TALLA** (String Concatenation)
-    * *Example format:* "Camisa Diario - T12" or "Pantalón - T14" or "Hombre - 38"
+    * *Example format:* "CAMISA CELESTE - T12" or "FALDA CON TIRANTES - T14"
 2.  **CANTIDAD** (Integer Count)
 
 **Footer:**
 * **TOTAL PIEZAS:** (Sum of Quantity Column)
 
 ---
+
+### PDF 6: School Distribution Card (Ficha de zapatos)
+* **Folder Category:** `distribucion_por_escuela`
+* **Title:** `FICHA DE DISTRIBUCION POR ESCUELA (ZAPATOS)`
+* **Subtitle:**
+    * Line 1: `{nombre_ce} [CODIGO: {codigo_ce}]`
+    * Line 2: `DEPARTAMENTO: {schools.departamento} - DISTRITO: {schools.distrito}`
+    * Line 3: `ZONA: {schools.zona}`
+* **Grouping:** Single list per `codigo_ce`.
+* **Filter:** Only include rows where `Count > 0`.
+
+**Header Layout:**
+*Font: Helvetica 12pt*
+> Line 1: `Detalle por tipo y talla (solo cantidades > 0)`
+
+**Data Logic (Aggregation):**
+This report consolidates data from Shoes into a single vertical list.
+
+1.  **Source 1:** Zapatos (`sexo` + `zapato_size`)
+1.1. **Sort by:** alphabetic by sexo
+1.2. **Style:** Capitalized
+
+**Table Columns:**
+1.  **TIPO/TALLA** (String Concatenation)
+    * *Example format:* "HOMBRE - 38"
+2.  **CANTIDAD** (Integer Count)
+
+**Footer:**
+* **TOTAL PIEZAS:** (Sum of Quantity Column)
+
+---
+
+### PDF 7: Day Distribution Card (Ficha de zapatos)
+* **Folder Category:** `distribucion_por_dia`
+* **Title:** `FICHA DE DISTRIBUCION POR ESCUELA (ZAPATOS)`
+* **Subtitle:**
+    * Line 1: `{nombre_ce}`
+    * Line 2: `CODIGO: {codigo_ce}`
+    * Line 3: `FECHA: {schools.fecha_inicio}`
+* **Grouping:** combined grouping by: `type and size`.
+* **Filter:** Only include rows where `Count > 0`.
+
+**Header Layout:**
+*Font: Helvetica 12pt*
+> Line 1: `Detalle por tipo y talla (solo cantidades > 0)`
+
+**Data Logic (Aggregation):**
+This report consolidates data from Shoes for a given day based considering all schools on schools.fecha_inicio into a single vertical list.
+1.  **Source 1:** Zapatos (`sexo` + `zapato_size`)
+1.1. **Sort by:** alphabetic by sexo
+1.2. **Style:** Capitalized
+
+**Table Columns:**
+1.  **TIPO/TALLA** (String Concatenation)
+    * *Example format:* "HOMBRE - 38"
+2.  **CANTIDAD** (Integer Count)
+
+**Footer:**
+* **TOTAL PIEZAS:** (Sum of Quantity Column)
+
+---
+
+### PDF 8: Day Distribution Card (Ficha de uniformes)
+* **Folder Category:** `distribucion_por_dia`
+* **Title:** `FICHA DE DISTRIBUCION POR ESCUELA (UNIFORMES)`
+* **Subtitle:**
+    * Line 1: `{nombre_ce}`
+    * Line 2: `CODIGO: {codigo_ce}`
+    * Line 3: `FECHA: {schools.fecha_inicio}`
+* **Grouping:** combined grouping by: `type and size`.
+* **Filter:** Only include rows where `Count > 0`.
+
+**Header Layout:**
+*Font: Helvetica 12pt*
+> Line 1: `Detalle por tipo y talla (solo cantidades > 0)`
+
+**Data Logic (Aggregation):**
+This report consolidates data from Shirts and Bottoms for a given day considering all schools based on schools.fecha_inicio into a single vertical list.
+1.  **Source 1:** Zapatos (`sexo` + `zapato_size`)
+1.1. **Sort by:** alphabetic by sexo
+1.2. **Style:** Capitalized
+
+**Table Columns:**
+1.  **TIPO/TALLA** (String Concatenation)
+    * *Example format:* "CAMISA CELESTE - T10"
+2.  **CANTIDAD** (Integer Count)
+
+**Footer:**
+* **TOTAL PIEZAS:** (Sum of Quantity Column)
+
+---
+
+Implementation Note for AI:
+When generating the "TIPO/TALLA" string, ensure a clean hyphen separator: TYPE + " - " + SIZE. For PDF 7 and 8, ensure the aggregation logic correctly sums quantities across different codigo_ce values that share the same date.
 
 ## 3. Storage & Output Structure
 
@@ -160,3 +258,12 @@ Save generated PDFs to S3/Storage using this hierarchy:
     * PDF 3: `/prenda_inferior`
     * PDF 4: `/zapatos`
     * PDF 5: `/distribucion_por_escuela`
+
+
+1 carpeta por dia
+todos los pdfs de los centros escolares
+1 consolidado solo de uniformes de todos los centros
+1 consolidad solo de zapatos de todos los centros
+
+2 pdfs mas 1 es consolidado de uniformes por centro, 1 consolidad de zapatos por centro
+2 pdfs consolidando todos los uniformes en un dia y todos los zapatos en un dia

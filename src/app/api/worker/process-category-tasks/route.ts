@@ -6,6 +6,10 @@ import {
   generatePantalonesPDF,
   generateZapatosPDF,
   generateFichaPDF,
+  generateFichaUniformesPDF,
+  generateFichaZapatosPDF,
+  generateDayZapatosPDF,
+  generateDayUniformesPDF,
 } from '@/lib/pdf/generator';
 import { buildAgreementReportStorageKey } from '@/lib/storage/keys';
 import type { StudentQueryRow } from '@/types/database';
@@ -263,26 +267,28 @@ async function fetchStudentsByFechaInicio(fechaInicio: string): Promise<StudentQ
   let offset = 0;
   let totalCount: number | null = null;
   const all: StudentQueryRow[] = [];
-  let useExtendedRpcSignature = false;
+  let useFechaInicioParam = true;
 
   while (true) {
     const baseArgs = {
       p_school_codigo_ce: null,
       p_grado: null,
+      p_departamento: null,
       p_limit: pageSize,
       p_offset: offset,
     };
 
-    const args = useExtendedRpcSignature ? { ...baseArgs, p_departamento: null } : baseArgs;
+    // Try with p_fecha_inicio parameter first (new migration)
+    const args = useFechaInicioParam
+      ? { ...baseArgs, p_fecha_inicio: fechaInicio }
+      : baseArgs;
 
     let { data, error } = await supabaseServer.rpc('query_students', args);
 
-    if (error?.code === 'PGRST203' && !useExtendedRpcSignature) {
-      useExtendedRpcSignature = true;
-      ({ data, error } = await supabaseServer.rpc('query_students', {
-        ...baseArgs,
-        p_departamento: null,
-      }));
+    // Fallback: if PostgREST returns PGRST203 (unknown parameter), retry without p_fecha_inicio
+    if (error?.code === 'PGRST203' && useFechaInicioParam) {
+      useFechaInicioParam = false;
+      ({ data, error } = await supabaseServer.rpc('query_students', baseArgs));
     }
 
     if (error) {
@@ -294,8 +300,10 @@ async function fetchStudentsByFechaInicio(fechaInicio: string): Promise<StudentQ
       break;
     }
 
-    // Filter by fecha_inicio on the client side
-    const filtered = rows.filter(row => row.fecha_inicio === fechaInicio);
+    // If we're not using the fecha_inicio parameter, filter client-side
+    const filtered = useFechaInicioParam
+      ? rows
+      : rows.filter(row => row.fecha_inicio === fechaInicio);
     all.push(...filtered);
 
     if (totalCount === null && rows.length > 0) {

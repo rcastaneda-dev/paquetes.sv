@@ -6,6 +6,7 @@ import PDFDocument from 'pdfkit';
 import type { StudentQueryRow } from '@/types/database';
 import fs from 'fs';
 import path from 'path';
+import { computeFinalCount } from '@/lib/reports/vacios';
 
 export type PDFDocumentInstance = InstanceType<typeof PDFDocument>;
 
@@ -19,7 +20,7 @@ interface AgreementReportOptions {
  * Preserves the current Y position so it doesn't affect document flow
  */
 function addLogoToPage(doc: PDFDocumentInstance, pageWidth: number) {
-  const logoPath = path.join(process.cwd(), 'public', 'goes_logo.png');
+  const logoPath = path.join(process.cwd(), 'public', 'goes_logo_2.png');
 
   // Check if logo exists
   if (fs.existsSync(logoPath)) {
@@ -65,6 +66,7 @@ interface SchoolGroup {
   nombre_ce: string;
   departamento: string;
   distrito: string;
+  zona: string;
   students: StudentQueryRow[];
 }
 
@@ -79,6 +81,7 @@ function groupBySchool(students: StudentQueryRow[]): SchoolGroup[] {
         nombre_ce: student.nombre_ce,
         departamento: student.departamento,
         distrito: student.distrito,
+        zona: student.zona,
         students: [],
       });
     }
@@ -89,11 +92,13 @@ function groupBySchool(students: StudentQueryRow[]): SchoolGroup[] {
 }
 
 /**
- * Helper: Draw a per-school header block with DEPTO, DIST, COD, NOMBRE_CE as plain text
- * Format:
- *   Line 1: NOMBRE_CE: xxxxxx (CODIGO: XXXX)
- *   Line 2: DEPARTAMENTO: xxxxxx  DISTRITO: xxxxxx
- * Labels are bold, values are capitalized but not bold
+ * Helper: Draw a per-school header block with school name, CODIGO, DEPTO, DIST, ZONA
+ * Format (centered):
+ *   Line 1: {school_name}
+ *   Line 2: CODIGO: {code}
+ *   Line 3: DEPARTAMENTO: {department} - DISTRITO: {district}
+ *   Line 4: ZONA: {zona}
+ * All text is bold and capitalized
  * Returns the new Y position after the block
  */
 interface SchoolHeaderBlockOptions {
@@ -106,46 +111,33 @@ interface SchoolHeaderBlockOptions {
 }
 
 function drawSchoolHeaderBlock(options: SchoolHeaderBlockOptions): number {
-  const { doc, xStart, yStart, school, fontSize } = options;
+  const { doc, school, fontSize } = options;
 
-  let currentY = yStart;
+  // Line 1: {school_name}
+  doc
+    .fontSize(fontSize)
+    .font('Helvetica-Bold')
+    .text(school.nombre_ce.toUpperCase(), { align: 'center' });
 
-  // Line 1: NOMBRE_CE: [school name] (CODIGO: [school code])
-  doc.font('Helvetica-Bold').fontSize(fontSize);
-  doc.text('NOMBRE_CE: ', xStart, currentY, { continued: true });
+  // Line 2: CODIGO: {code}
+  doc
+    .fontSize(fontSize)
+    .font('Helvetica-Bold')
+    .text(`CODIGO: ${school.codigo_ce.toUpperCase()}`, { align: 'center' });
 
-  doc.font('Helvetica').fontSize(fontSize);
-  const schoolName = school.nombre_ce.toUpperCase();
-  doc.text(schoolName, { continued: true });
+  // Line 3: DEPARTAMENTO: {department} - DISTRITO: {district}
+  const departamento = (school.departamento || 'N/A').toUpperCase();
+  const distrito = (school.distrito || 'N/A').toUpperCase();
+  doc
+    .fontSize(fontSize)
+    .font('Helvetica-Bold')
+    .text(`DEPARTAMENTO: ${departamento} - DISTRITO: ${distrito}`, { align: 'center' });
 
-  doc.font('Helvetica-Bold').fontSize(fontSize);
-  doc.text(' (CODIGO: ', { continued: true });
+  // Line 4: ZONA: {zona}
+  const zona = (school.zona || 'N/A').toUpperCase();
+  doc.fontSize(fontSize).font('Helvetica-Bold').text(`ZONA: ${zona}`, { align: 'center' });
 
-  doc.font('Helvetica').fontSize(fontSize);
-  const schoolCode = school.codigo_ce.toUpperCase();
-  doc.text(schoolCode, { continued: true });
-
-  doc.font('Helvetica-Bold').fontSize(fontSize);
-  doc.text(')');
-
-  currentY = doc.y + 2;
-
-  // Line 2: DEPARTAMENTO: [department]  DISTRITO: [district]
-  doc.font('Helvetica-Bold').fontSize(fontSize);
-  doc.text('DEPARTAMENTO: ', xStart, currentY, { continued: true });
-
-  doc.font('Helvetica').fontSize(fontSize);
-  const department = (school.departamento || 'N/A').toUpperCase();
-  doc.text(department, { continued: true });
-
-  doc.font('Helvetica-Bold').fontSize(fontSize);
-  doc.text('  DISTRITO: ', { continued: true });
-
-  doc.font('Helvetica').fontSize(fontSize);
-  const district = (school.distrito || 'N/A').toUpperCase();
-  doc.text(district);
-
-  currentY = doc.y + 8; // Add spacing after header block
+  const currentY = doc.y + 8; // Add spacing after header block
 
   return currentY;
 }
@@ -339,9 +331,9 @@ export function generateCamisasPDF(options: AgreementReportOptions): PDFDocument
   const schoolHeaderFontSize = 12; // School header font size (per spec)
 
   // New table structure: TIPO + 12 sizes + TOTAL
-  const tipoColWidth = 100; // increased from 60
   const sizeColWidth = 35; // increased from 25
   const totalColWidth = 50; // increased from 30
+  const tipoColWidth = availableWidth - sizes.length * sizeColWidth - totalColWidth; // Dynamic width to use full horizontal space
   const headerHeight = 28; // increased from 20
 
   for (let s = 0; s < schools.length; s++) {
@@ -355,7 +347,7 @@ export function generateCamisasPDF(options: AgreementReportOptions): PDFDocument
     // Add logo and title to page
     addLogoToPage(doc, doc.page.width);
     doc.fontSize(14).font('Helvetica-Bold').text(title, { align: 'center' });
-    doc.fontSize(12).font('Helvetica').text(subtitle, { align: 'center' });
+    doc.fontSize(14).font('Helvetica-Bold').text(subtitle, { align: 'center' });
     doc.moveDown(2);
 
     let currentY = doc.y;
@@ -439,12 +431,13 @@ export function generateCamisasPDF(options: AgreementReportOptions): PDFDocument
       });
       x += tipoColWidth;
 
-      // Size counts
+      // Size counts (apply vacíos transformation: multiplier=2 for clothing)
       for (const size of sizes) {
-        const count = sizeCounts[size] || 0;
-        rowTotal += count;
+        const originalCount = sizeCounts[size] || 0;
+        const { final } = computeFinalCount(originalCount, 2);
+        rowTotal += final;
         doc.rect(x, currentY, sizeColWidth, dynamicRowHeight).stroke();
-        doc.text(count > 0 ? count.toString() : '', x + 2, currentY + 4, {
+        doc.text(final > 0 ? final.toString() : '', x + 2, currentY + 4, {
           width: sizeColWidth - 4,
           align: 'center',
         });
@@ -478,7 +471,9 @@ export function generateCamisasPDF(options: AgreementReportOptions): PDFDocument
       let sizeTotal = 0;
       for (const tipo of tipos) {
         const sizeCounts = tipoMap.get(tipo)!;
-        sizeTotal += sizeCounts[size] || 0;
+        const originalCount = sizeCounts[size] || 0;
+        const { final } = computeFinalCount(originalCount, 2);
+        sizeTotal += final;
       }
       grandTotal += sizeTotal;
 
@@ -537,9 +532,9 @@ export function generatePantalonesPDF(options: AgreementReportOptions): PDFDocum
   const schoolHeaderFontSize = 12; // School header font size (per spec)
 
   // New table structure: TIPO PRENDA + 12 sizes + TOTAL
-  const tipoPrendaColWidth = 120; // increased from 70, slightly wider than TIPO for "TIPO PRENDA"
   const sizeColWidth = 35; // increased from 25
   const totalColWidth = 50; // increased from 30
+  const tipoPrendaColWidth = availableWidth - sizes.length * sizeColWidth - totalColWidth; // Dynamic width to use full horizontal space
   const headerHeight = 28; // increased from 20
 
   for (let s = 0; s < schools.length; s++) {
@@ -553,7 +548,7 @@ export function generatePantalonesPDF(options: AgreementReportOptions): PDFDocum
     // Add logo and title to page
     addLogoToPage(doc, doc.page.width);
     doc.fontSize(14).font('Helvetica-Bold').text(title, { align: 'center' });
-    doc.fontSize(12).font('Helvetica').text(subtitle, { align: 'center' });
+    doc.fontSize(14).font('Helvetica-Bold').text(subtitle, { align: 'center' });
     doc.moveDown(2);
 
     let currentY = doc.y;
@@ -637,12 +632,13 @@ export function generatePantalonesPDF(options: AgreementReportOptions): PDFDocum
       });
       x += tipoPrendaColWidth;
 
-      // Size counts
+      // Size counts (apply vacíos transformation: multiplier=2 for clothing)
       for (const size of sizes) {
-        const count = sizeCounts[size] || 0;
-        rowTotal += count;
+        const originalCount = sizeCounts[size] || 0;
+        const { final } = computeFinalCount(originalCount, 2);
+        rowTotal += final;
         doc.rect(x, currentY, sizeColWidth, dynamicRowHeight).stroke();
-        doc.text(count > 0 ? count.toString() : '', x + 2, currentY + 4, {
+        doc.text(final > 0 ? final.toString() : '', x + 2, currentY + 4, {
           width: sizeColWidth - 4,
           align: 'center',
         });
@@ -676,7 +672,9 @@ export function generatePantalonesPDF(options: AgreementReportOptions): PDFDocum
       let sizeTotal = 0;
       for (const tipo of tipos) {
         const sizeCounts = tipoPrendMap.get(tipo)!;
-        sizeTotal += sizeCounts[size] || 0;
+        const originalCount = sizeCounts[size] || 0;
+        const { final } = computeFinalCount(originalCount, 2);
+        sizeTotal += final;
       }
       grandTotal += sizeTotal;
 
@@ -738,9 +736,9 @@ export function generateZapatosPDF(options: AgreementReportOptions): PDFDocument
   const schoolHeaderFontSize = 12; // School header font size (per spec)
 
   // New table structure: SEXO + 23 sizes + TOTAL
-  const sexoColWidth = 80; // increased from 40
   const sizeColWidth = 25; // increased from 18
   const totalColWidth = 40; // increased from 25
+  const sexoColWidth = availableWidth - sizes.length * sizeColWidth - totalColWidth; // Dynamic width to use full horizontal space
   const headerHeight = 26; // increased from 20
 
   for (let s = 0; s < schools.length; s++) {
@@ -754,7 +752,7 @@ export function generateZapatosPDF(options: AgreementReportOptions): PDFDocument
     // Add logo and title to page
     addLogoToPage(doc, doc.page.width);
     doc.fontSize(14).font('Helvetica-Bold').text(title, { align: 'center' });
-    doc.fontSize(12).font('Helvetica').text(subtitle, { align: 'center' });
+    doc.fontSize(14).font('Helvetica-Bold').text(subtitle, { align: 'center' });
     doc.moveDown(2);
 
     let currentY = doc.y;
@@ -838,12 +836,13 @@ export function generateZapatosPDF(options: AgreementReportOptions): PDFDocument
       });
       x += sexoColWidth;
 
-      // Size counts
+      // Size counts (apply vacíos transformation: multiplier=1 for shoes)
       for (const size of sizes) {
-        const count = sizeCounts[size] || 0;
-        rowTotal += count;
+        const originalCount = sizeCounts[size] || 0;
+        const { final } = computeFinalCount(originalCount, 1);
+        rowTotal += final;
         doc.rect(x, currentY, sizeColWidth, dynamicRowHeight).stroke();
-        doc.text(count > 0 ? count.toString() : '', x + 2, currentY + 4, {
+        doc.text(final > 0 ? final.toString() : '', x + 2, currentY + 4, {
           width: sizeColWidth - 4,
           align: 'center',
         });
@@ -877,7 +876,9 @@ export function generateZapatosPDF(options: AgreementReportOptions): PDFDocument
       let sizeTotal = 0;
       for (const sexo of sexos) {
         const sizeCounts = sexoMap.get(sexo)!;
-        sizeTotal += sizeCounts[size] || 0;
+        const originalCount = sizeCounts[size] || 0;
+        const { final } = computeFinalCount(originalCount, 1);
+        sizeTotal += final;
       }
       grandTotal += sizeTotal;
 
@@ -904,13 +905,13 @@ export function generateZapatosPDF(options: AgreementReportOptions): PDFDocument
 }
 
 /**
- * PDF 5: School Distribution Card (Ficha de Distribución por Escuela)
- * Aggregates data from Camisas, Pantalones, and Zapatos into a vertical list
+ * PDF 5: School Distribution Card - Uniformes (Ficha de Distribución por Escuela - Uniformes)
+ * Aggregates data from Camisas and Pantalones into a vertical list
  * One school per page, only showing items with count > 0
  *
  * NOTE: STRICT PAGINATION - ONE SCHOOL PER PAGE
  */
-export function generateFichaPDF(options: AgreementReportOptions): PDFDocumentInstance {
+export function generateFichaUniformesPDF(options: AgreementReportOptions): PDFDocumentInstance {
   const { students } = options;
 
   const doc = new PDFDocument({
@@ -919,7 +920,276 @@ export function generateFichaPDF(options: AgreementReportOptions): PDFDocumentIn
     margins: { top: 40, bottom: 40, left: 40, right: 40 },
   });
 
-  const title = `FICHA DE DISTRIBUCION POR ESCUELA`;
+  const title = `FICHA DE DISTRIBUCION POR ESCUELA (UNIFORMES)`;
+
+  const schools = groupBySchool(students);
+
+  for (let s = 0; s < schools.length; s++) {
+    const school = schools[s];
+
+    // Start each school on a new page
+    if (s > 0) {
+      doc.addPage();
+    }
+
+    // Add logo to page
+    addLogoToPage(doc, doc.page.width);
+
+    // Title
+    doc.fontSize(14).font('Helvetica-Bold').text(title, { align: 'center' });
+    doc.moveDown(2);
+
+    // Subtitle: School info (3 lines as per spec)
+    // Line 1: {nombre_ce} [CODIGO: {codigo_ce}]
+    doc.fontSize(12).font('Helvetica-Bold').text(`${school.nombre_ce.toUpperCase()}`, {
+      align: 'center',
+    });
+    doc.fontSize(12).font('Helvetica-Bold').text(`CODIGO: ${school.codigo_ce.toUpperCase()}`, {
+      align: 'center',
+    });
+
+    // Line 2: DEPARTAMENTO: {departamento} - DISTRITO: {distrito}
+    const departamento = school.departamento || 'N/A';
+    const distrito = school.distrito || 'N/A';
+    doc
+      .fontSize(12)
+      .font('Helvetica-Bold')
+      .text(`DEPARTAMENTO: ${departamento.toUpperCase()} - DISTRITO: ${distrito.toUpperCase()}`, {
+        align: 'center',
+      });
+
+    // Line 3: ZONA: {zona}
+    const zona = school.zona || 'N/A';
+    doc
+      .fontSize(12)
+      .font('Helvetica-Bold')
+      .text(`ZONA: ${zona.toUpperCase()}`, { align: 'center' });
+
+    doc.moveDown(1);
+
+    // Header text
+    doc
+      .fontSize(12)
+      .font('Helvetica')
+      .text('Detalle por tipo y talla (solo cantidades > 0)', { align: 'left' });
+
+    doc.moveDown(1);
+
+    let currentY = doc.y;
+
+    // Aggregate data from all sources
+    interface ItemCount {
+      tipo_talla: string;
+      cantidad: number;
+    }
+
+    const itemCounts: ItemCount[] = [];
+
+    // Source 1: Camisas (tipo_camisa + camisa)
+    // Sort by: alphabetic by tipo_camisa
+    const camisaMap = new Map<string, number>();
+    for (const student of school.students) {
+      const tipo = student.tipo_de_camisa;
+      const size = student.camisa;
+      if (tipo && size) {
+        const key = `CAMISA ${tipo.toUpperCase()} - ${size}`;
+        camisaMap.set(key, (camisaMap.get(key) || 0) + 1);
+      }
+    }
+    // Sort first by type (before the dash), then by size (after the dash, natural sort)
+    const camisaEntries = Array.from(camisaMap.entries());
+    const camisaSizeOrder = [
+      'T4',
+      'T6',
+      'T8',
+      'T10',
+      'T12',
+      'T14',
+      'T16',
+      'T18',
+      'T20',
+      'T22',
+      'T1X',
+      'T2X',
+    ];
+
+    function parseTypeAndSize(key: string): { type: string; size: string } {
+      // Format: 'CAMISA CELESTE - T12'
+      const match = key.match(/^(.*?)\s*-\s*(T[0-9]+|T1X|T2X)$/i);
+      if (match) {
+        return { type: match[1].trim(), size: match[2].trim().toUpperCase() };
+      }
+      // fallback, try to split
+      const [type, size = ''] = key.split('-').map(str => str.trim());
+      return { type, size: size.toUpperCase() };
+    }
+
+    camisaEntries.sort((a, b) => {
+      const aParts = parseTypeAndSize(a[0]);
+      const bParts = parseTypeAndSize(b[0]);
+      // 1. sort by type
+      const typeCmp = aParts.type.localeCompare(bParts.type);
+      if (typeCmp !== 0) return typeCmp;
+      // 2. sort by size according to size order
+      const aSizeIdx = camisaSizeOrder.indexOf(aParts.size);
+      const bSizeIdx = camisaSizeOrder.indexOf(bParts.size);
+      if (aSizeIdx !== -1 && bSizeIdx !== -1) {
+        return aSizeIdx - bSizeIdx;
+      }
+      // fallback to string compare
+      return aParts.size.localeCompare(bParts.size, undefined, { numeric: true });
+    });
+
+    for (const [key, count] of camisaEntries) {
+      if (count > 0) {
+        const { final } = computeFinalCount(count, 2);
+        itemCounts.push({ tipo_talla: key, cantidad: final });
+      }
+    }
+
+    // Source 2: Pantalones/Faldas (t_pantalon_falda_short + pantalon_falda)
+    // Sort first by type, then by size
+    const pantalonMap = new Map<string, number>();
+    for (const student of school.students) {
+      const tipo = student.t_pantalon_falda_short;
+      const size = student.pantalon_falda;
+      if (tipo && size) {
+        const key = `${tipo.toUpperCase()} - ${size}`;
+        pantalonMap.set(key, (pantalonMap.get(key) || 0) + 1);
+      }
+    }
+    // Sort first by type, then by size using the same logic
+    const pantalonEntries = Array.from(pantalonMap.entries());
+    pantalonEntries.sort((a, b) => {
+      const aParts = parseTypeAndSize(a[0]);
+      const bParts = parseTypeAndSize(b[0]);
+      // 1. sort by type
+      const typeCmp = aParts.type.localeCompare(bParts.type);
+      if (typeCmp !== 0) return typeCmp;
+      // 2. sort by size according to size order
+      const aSizeIdx = camisaSizeOrder.indexOf(aParts.size);
+      const bSizeIdx = camisaSizeOrder.indexOf(bParts.size);
+      if (aSizeIdx !== -1 && bSizeIdx !== -1) {
+        return aSizeIdx - bSizeIdx;
+      }
+      // fallback to string compare
+      return aParts.size.localeCompare(bParts.size, undefined, { numeric: true });
+    });
+
+    for (const [key, count] of pantalonEntries) {
+      if (count > 0) {
+        const { final } = computeFinalCount(count, 2);
+        itemCounts.push({ tipo_talla: key, cantidad: final });
+      }
+    }
+
+    // Table layout - full width
+    const xStart = 40;
+    const cantidadColWidth = 100;
+    const tipoTallaColWidth = doc.page.width - 80 - cantidadColWidth; // Full width minus margins (40+40) and cantidad
+    const headerHeight = 25;
+    const rowHeight = 20;
+
+    // Draw table header
+    doc.fontSize(11).font('Helvetica-Bold');
+    let x = xStart;
+
+    doc.rect(x, currentY, tipoTallaColWidth, headerHeight).stroke();
+    doc.text('TIPO/TALLA', x + 5, currentY + 7, {
+      width: tipoTallaColWidth - 10,
+      align: 'center',
+    });
+    x += tipoTallaColWidth;
+
+    doc.rect(x, currentY, cantidadColWidth, headerHeight).stroke();
+    doc.text('CANTIDAD', x + 5, currentY + 7, {
+      width: cantidadColWidth - 10,
+      align: 'center',
+    });
+
+    currentY += headerHeight;
+
+    // Draw data rows
+    doc.font('Helvetica').fontSize(10);
+    let totalPiezas = 0;
+
+    for (const item of itemCounts) {
+      x = xStart;
+
+      doc.rect(x, currentY, tipoTallaColWidth, rowHeight).stroke();
+      doc.text(item.tipo_talla, x + 5, currentY + 5, {
+        width: tipoTallaColWidth - 10,
+        align: 'center',
+      });
+      x += tipoTallaColWidth;
+
+      doc.rect(x, currentY, cantidadColWidth, rowHeight).stroke();
+      doc.text(item.cantidad.toString(), x + 5, currentY + 5, {
+        width: cantidadColWidth - 10,
+        align: 'center',
+      });
+
+      currentY += rowHeight;
+      totalPiezas += item.cantidad;
+
+      // Check if we need a new page
+      if (currentY > doc.page.height - 100) {
+        doc.addPage();
+        addLogoToPage(doc, doc.page.width);
+        doc.fontSize(14).font('Helvetica-Bold').text(title, { align: 'center' });
+        doc.moveDown(1);
+        doc
+          .fontSize(12)
+          .font('Helvetica-Bold')
+          .text(`${school.nombre_ce.toUpperCase()}`, { align: 'center' });
+        doc
+          .fontSize(12)
+          .font('Helvetica-Bold')
+          .text(`CODIGO: ${school.codigo_ce.toUpperCase()}`, { align: 'center' });
+        doc
+          .fontSize(12)
+          .font('Helvetica-Bold')
+          .text(
+            `DEPARTAMENTO: ${departamento.toUpperCase()} - DISTRITO: ${distrito.toUpperCase()}`,
+            { align: 'center' }
+          );
+        doc
+          .fontSize(12)
+          .font('Helvetica-Bold')
+          .text(`ZONA: ${zona.toUpperCase()}`, { align: 'center' });
+        doc.moveDown(1);
+        currentY = doc.y;
+        doc.font('Helvetica').fontSize(10);
+      }
+    }
+
+    // Footer with total
+    currentY += 10;
+    doc.font('Helvetica-Bold').fontSize(12);
+    doc.text(`TOTAL PIEZAS: ${totalPiezas}`, xStart, currentY, { align: 'left' });
+  }
+
+  doc.end();
+  return doc;
+}
+
+/**
+ * PDF 6: School Distribution Card - Zapatos (Ficha de Distribución por Escuela - Zapatos)
+ * Aggregates data from Zapatos into a vertical list
+ * One school per page, only showing items with count > 0
+ *
+ * NOTE: STRICT PAGINATION - ONE SCHOOL PER PAGE
+ */
+export function generateFichaZapatosPDF(options: AgreementReportOptions): PDFDocumentInstance {
+  const { students } = options;
+
+  const doc = new PDFDocument({
+    size: 'LETTER',
+    layout: 'portrait',
+    margins: { top: 40, bottom: 40, left: 40, right: 40 },
+  });
+
+  const title = `FICHA DE DISTRIBUCION POR ESCUELA (ZAPATOS)`;
 
   const schools = groupBySchool(students);
 
@@ -938,15 +1208,227 @@ export function generateFichaPDF(options: AgreementReportOptions): PDFDocumentIn
     doc.fontSize(14).font('Helvetica-Bold').text(title, { align: 'center' });
     doc.moveDown(1);
 
-    // Subtitle: School info
+    // Subtitle: School info (3 lines as per spec)
+    // Line 1: {nombre_ce} [CODIGO: {codigo_ce}]
     doc
       .fontSize(12)
       .font('Helvetica-Bold')
-      .text(`ESCUELA: ${school.nombre_ce.toUpperCase()}`, { align: 'center' });
+      .text(`${school.nombre_ce.toUpperCase()}`, { align: 'center' });
     doc
       .fontSize(12)
       .font('Helvetica-Bold')
       .text(`CODIGO: ${school.codigo_ce.toUpperCase()}`, { align: 'center' });
+
+    // Line 2: DEPARTAMENTO: {departamento} - DISTRITO: {distrito}
+    const departamento = school.departamento || 'N/A';
+    const distrito = school.distrito || 'N/A';
+    doc
+      .fontSize(12)
+      .font('Helvetica-Bold')
+      .text(`DEPARTAMENTO: ${departamento.toUpperCase()} - DISTRITO: ${distrito.toUpperCase()}`, {
+        align: 'center',
+      });
+
+    // Line 3: ZONA: {zona}
+    const zona = school.zona || 'N/A';
+    doc
+      .fontSize(12)
+      .font('Helvetica-Bold')
+      .text(`ZONA: ${zona.toUpperCase()}`, { align: 'center' });
+
+    doc.moveDown(1);
+
+    // Header text
+    doc
+      .fontSize(12)
+      .font('Helvetica')
+      .text('Detalle por tipo y talla (solo cantidades > 0)', { align: 'left' });
+
+    doc.moveDown(1);
+
+    let currentY = doc.y;
+
+    // Aggregate data from all sources
+    interface ItemCount {
+      tipo_talla: string;
+      cantidad: number;
+    }
+
+    const itemCounts: ItemCount[] = [];
+
+    // Source 1: Zapatos (sexo + zapato)
+    // Sort first by sexo (tipo), then by size (numeric)
+    const zapatoMap = new Map<string, number>();
+    for (const student of school.students) {
+      const sexo = student.sexo;
+      const size = student.zapato;
+      if (sexo && size) {
+        const key = `${sexo.toUpperCase()} - ${size}`;
+        zapatoMap.set(key, (zapatoMap.get(key) || 0) + 1);
+      }
+    }
+    // Sort first by tipo (sexo), then by size (numeric)
+    const zapatoEntries = Array.from(zapatoMap.entries());
+    zapatoEntries.sort((a, b) => {
+      // Parse tipo and size from "HOMBRE - 38" format
+      const [aTipo, aSize] = a[0].split('-').map(s => s.trim());
+      const [bTipo, bSize] = b[0].split('-').map(s => s.trim());
+
+      // 1. Sort by tipo (sexo)
+      const tipoCmp = aTipo.localeCompare(bTipo);
+      if (tipoCmp !== 0) return tipoCmp;
+
+      // 2. Sort by size numerically
+      const aSizeNum = parseInt(aSize, 10);
+      const bSizeNum = parseInt(bSize, 10);
+      return aSizeNum - bSizeNum;
+    });
+
+    for (const [key, count] of zapatoEntries) {
+      if (count > 0) {
+        const { final } = computeFinalCount(count, 1);
+        itemCounts.push({ tipo_talla: key, cantidad: final });
+      }
+    }
+
+    // Table layout - full width
+    const xStart = 40;
+    const cantidadColWidth = 100;
+    const tipoTallaColWidth = doc.page.width - 80 - cantidadColWidth; // Full width minus margins (40+40) and cantidad
+    const headerHeight = 25;
+    const rowHeight = 20;
+
+    // Draw table header
+    doc.fontSize(11).font('Helvetica-Bold');
+    let x = xStart;
+
+    doc.rect(x, currentY, tipoTallaColWidth, headerHeight).stroke();
+    doc.text('TIPO/TALLA', x + 5, currentY + 7, {
+      width: tipoTallaColWidth - 10,
+      align: 'center',
+    });
+    x += tipoTallaColWidth;
+
+    doc.rect(x, currentY, cantidadColWidth, headerHeight).stroke();
+    doc.text('CANTIDAD', x + 5, currentY + 7, {
+      width: cantidadColWidth - 10,
+      align: 'center',
+    });
+
+    currentY += headerHeight;
+
+    // Draw data rows
+    doc.font('Helvetica').fontSize(10);
+    let totalPiezas = 0;
+
+    for (const item of itemCounts) {
+      x = xStart;
+
+      doc.rect(x, currentY, tipoTallaColWidth, rowHeight).stroke();
+      doc.text(item.tipo_talla, x + 5, currentY + 5, {
+        width: tipoTallaColWidth - 10,
+        align: 'center',
+      });
+      x += tipoTallaColWidth;
+
+      doc.rect(x, currentY, cantidadColWidth, rowHeight).stroke();
+      doc.text(item.cantidad.toString(), x + 5, currentY + 5, {
+        width: cantidadColWidth - 10,
+        align: 'center',
+      });
+
+      currentY += rowHeight;
+      totalPiezas += item.cantidad;
+
+      // Check if we need a new page
+      if (currentY > doc.page.height - 100) {
+        doc.addPage();
+        addLogoToPage(doc, doc.page.width);
+        doc.fontSize(14).font('Helvetica-Bold').text(title, { align: 'center' });
+        doc.moveDown(1);
+        doc
+          .fontSize(12)
+          .font('Helvetica-Bold')
+          .text(`${school.nombre_ce.toUpperCase()} [CODIGO: ${school.codigo_ce.toUpperCase()}]`, {
+            align: 'center',
+          });
+        doc
+          .fontSize(12)
+          .font('Helvetica-Bold')
+          .text(
+            `DEPARTAMENTO: ${departamento.toUpperCase()} - DISTRITO: ${distrito.toUpperCase()}`,
+            { align: 'center' }
+          );
+        doc
+          .fontSize(12)
+          .font('Helvetica-Bold')
+          .text(`ZONA: ${zona.toUpperCase()}`, { align: 'center' });
+        doc.moveDown(1);
+        currentY = doc.y;
+        doc.font('Helvetica').fontSize(10);
+      }
+    }
+
+    // Footer with total
+    currentY += 10;
+    doc.font('Helvetica-Bold').fontSize(12);
+    doc.text(`TOTAL PIEZAS: ${totalPiezas}`, xStart, currentY, { align: 'left' });
+  }
+
+  doc.end();
+  return doc;
+}
+
+/**
+ * PDF 7: Day Distribution Card - Zapatos (Ficha de Distribución por Día - Zapatos)
+ * Aggregates data from Zapatos for each school on a given date
+ * Only showing items with count > 0
+ * One school per page
+ */
+export function generateDayZapatosPDF(options: AgreementReportOptions): PDFDocumentInstance {
+  const { fechaInicio, students } = options;
+
+  const doc = new PDFDocument({
+    size: 'LETTER',
+    layout: 'portrait',
+    margins: { top: 40, bottom: 40, left: 40, right: 40 },
+  });
+
+  const title = `FICHA DE DISTRIBUCION POR ESCUELA (ZAPATOS)`;
+  const formattedDate = formatDateForTitle(fechaInicio);
+
+  const schools = groupBySchool(students);
+
+  for (let s = 0; s < schools.length; s++) {
+    const school = schools[s];
+
+    // Start each school on a new page
+    if (s > 0) {
+      doc.addPage();
+    }
+
+    // Add logo to page
+    addLogoToPage(doc, doc.page.width);
+
+    // Title
+    doc.fontSize(14).font('Helvetica-Bold').text(title, { align: 'center' });
+    doc.moveDown(1);
+
+    // Subtitle: 3 lines - school name, CODIGO, FECHA
+    // Line 1: {nombre_ce}
+    doc
+      .fontSize(12)
+      .font('Helvetica-Bold')
+      .text(`${school.nombre_ce.toUpperCase()}`, { align: 'center' });
+
+    // Line 2: CODIGO: {codigo_ce}
+    doc
+      .fontSize(12)
+      .font('Helvetica-Bold')
+      .text(`CODIGO: ${school.codigo_ce.toUpperCase()}`, { align: 'center' });
+
+    // Line 3: FECHA: {fecha_inicio}
+    doc.fontSize(12).font('Helvetica-Bold').text(`FECHA: ${formattedDate}`, { align: 'center' });
     doc.moveDown(1);
 
     // Header text
@@ -966,51 +1448,23 @@ export function generateFichaPDF(options: AgreementReportOptions): PDFDocumentIn
 
     const itemCounts: ItemCount[] = [];
 
-    // Source 1: Camisas (tipo_camisa + camisa)
-    const camisaMap = new Map<string, number>();
-    for (const student of school.students) {
-      const tipo = student.tipo_de_camisa;
-      const size = student.camisa;
-      if (tipo && size) {
-        const key = `Camisa ${tipo} - ${size}`;
-        camisaMap.set(key, (camisaMap.get(key) || 0) + 1);
-      }
-    }
-    for (const [key, count] of camisaMap.entries()) {
-      if (count > 0) {
-        itemCounts.push({ tipo_talla: key, cantidad: count });
-      }
-    }
-
-    // Source 2: Pantalones/Faldas (t_pantalon_falda_short + pantalon_falda)
-    const pantalonMap = new Map<string, number>();
-    for (const student of school.students) {
-      const tipo = student.t_pantalon_falda_short;
-      const size = student.pantalon_falda;
-      if (tipo && size) {
-        const key = `${tipo} - ${size}`;
-        pantalonMap.set(key, (pantalonMap.get(key) || 0) + 1);
-      }
-    }
-    for (const [key, count] of pantalonMap.entries()) {
-      if (count > 0) {
-        itemCounts.push({ tipo_talla: key, cantidad: count });
-      }
-    }
-
-    // Source 3: Zapatos (sexo + zapato)
+    // Source 1: Zapatos (sexo + zapato) - aggregate for this school
+    // Sort by: alphabetic by sexo
     const zapatoMap = new Map<string, number>();
     for (const student of school.students) {
       const sexo = student.sexo;
       const size = student.zapato;
       if (sexo && size) {
-        const key = `${sexo} - ${size}`;
+        const key = `${sexo.toUpperCase()} - ${size}`;
         zapatoMap.set(key, (zapatoMap.get(key) || 0) + 1);
       }
     }
-    for (const [key, count] of zapatoMap.entries()) {
+    // Sort alphabetically and add to itemCounts (apply vacíos transformation: multiplier=1 for shoes)
+    const sortedZapatos = Array.from(zapatoMap.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+    for (const [key, count] of sortedZapatos) {
       if (count > 0) {
-        itemCounts.push({ tipo_talla: key, cantidad: count });
+        const { final } = computeFinalCount(count, 1);
+        itemCounts.push({ tipo_talla: key, cantidad: final });
       }
     }
 
@@ -1072,11 +1526,15 @@ export function generateFichaPDF(options: AgreementReportOptions): PDFDocumentIn
         doc
           .fontSize(12)
           .font('Helvetica-Bold')
-          .text(`ESCUELA: ${school.nombre_ce.toUpperCase()}`, { align: 'center' });
+          .text(`${school.nombre_ce.toUpperCase()}`, { align: 'center' });
         doc
           .fontSize(12)
           .font('Helvetica-Bold')
           .text(`CODIGO: ${school.codigo_ce.toUpperCase()}`, { align: 'center' });
+        doc
+          .fontSize(12)
+          .font('Helvetica-Bold')
+          .text(`FECHA: ${formattedDate}`, { align: 'center' });
         doc.moveDown(1);
         currentY = doc.y;
         doc.font('Helvetica').fontSize(10);
@@ -1091,4 +1549,206 @@ export function generateFichaPDF(options: AgreementReportOptions): PDFDocumentIn
 
   doc.end();
   return doc;
+}
+
+/**
+ * PDF 8: Day Distribution Card - Uniformes (Ficha de Distribución por Día - Uniformes)
+ * Aggregates data from Camisas and Pantalones for each school on a given date
+ * Only showing items with count > 0
+ * One school per page
+ */
+export function generateDayUniformesPDF(options: AgreementReportOptions): PDFDocumentInstance {
+  const { fechaInicio, students } = options;
+
+  const doc = new PDFDocument({
+    size: 'LETTER',
+    layout: 'portrait',
+    margins: { top: 40, bottom: 40, left: 40, right: 40 },
+  });
+
+  const title = `FICHA DE DISTRIBUCION POR ESCUELA (UNIFORMES)`;
+  const formattedDate = formatDateForTitle(fechaInicio);
+
+  const schools = groupBySchool(students);
+
+  for (let s = 0; s < schools.length; s++) {
+    const school = schools[s];
+
+    // Start each school on a new page
+    if (s > 0) {
+      doc.addPage();
+    }
+
+    // Add logo to page
+    addLogoToPage(doc, doc.page.width);
+
+    // Title
+    doc.fontSize(14).font('Helvetica-Bold').text(title, { align: 'center' });
+    doc.moveDown(1);
+
+    // Subtitle: 3 lines - school name, CODIGO, FECHA
+    // Line 1: {nombre_ce}
+    doc
+      .fontSize(12)
+      .font('Helvetica-Bold')
+      .text(`${school.nombre_ce.toUpperCase()}`, { align: 'center' });
+
+    // Line 2: CODIGO: {codigo_ce}
+    doc
+      .fontSize(12)
+      .font('Helvetica-Bold')
+      .text(`CODIGO: ${school.codigo_ce.toUpperCase()}`, { align: 'center' });
+
+    // Line 3: FECHA: {fecha_inicio}
+    doc.fontSize(12).font('Helvetica-Bold').text(`FECHA: ${formattedDate}`, { align: 'center' });
+    doc.moveDown(1);
+
+    // Header text
+    doc
+      .fontSize(12)
+      .font('Helvetica')
+      .text('Detalle por tipo y talla (solo cantidades > 0)', { align: 'left' });
+    doc.moveDown(1);
+
+    let currentY = doc.y;
+
+    // Aggregate data from all sources
+    interface ItemCount {
+      tipo_talla: string;
+      cantidad: number;
+    }
+
+    const itemCounts: ItemCount[] = [];
+
+    // Source 1: Camisas (tipo_camisa + camisa) - aggregate for this school
+    // Sort by: alphabetic by tipo_camisa
+    const camisaMap = new Map<string, number>();
+    for (const student of school.students) {
+      const tipo = student.tipo_de_camisa;
+      const size = student.camisa;
+      if (tipo && size) {
+        const key = `CAMISA ${tipo.toUpperCase()} - ${size}`;
+        camisaMap.set(key, (camisaMap.get(key) || 0) + 1);
+      }
+    }
+    // Sort alphabetically and add to itemCounts (apply vacíos transformation: multiplier=2 for clothing)
+    const sortedCamisas = Array.from(camisaMap.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+    for (const [key, count] of sortedCamisas) {
+      if (count > 0) {
+        const { final } = computeFinalCount(count, 2);
+        itemCounts.push({ tipo_talla: key, cantidad: final });
+      }
+    }
+
+    // Source 2: Pantalones/Faldas (t_pantalon_falda_short + pantalon_falda) - aggregate for this school
+    // Sort by: alphabetic by t_pantalon_falda_short
+    const pantalonMap = new Map<string, number>();
+    for (const student of school.students) {
+      const tipo = student.t_pantalon_falda_short;
+      const size = student.pantalon_falda;
+      if (tipo && size) {
+        const key = `${tipo.toUpperCase()} - ${size}`;
+        pantalonMap.set(key, (pantalonMap.get(key) || 0) + 1);
+      }
+    }
+    // Sort alphabetically and add to itemCounts (apply vacíos transformation: multiplier=2 for clothing)
+    const sortedPantalones = Array.from(pantalonMap.entries()).sort((a, b) =>
+      a[0].localeCompare(b[0])
+    );
+    for (const [key, count] of sortedPantalones) {
+      if (count > 0) {
+        const { final } = computeFinalCount(count, 2);
+        itemCounts.push({ tipo_talla: key, cantidad: final });
+      }
+    }
+
+    // Table layout
+    const xStart = 40;
+    const tipoTallaColWidth = 350;
+    const cantidadColWidth = 100;
+    const headerHeight = 25;
+    const rowHeight = 20;
+
+    // Draw table header
+    doc.fontSize(11).font('Helvetica-Bold');
+    let x = xStart;
+
+    doc.rect(x, currentY, tipoTallaColWidth, headerHeight).stroke();
+    doc.text('TIPO/TALLA', x + 5, currentY + 7, {
+      width: tipoTallaColWidth - 10,
+      align: 'left',
+    });
+    x += tipoTallaColWidth;
+
+    doc.rect(x, currentY, cantidadColWidth, headerHeight).stroke();
+    doc.text('CANTIDAD', x + 5, currentY + 7, {
+      width: cantidadColWidth - 10,
+      align: 'center',
+    });
+
+    currentY += headerHeight;
+
+    // Draw data rows
+    doc.font('Helvetica').fontSize(10);
+    let totalPiezas = 0;
+
+    for (const item of itemCounts) {
+      x = xStart;
+
+      doc.rect(x, currentY, tipoTallaColWidth, rowHeight).stroke();
+      doc.text(item.tipo_talla, x + 5, currentY + 5, {
+        width: tipoTallaColWidth - 10,
+        align: 'left',
+      });
+      x += tipoTallaColWidth;
+
+      doc.rect(x, currentY, cantidadColWidth, rowHeight).stroke();
+      doc.text(item.cantidad.toString(), x + 5, currentY + 5, {
+        width: cantidadColWidth - 10,
+        align: 'center',
+      });
+
+      currentY += rowHeight;
+      totalPiezas += item.cantidad;
+
+      // Check if we need a new page
+      if (currentY > doc.page.height - 100) {
+        doc.addPage();
+        addLogoToPage(doc, doc.page.width);
+        doc.fontSize(14).font('Helvetica-Bold').text(title, { align: 'center' });
+        doc.moveDown(1);
+        doc
+          .fontSize(12)
+          .font('Helvetica-Bold')
+          .text(`${school.nombre_ce.toUpperCase()}`, { align: 'center' });
+        doc
+          .fontSize(12)
+          .font('Helvetica-Bold')
+          .text(`CODIGO: ${school.codigo_ce.toUpperCase()}`, { align: 'center' });
+        doc
+          .fontSize(12)
+          .font('Helvetica-Bold')
+          .text(`FECHA: ${formattedDate}`, { align: 'center' });
+        doc.moveDown(1);
+        currentY = doc.y;
+        doc.font('Helvetica').fontSize(10);
+      }
+    }
+
+    // Footer with total
+    currentY += 10;
+    doc.font('Helvetica-Bold').fontSize(12);
+    doc.text(`TOTAL PIEZAS: ${totalPiezas}`, xStart, currentY, { align: 'left' });
+  }
+
+  doc.end();
+  return doc;
+}
+
+/**
+ * Legacy function - kept for backwards compatibility
+ * @deprecated Use generateFichaUniformesPDF or generateFichaZapatosPDF instead
+ */
+export function generateFichaPDF(options: AgreementReportOptions): PDFDocumentInstance {
+  return generateFichaUniformesPDF(options);
 }

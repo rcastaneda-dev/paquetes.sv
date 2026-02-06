@@ -9,7 +9,7 @@ export function Footer() {
         <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
           <div className="flex items-center gap-3">
             <Image
-              src="/goes_logo.png"
+              src="/goes_logo_2.png"
               alt="Gobierno de El Salvador"
               width={48}
               height={48}
