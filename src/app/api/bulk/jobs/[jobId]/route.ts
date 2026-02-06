@@ -47,12 +47,9 @@ export async function GET(request: NextRequest, { params }: { params: { jobId: s
 
     // Get progress stats using the appropriate RPC
     const progressRpc = isCategoryJob ? 'get_category_job_progress' : 'get_job_progress';
-    const { data: progressData, error: progressError } = await supabaseServer.rpc(
-      progressRpc,
-      {
-        p_job_id: jobId,
-      }
-    );
+    const { data: progressData, error: progressError } = await supabaseServer.rpc(progressRpc, {
+      p_job_id: jobId,
+    });
 
     if (progressError) {
       console.error('Error fetching progress:', progressError);

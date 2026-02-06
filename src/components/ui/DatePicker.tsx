@@ -207,7 +207,7 @@ export function DatePicker({
         <div
           role="dialog"
           aria-label="Seleccionar fecha"
-          className="absolute left-0 top-12 z-50 w-[320px] rounded-md border bg-popover p-3 text-popover-foreground shadow-md"
+          className="bg-popover text-popover-foreground absolute left-0 top-12 z-50 w-[320px] rounded-md border p-3 shadow-md"
         >
           <div className="mb-2 flex items-center justify-between">
             <button
@@ -295,4 +295,3 @@ export function DatePicker({
     </div>
   );
 }
-
