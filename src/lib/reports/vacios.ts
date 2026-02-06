@@ -83,15 +83,14 @@ export function transformSizeCounts(
 }
 
 /**
- * Fill interior gaps in a size distribution.
+ * Fill gaps in a size distribution.
  *
  * After computing final counts (base + vacíos), scan left→right.
- * Once at least one non-zero size has been seen, if the current size
- * has a final count of 0 and the NEXT size has a positive original count y,
- * assign ceilToEven(y / 2) as a buffer.
+ * If the current size has a final count of 0 and the NEXT size has a
+ * positive original count y, assign ceilToEven(y / 2) as a buffer.
  *
- * This ensures there are spare units for sizes that fall between
- * populated sizes in the distribution.
+ * This ensures there are spare units for sizes adjacent to populated sizes,
+ * including leading gaps before the first populated size.
  *
  * @param orderedSizes - Array of size strings in display order (e.g. ['T4', 'T6', ..., 'T2X'])
  * @param originalCounts - Map from size to original student count
@@ -103,8 +102,8 @@ export function transformSizeCounts(
  * const original = { 'T4': 0, 'T6': 10, 'T8': 0 };
  * const final = { 'T4': 0, 'T6': 24, 'T8': 0 };
  * const filled = fillSizeGaps(sizes, original, final);
- * // => { 'T4': 0, 'T6': 24, 'T8': 0 }
- * // T4 is not filled (before first non-zero)
+ * // => { 'T4': 20, 'T6': 24, 'T8': 0 }
+ * // T4 gets filled (ceilToEven(10/2) = 10, then base+vacios applied)
  * // T8 is not filled (next original is 0)
  */
 export function fillSizeGaps(
@@ -113,21 +112,21 @@ export function fillSizeGaps(
   finalCounts: Record<string, number>
 ): Record<string, number> {
   const result = { ...finalCounts };
-  let seenNonZero = false;
 
   for (let n = 0; n < orderedSizes.length - 1; n++) {
     const size = orderedSizes[n];
     const currentFinal = result[size] || 0;
 
+    // Skip if current already has a value
     if (currentFinal > 0) {
-      seenNonZero = true;
       continue;
     }
 
     const nextSize = orderedSizes[n + 1];
     const nextOriginal = originalCounts[nextSize] || 0;
 
-    if (seenNonZero && nextOriginal > 0) {
+    // Fill gap if next size has original count
+    if (nextOriginal > 0) {
       result[size] = ceilToEven(nextOriginal / 2);
     }
   }
