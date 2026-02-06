@@ -28,6 +28,7 @@ export default function JobDetailPage() {
   const [progress, setProgress] = useState<JobProgressType | null>(null);
   const [tasks, setTasks] = useState<TaskWithSchool[]>([]);
   const [isCategoryJob, setIsCategoryJob] = useState(false);
+  const [uniqueSchools, setUniqueSchools] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isCancelling, setIsCancelling] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
@@ -86,6 +87,7 @@ export default function JobDetailPage() {
       setProgress(data.progress);
       setTasks(data.tasks || []);
       setIsCategoryJob(data.isCategoryJob || false);
+      setUniqueSchools(data.uniqueSchools ?? 0);
     } catch (error) {
       console.error('Error fetching job details:', error);
     } finally {
@@ -370,10 +372,6 @@ export default function JobDetailPage() {
     }
   };
 
-  const handleSyncNow = async () => {
-    await fetchJobDetails();
-  };
-
   const handleDownloadTask = async (taskId: string, schoolName: string) => {
     try {
       setDownloadingTasks(prev => ({ ...prev, [taskId]: true }));
@@ -386,12 +384,14 @@ export default function JobDetailPage() {
         return;
       }
 
-      // Download the ZIP file
+      const contentType = response.headers.get('Content-Type') || '';
+      const ext = contentType.includes('application/pdf') ? '.pdf' : '.zip';
+
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${schoolName}.zip`;
+      a.download = `${schoolName}${ext}`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -469,21 +469,11 @@ export default function JobDetailPage() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
             <h1 className="text-2xl font-bold">Detalles del Trabajo</h1>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant="outline"
-                onClick={handleSyncNow}
-                disabled={isLoading}
-                className="whitespace-nowrap px-3 text-sm sm:px-4"
-              >
-                {isLoading ? 'Sincronizando...' : 'Sincronizar'}
+            <Link href="/bulk">
+              <Button variant="outline" className="whitespace-nowrap px-3 text-sm sm:px-4">
+                Volver a Trabajos
               </Button>
-              <Link href="/bulk">
-                <Button variant="outline" className="whitespace-nowrap px-3 text-sm sm:px-4">
-                  Volver a Trabajos
-                </Button>
-              </Link>
-            </div>
+            </Link>
           </div>
         </div>
       </header>
@@ -502,29 +492,39 @@ export default function JobDetailPage() {
                   </span>
                 </div>
               </div>
-              <div className="flex flex-wrap gap-2">
-                {(job.status === 'queued' || job.status === 'running') && (
-                  <Button
-                    variant="outline"
-                    onClick={handleCancelJob}
-                    disabled={isCancelling}
-                    className="whitespace-nowrap px-3 text-sm text-destructive hover:text-destructive sm:px-4"
-                  >
-                    {isCancelling ? 'Cancelando...' : 'Cancelar Trabajo'}
-                  </Button>
+              <div className="flex flex-col items-end gap-2">
+                {isCategoryJob && uniqueSchools > 0 && (
+                  <div className="flex items-center gap-2 rounded-lg border bg-muted/50 px-3 py-1.5">
+                    <span className="text-2xl font-bold text-primary">{uniqueSchools}</span>
+                    <span className="text-sm text-muted-foreground">
+                      {uniqueSchools === 1 ? 'Centro Escolar' : 'Centros Escolares'}
+                    </span>
+                  </div>
                 )}
-                {(job.status === 'failed' || job.status === 'complete') &&
-                  progress &&
-                  progress.failed_tasks > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {(job.status === 'queued' || job.status === 'running') && (
                     <Button
                       variant="outline"
-                      onClick={handleRetryFailed}
-                      disabled={isRetrying}
-                      className="whitespace-nowrap px-3 text-sm text-blue-600 hover:text-blue-700 sm:px-4 dark:text-blue-400 dark:hover:text-blue-300"
+                      onClick={handleCancelJob}
+                      disabled={isCancelling}
+                      className="whitespace-nowrap px-3 text-sm text-destructive hover:text-destructive sm:px-4"
                     >
-                      {isRetrying ? 'Reintentando...' : 'Reintentar Fallidos'}
+                      {isCancelling ? 'Cancelando...' : 'Cancelar Trabajo'}
                     </Button>
                   )}
+                  {(job.status === 'failed' || job.status === 'complete') &&
+                    progress &&
+                    progress.failed_tasks > 0 && (
+                      <Button
+                        variant="outline"
+                        onClick={handleRetryFailed}
+                        disabled={isRetrying}
+                        className="whitespace-nowrap px-3 text-sm text-blue-600 hover:text-blue-700 sm:px-4 dark:text-blue-400 dark:hover:text-blue-300"
+                      >
+                        {isRetrying ? 'Reintentando...' : 'Reintentar Fallidos'}
+                      </Button>
+                    )}
+                </div>
               </div>
             </div>
           </CardHeader>
@@ -609,11 +609,18 @@ export default function JobDetailPage() {
                 </div>
               )}
               <p className="text-sm text-muted-foreground">
-                Haz clic en una categoría para generar y descargar el archivo ZIP (toma alrededor
-                de 1-3 minutos)
+                Haz clic en una categoría para generar y descargar el archivo ZIP (toma alrededor de
+                1-3 minutos)
               </p>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {['estudiantes', 'camisa', 'prenda_inferior', 'zapatos', 'ficha_uniformes', 'ficha_zapatos'].map(category => {
+                {[
+                  'estudiantes',
+                  'camisa',
+                  'prenda_inferior',
+                  'zapatos',
+                  'ficha_uniformes',
+                  'ficha_zapatos',
+                ].map(category => {
                   const zipStatus = categoryZipStatuses[category];
                   const isLoading = loadingCategories[category];
 
@@ -696,25 +703,40 @@ export default function JobDetailPage() {
               </div>
             )}
 
-            {/* Status filter for category jobs */}
+            {/* Filters for category jobs */}
             {isCategoryJob && (
-              <div className="mb-4 flex gap-3">
-                <Select
-                  value={statusFilter}
-                  onChange={e => setStatusFilter(e.target.value)}
-                  className="w-48"
-                >
-                  <option value="">Todos los estados</option>
-                  <option value="pending">Pendiente</option>
-                  <option value="running">En Proceso</option>
-                  <option value="complete">Completo</option>
-                  <option value="failed">Fallido</option>
-                </Select>
-                {statusFilter && (
-                  <Button variant="outline" onClick={() => setStatusFilter('')}>
-                    Limpiar
-                  </Button>
-                )}
+              <div className="mb-4 flex flex-col gap-3">
+                <div className="flex gap-3">
+                  <Select
+                    value={statusFilter}
+                    onChange={e => setStatusFilter(e.target.value)}
+                    className="w-48"
+                  >
+                    <option value="">Todos los estados</option>
+                    <option value="pending">Pendiente</option>
+                    <option value="running">En Proceso</option>
+                    <option value="complete">Completo</option>
+                    <option value="failed">Fallido</option>
+                  </Select>
+                  {(statusFilter || searchQuery) && (
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setStatusFilter('');
+                        setSearchQuery('');
+                      }}
+                    >
+                      Limpiar
+                    </Button>
+                  )}
+                </div>
+                <Input
+                  type="text"
+                  placeholder="Buscar por código CE o nombre de centro escolar..."
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  className="w-full"
+                />
               </div>
             )}
 
@@ -727,9 +749,9 @@ export default function JobDetailPage() {
                 if (isCategoryJob) {
                   const categoryTask = task as TaskWithSchool & { category: string };
                   const categoryLabels: Record<string, string> = {
-                    estudiantes: 'Cajas (Estudiantes)',
+                    estudiantes: 'Cajas',
                     camisa: 'Camisas',
-                    prenda_inferior: 'Prenda Inferior (Pantalones/Falda/Short)',
+                    prenda_inferior: 'Prenda Inferior',
                     zapatos: 'Zapatos',
                     ficha_uniformes: 'Ficha Uniformes',
                     ficha_zapatos: 'Ficha Zapatos',
@@ -750,6 +772,7 @@ export default function JobDetailPage() {
                           >
                             {isDownloading && '⏬ '}
                             {categoryLabels[categoryTask.category] || categoryTask.category}
+                            {task.schools?.nombre_ce ? ` - ${task.schools.nombre_ce}` : ''}
                           </div>
                           <div className="mt-1 text-xs text-muted-foreground">
                             Fecha:{' '}

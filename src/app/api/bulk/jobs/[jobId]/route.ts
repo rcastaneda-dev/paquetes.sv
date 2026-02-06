@@ -60,11 +60,46 @@ export async function GET(request: NextRequest, { params }: { params: { jobId: s
 
     // For category jobs, fetch category tasks instead of school tasks
     if (isCategoryJob) {
+      // If searching, resolve matching school codes first
+      let categorySchoolCodes: string[] | null = null;
+      if (searchQuery) {
+        const { data: matchingSchools } = await supabaseServer
+          .from('schools')
+          .select('codigo_ce')
+          .or(`codigo_ce.ilike.%${searchQuery}%,nombre_ce.ilike.%${searchQuery}%`);
+
+        categorySchoolCodes = matchingSchools?.map(s => s.codigo_ce) || [];
+
+        if (categorySchoolCodes.length === 0) {
+          // Still need progress and uniqueSchools even when no search results
+          const { data: schoolRows } = await supabaseServer
+            .from('report_category_tasks')
+            .select('school_codigo_ce')
+            .eq('job_id', jobId)
+            .not('school_codigo_ce', 'is', null);
+
+          const uniqueSchools = new Set(schoolRows?.map(r => r.school_codigo_ce)).size;
+
+          return NextResponse.json({
+            job: job as ReportJob,
+            progress,
+            tasks: [],
+            isCategoryJob: true,
+            uniqueSchools,
+          });
+        }
+      }
+
       // Category jobs don't have school-level tasks, they have category-level tasks
       let categoryTasksQuery = supabaseServer
         .from('report_category_tasks')
-        .select('*')
+        .select('*, schools:school_codigo_ce(nombre_ce)')
         .eq('job_id', jobId);
+
+      // Apply school search filter
+      if (categorySchoolCodes && categorySchoolCodes.length > 0) {
+        categoryTasksQuery = categoryTasksQuery.in('school_codigo_ce', categorySchoolCodes);
+      }
 
       // Apply status filter if provided
       if (statusFilter) {
@@ -80,12 +115,22 @@ export async function GET(request: NextRequest, { params }: { params: { jobId: s
         return NextResponse.json({ error: categoryTasksError.message }, { status: 500 });
       }
 
+      // Count distinct schools being processed (from unfiltered tasks)
+      const { data: schoolRows } = await supabaseServer
+        .from('report_category_tasks')
+        .select('school_codigo_ce')
+        .eq('job_id', jobId)
+        .not('school_codigo_ce', 'is', null);
+
+      const uniqueSchools = new Set(schoolRows?.map(r => r.school_codigo_ce)).size;
+
       // Return category tasks (no school search for category reports)
       return NextResponse.json({
         job: job as ReportJob,
         progress,
         tasks: categoryTasks || [],
         isCategoryJob: true,
+        uniqueSchools,
       });
     }
 
