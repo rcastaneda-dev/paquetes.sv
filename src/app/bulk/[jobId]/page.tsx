@@ -441,7 +441,7 @@ export default function JobDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
+      <div className="flex flex-1 items-center justify-center bg-background">
         <div className="text-center">
           <div className="inline-block h-8 w-8 animate-spin rounded-full border-b-2 border-primary"></div>
           <p className="mt-4 text-muted-foreground">Cargando detalles del trabajo...</p>
@@ -452,7 +452,7 @@ export default function JobDetailPage() {
 
   if (!job) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
+      <div className="flex flex-1 items-center justify-center bg-background">
         <Card className="w-full max-w-md">
           <CardContent className="pt-6 text-center">
             <p className="mb-4 text-muted-foreground">Trabajo no encontrado</p>
@@ -464,7 +464,7 @@ export default function JobDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="flex-1 bg-background">
       <header className="border-b">
         <div className="container mx-auto px-4 py-4">
           <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">

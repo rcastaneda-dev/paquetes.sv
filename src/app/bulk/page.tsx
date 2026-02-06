@@ -134,7 +134,7 @@ export default function BulkReportsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="flex-1 bg-background">
       <header className="border-b">
         <div className="container mx-auto px-4 py-4">
           <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">

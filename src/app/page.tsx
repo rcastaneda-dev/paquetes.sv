@@ -219,7 +219,7 @@ export default function HomePage() {
   const showDebugButtons = process.env.NEXT_PUBLIC_ENABLE_DEBUG_BUTTONS === 'true';
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="flex-1 bg-background">
       <header className="border-b">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
