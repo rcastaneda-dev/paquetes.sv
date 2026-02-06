@@ -107,7 +107,9 @@ export function buildReportEtiquetasStorageKey(args: {
  * - camisa (Camisas)
  * - prenda_inferior (Pantalones/Falda/Short)
  * - zapatos (Zapatos)
- * - distribucion_por_escuela (Ficha)
+ * - ficha_uniformes (Ficha Uniformes)
+ * - ficha_zapatos (Ficha Zapatos)
+ * - distribucion_por_escuela (Ficha - legacy)
  *
  * @example
  * buildAgreementReportStorageKey({
@@ -126,6 +128,8 @@ export function buildAgreementReportStorageKey(args: {
     | 'camisa'
     | 'prenda_inferior'
     | 'zapatos'
+    | 'ficha_uniformes'
+    | 'ficha_zapatos'
     | 'distribucion_por_escuela';
   fileName: string;
 }): string {

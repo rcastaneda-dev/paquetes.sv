@@ -328,6 +328,8 @@ export default function JobDetailPage() {
       camisa: 'Camisas',
       prenda_inferior: 'Prenda Inferior',
       zapatos: 'Zapatos',
+      ficha_uniformes: 'Ficha Uniformes',
+      ficha_zapatos: 'Ficha Zapatos',
     };
     return labels[category] || category;
   };
@@ -610,8 +612,8 @@ export default function JobDetailPage() {
                 Haz clic en una categoría para generar y descargar el archivo ZIP (toma alrededor
                 de 1-3 minutos)
               </p>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                {['estudiantes', 'camisa', 'prenda_inferior', 'zapatos'].map(category => {
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {['estudiantes', 'camisa', 'prenda_inferior', 'zapatos', 'ficha_uniformes', 'ficha_zapatos'].map(category => {
                   const zipStatus = categoryZipStatuses[category];
                   const isLoading = loadingCategories[category];
 
@@ -729,6 +731,8 @@ export default function JobDetailPage() {
                     camisa: 'Camisas',
                     prenda_inferior: 'Prenda Inferior (Pantalones/Falda/Short)',
                     zapatos: 'Zapatos',
+                    ficha_uniformes: 'Ficha Uniformes',
+                    ficha_zapatos: 'Ficha Zapatos',
                   };
 
                   return (

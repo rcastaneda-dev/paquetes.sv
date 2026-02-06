@@ -6,13 +6,20 @@ import { createValidationErrorResponse } from '@/lib/validation/errors';
 import { env } from '@/lib/config/env';
 
 // Valid category values
-const categorySchema = z.enum(['estudiantes', 'camisa', 'prenda_inferior', 'zapatos']);
+const categorySchema = z.enum([
+  'estudiantes',
+  'camisa',
+  'prenda_inferior',
+  'zapatos',
+  'ficha_uniformes',
+  'ficha_zapatos',
+]);
 
 /**
  * Create a category ZIP generation job for a specific category.
  *
  * Query params:
- *   ?category=estudiantes|camisa|prenda_inferior|zapatos
+ *   ?category=estudiantes|camisa|prenda_inferior|zapatos|ficha_uniformes|ficha_zapatos
  *
  * Response:
  *   {

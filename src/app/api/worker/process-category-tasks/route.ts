@@ -6,6 +6,8 @@ import {
   generatePantalonesPDF,
   generateZapatosPDF,
   generateFichaPDF,
+  generateFichaUniformesPDF,
+  generateFichaZapatosPDF,
 } from '@/lib/pdf/generator';
 import { buildAgreementReportStorageKey } from '@/lib/storage/keys';
 import type { StudentQueryRow } from '@/types/database';
@@ -235,6 +237,14 @@ async function processCategoryTask(task: {
       case 'zapatos':
         pdfStream = generateZapatosPDF({ fechaInicio: fecha_inicio, students });
         fileName = 'detalle_zapatos.pdf';
+        break;
+      case 'ficha_uniformes':
+        pdfStream = generateFichaUniformesPDF({ fechaInicio: fecha_inicio, students });
+        fileName = 'ficha_uniformes.pdf';
+        break;
+      case 'ficha_zapatos':
+        pdfStream = generateFichaZapatosPDF({ fechaInicio: fecha_inicio, students });
+        fileName = 'ficha_zapatos.pdf';
         break;
       case 'distribucion_por_escuela':
         pdfStream = generateFichaPDF({ fechaInicio: fecha_inicio, students });
