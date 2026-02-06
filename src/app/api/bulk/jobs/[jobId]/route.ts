@@ -42,9 +42,13 @@ export async function GET(request: NextRequest, { params }: { params: { jobId: s
       return NextResponse.json({ error: 'Job not found' }, { status: 404 });
     }
 
-    // Get progress stats
+    // Determine if this is a category report job (has fecha_inicio in job_params)
+    const isCategoryJob = job.job_params && 'fecha_inicio' in job.job_params;
+
+    // Get progress stats using the appropriate RPC
+    const progressRpc = isCategoryJob ? 'get_category_job_progress' : 'get_job_progress';
     const { data: progressData, error: progressError } = await supabaseServer.rpc(
-      'get_job_progress',
+      progressRpc,
       {
         p_job_id: jobId,
       }
@@ -57,7 +61,38 @@ export async function GET(request: NextRequest, { params }: { params: { jobId: s
 
     const progress = progressData?.[0] as JobProgress;
 
-    // Get tasks with school information, search, and filters
+    // For category jobs, fetch category tasks instead of school tasks
+    if (isCategoryJob) {
+      // Category jobs don't have school-level tasks, they have category-level tasks
+      let categoryTasksQuery = supabaseServer
+        .from('report_category_tasks')
+        .select('*')
+        .eq('job_id', jobId);
+
+      // Apply status filter if provided
+      if (statusFilter) {
+        categoryTasksQuery = categoryTasksQuery.eq('status', statusFilter);
+      }
+
+      categoryTasksQuery = categoryTasksQuery.order('category', { ascending: true });
+
+      const { data: categoryTasks, error: categoryTasksError } = await categoryTasksQuery;
+
+      if (categoryTasksError) {
+        console.error('Error fetching category tasks:', categoryTasksError);
+        return NextResponse.json({ error: categoryTasksError.message }, { status: 500 });
+      }
+
+      // Return category tasks (no school search for category reports)
+      return NextResponse.json({
+        job: job as ReportJob,
+        progress,
+        tasks: categoryTasks || [],
+        isCategoryJob: true,
+      });
+    }
+
+    // Regular job flow: Get tasks with school information, search, and filters
     // If searching, we need to query schools first to get matching codes
     let schoolCodes: string[] | null = null;
     if (searchQuery) {

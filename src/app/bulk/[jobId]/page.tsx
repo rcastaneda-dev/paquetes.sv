@@ -27,6 +27,7 @@ export default function JobDetailPage() {
   const [job, setJob] = useState<ReportJob | null>(null);
   const [progress, setProgress] = useState<JobProgressType | null>(null);
   const [tasks, setTasks] = useState<TaskWithSchool[]>([]);
+  const [isCategoryJob, setIsCategoryJob] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isCancelling, setIsCancelling] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
@@ -68,6 +69,7 @@ export default function JobDetailPage() {
       setJob(data.job);
       setProgress(data.progress);
       setTasks(data.tasks || []);
+      setIsCategoryJob(data.isCategoryJob || false);
     } catch (error) {
       console.error('Error fetching job details:', error);
     } finally {
@@ -484,39 +486,107 @@ export default function JobDetailPage() {
                   className="w-full"
                 />
               </div>
-              <div className="w-full sm:w-48">
+                <div className="w-full sm:w-48">
+                  <Select
+                    value={statusFilter}
+                    onChange={e => setStatusFilter(e.target.value)}
+                    className="w-full"
+                  >
+                    <option value="">Todos los estados</option>
+                    <option value="pending">Pendiente</option>
+                    <option value="running">En Proceso</option>
+                    <option value="complete">Completo</option>
+                    <option value="failed">Fallido</option>
+                    <option value="cancelled">Cancelado</option>
+                  </Select>
+                </div>
+                {(searchQuery || statusFilter) && (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setSearchQuery('');
+                      setStatusFilter('');
+                    }}
+                    className="sm:w-auto"
+                  >
+                    Limpiar
+                  </Button>
+                )}
+              </div>
+            )}
+
+            {/* Status filter for category jobs */}
+            {isCategoryJob && statusFilter && (
+              <div className="mb-4 flex gap-3">
                 <Select
                   value={statusFilter}
                   onChange={e => setStatusFilter(e.target.value)}
-                  className="w-full"
+                  className="w-48"
                 >
                   <option value="">Todos los estados</option>
                   <option value="pending">Pendiente</option>
                   <option value="running">En Proceso</option>
                   <option value="complete">Completo</option>
                   <option value="failed">Fallido</option>
-                  <option value="cancelled">Cancelado</option>
                 </Select>
+                {statusFilter && (
+                  <Button variant="outline" onClick={() => setStatusFilter('')}>
+                    Limpiar
+                  </Button>
+                )}
               </div>
-              {(searchQuery || statusFilter) && (
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setSearchQuery('');
-                    setStatusFilter('');
-                  }}
-                  className="sm:w-auto"
-                >
-                  Limpiar
-                </Button>
-              )}
-            </div>
+            )}
 
             <div className="max-h-[600px] space-y-2 overflow-y-auto">
               {tasks.map(task => {
                 const isComplete = task.status === 'complete' && task.pdf_path;
                 const isDownloading = downloadingTasks[task.id];
 
+                // Category job task display
+                if (isCategoryJob) {
+                  const categoryTask = task as any; // Category tasks have different shape
+                  const categoryLabels: Record<string, string> = {
+                    estudiantes: 'Cajas (Estudiantes)',
+                    camisa: 'Camisas',
+                    prenda_inferior: 'Prenda Inferior (Pantalones/Falda/Short)',
+                    zapatos: 'Zapatos',
+                  };
+
+                  return (
+                    <div key={task.id} className="rounded-lg border p-3 text-sm">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div
+                            className={`font-medium ${isComplete ? 'cursor-pointer text-blue-600 hover:underline dark:text-blue-400' : ''} ${isDownloading ? 'opacity-50' : ''}`}
+                            onClick={() => {
+                              if (isComplete && !isDownloading) {
+                                handleDownloadTask(task.id, categoryTask.category);
+                              }
+                            }}
+                            title={
+                              isComplete ? 'Click para descargar PDF' : 'PDF no disponible'
+                            }
+                          >
+                            {isDownloading && '⏬ '}
+                            {categoryLabels[categoryTask.category] || categoryTask.category}
+                          </div>
+                          <div className="mt-1 text-xs text-muted-foreground">
+                            Fecha: {job?.job_params?.fecha_inicio || 'N/A'}
+                          </div>
+                          <div className="mt-1 text-xs text-muted-foreground">
+                            Actualizado: {new Date(task.updated_at).toLocaleString('es-SV')}
+                          </div>
+                          {task.error && (
+                            <div className="mt-1 text-xs text-destructive">Error: {task.error}</div>
+                          )}
+                        </div>
+                        <div>{getStatusBadge(task.status)}</div>
+                      </div>
+                    </div>
+                  );
+                }
+
+                // Regular school task display
                 return (
                   <div key={task.id} className="rounded-lg border p-3 text-sm">
                     <div className="flex items-start justify-between">

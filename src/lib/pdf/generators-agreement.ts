@@ -967,14 +967,6 @@ export function generateFichaUniformesPDF(options: AgreementReportOptions): PDFD
 
     doc.moveDown(1);
 
-    // Header text
-    doc
-      .fontSize(12)
-      .font('Helvetica')
-      .text('Detalle por tipo y talla (solo cantidades > 0)', { align: 'left' });
-
-    doc.moveDown(1);
-
     let currentY = doc.y;
 
     // Aggregate data from all sources
@@ -1238,14 +1230,6 @@ export function generateFichaZapatosPDF(options: AgreementReportOptions): PDFDoc
 
     doc.moveDown(1);
 
-    // Header text
-    doc
-      .fontSize(12)
-      .font('Helvetica')
-      .text('Detalle por tipo y talla (solo cantidades > 0)', { align: 'left' });
-
-    doc.moveDown(1);
-
     let currentY = doc.y;
 
     // Aggregate data from all sources
@@ -1431,13 +1415,6 @@ export function generateDayZapatosPDF(options: AgreementReportOptions): PDFDocum
     doc.fontSize(12).font('Helvetica-Bold').text(`FECHA: ${formattedDate}`, { align: 'center' });
     doc.moveDown(1);
 
-    // Header text
-    doc
-      .fontSize(12)
-      .font('Helvetica')
-      .text('Detalle por tipo y talla (solo cantidades > 0)', { align: 'left' });
-    doc.moveDown(1);
-
     let currentY = doc.y;
 
     // Aggregate data from all sources
@@ -1601,13 +1578,6 @@ export function generateDayUniformesPDF(options: AgreementReportOptions): PDFDoc
 
     // Line 3: FECHA: {fecha_inicio}
     doc.fontSize(12).font('Helvetica-Bold').text(`FECHA: ${formattedDate}`, { align: 'center' });
-    doc.moveDown(1);
-
-    // Header text
-    doc
-      .fontSize(12)
-      .font('Helvetica')
-      .text('Detalle por tipo y talla (solo cantidades > 0)', { align: 'left' });
     doc.moveDown(1);
 
     let currentY = doc.y;
