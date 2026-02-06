@@ -6,10 +6,6 @@ import {
   generatePantalonesPDF,
   generateZapatosPDF,
   generateFichaPDF,
-  generateFichaUniformesPDF,
-  generateFichaZapatosPDF,
-  generateDayZapatosPDF,
-  generateDayUniformesPDF,
 } from '@/lib/pdf/generator';
 import { buildAgreementReportStorageKey } from '@/lib/storage/keys';
 import type { StudentQueryRow } from '@/types/database';
@@ -219,7 +215,12 @@ async function processCategoryTask(task: {
     const storagePath = buildAgreementReportStorageKey({
       jobId: job_id,
       fechaInicio: fecha_inicio,
-      categoryFolder: category as 'estudiantes' | 'camisa' | 'prenda_inferior' | 'zapatos' | 'distribucion_por_escuela',
+      categoryFolder: category as
+        | 'estudiantes'
+        | 'camisa'
+        | 'prenda_inferior'
+        | 'zapatos'
+        | 'distribucion_por_escuela',
       fileName: fileName,
     });
 
@@ -279,9 +280,7 @@ async function fetchStudentsByFechaInicio(fechaInicio: string): Promise<StudentQ
     };
 
     // Try with p_fecha_inicio parameter first (new migration)
-    const args = useFechaInicioParam
-      ? { ...baseArgs, p_fecha_inicio: fechaInicio }
-      : baseArgs;
+    const args = useFechaInicioParam ? { ...baseArgs, p_fecha_inicio: fechaInicio } : baseArgs;
 
     let { data, error } = await supabaseServer.rpc('query_students', args);
 

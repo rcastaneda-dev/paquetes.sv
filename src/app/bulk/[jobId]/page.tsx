@@ -476,16 +476,17 @@ export default function JobDetailPage() {
           </CardHeader>
           <CardContent>
             {/* Search and Filter Controls */}
-            <div className="mb-4 flex flex-col gap-3 sm:flex-row">
-              <div className="flex-1">
-                <Input
-                  type="text"
-                  placeholder="Buscar por código CE o nombre..."
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  className="w-full"
-                />
-              </div>
+            {!isCategoryJob && (
+              <div className="mb-4 flex flex-col gap-3 sm:flex-row">
+                <div className="flex-1">
+                  <Input
+                    type="text"
+                    placeholder="Buscar por código CE o nombre..."
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    className="w-full"
+                  />
+                </div>
                 <div className="w-full sm:w-48">
                   <Select
                     value={statusFilter}
@@ -516,7 +517,7 @@ export default function JobDetailPage() {
             )}
 
             {/* Status filter for category jobs */}
-            {isCategoryJob && statusFilter && (
+            {isCategoryJob && (
               <div className="mb-4 flex gap-3">
                 <Select
                   value={statusFilter}
@@ -544,7 +545,7 @@ export default function JobDetailPage() {
 
                 // Category job task display
                 if (isCategoryJob) {
-                  const categoryTask = task as any; // Category tasks have different shape
+                  const categoryTask = task as TaskWithSchool & { category: string };
                   const categoryLabels: Record<string, string> = {
                     estudiantes: 'Cajas (Estudiantes)',
                     camisa: 'Camisas',
@@ -563,15 +564,26 @@ export default function JobDetailPage() {
                                 handleDownloadTask(task.id, categoryTask.category);
                               }
                             }}
-                            title={
-                              isComplete ? 'Click para descargar PDF' : 'PDF no disponible'
-                            }
+                            title={isComplete ? 'Click para descargar PDF' : 'PDF no disponible'}
                           >
                             {isDownloading && '⏬ '}
                             {categoryLabels[categoryTask.category] || categoryTask.category}
                           </div>
                           <div className="mt-1 text-xs text-muted-foreground">
-                            Fecha: {job?.job_params?.fecha_inicio || 'N/A'}
+                            Fecha:{' '}
+                            {(() => {
+                              if (
+                                job?.job_params &&
+                                typeof job.job_params === 'object' &&
+                                'fecha_inicio' in job.job_params &&
+                                typeof job.job_params.fecha_inicio === 'string'
+                              ) {
+                                return new Date(job.job_params.fecha_inicio).toLocaleDateString(
+                                  'es-SV'
+                                );
+                              }
+                              return 'N/A';
+                            })()}
                           </div>
                           <div className="mt-1 text-xs text-muted-foreground">
                             Actualizado: {new Date(task.updated_at).toLocaleString('es-SV')}

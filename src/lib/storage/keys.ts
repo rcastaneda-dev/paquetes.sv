@@ -121,7 +121,12 @@ export function buildReportEtiquetasStorageKey(args: {
 export function buildAgreementReportStorageKey(args: {
   jobId: string;
   fechaInicio: string; // YYYY-MM-DD format
-  categoryFolder: 'estudiantes' | 'camisa' | 'prenda_inferior' | 'zapatos' | 'distribucion_por_escuela';
+  categoryFolder:
+    | 'estudiantes'
+    | 'camisa'
+    | 'prenda_inferior'
+    | 'zapatos'
+    | 'distribucion_por_escuela';
   fileName: string;
 }): string {
   const { jobId, fechaInicio, categoryFolder, fileName } = args;
