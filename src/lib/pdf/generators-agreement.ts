@@ -1,310 +1,87 @@
 /**
- * PDF generators for the 4 agreement reports (Cajas, Camisas, Pantalones, Zapatos)
- * These reports group by school (codigo_ce) with pagination every 5 schools.
+ * PDF generators for the agreement reports (Cajas, Camisas, Pantalones, Zapatos, Fichas).
+ *
+ * The three "consolidated" generators (Cajas, FichaUniformes, FichaZapatos) delegate to
+ * reusable section renderers in ./agreement/sections.ts via buildConsolidatedPdf.
+ * Other generators retain their original implementation but use shared helpers.
  */
 import PDFDocument from 'pdfkit';
 import type { StudentQueryRow } from '@/types/database';
-import fs from 'fs';
-import path from 'path';
 import { computeFinalCount, fillSizeGaps } from '@/lib/reports/vacios';
+import { buildConsolidatedPdf } from './agreement/builders';
+import {
+  addLogoToPage,
+  formatDateForTitle,
+  groupBySchool,
+  drawSchoolHeaderBlock,
+} from './agreement/sections';
+import type { SchoolGroup } from './agreement/types';
 
-export type PDFDocumentInstance = InstanceType<typeof PDFDocument>;
+// Re-export for backward compatibility and external consumers
+export type { PDFDocumentInstance, SchoolGroup } from './agreement/types';
+export type { SchoolHeaderBlockOptions } from './agreement/sections';
+export {
+  addLogoToPage,
+  formatDateForTitle,
+  groupBySchool,
+  drawSchoolHeaderBlock,
+} from './agreement/sections';
+
+type PDFDocumentInstance = InstanceType<typeof PDFDocument>;
 
 interface AgreementReportOptions {
   fechaInicio: string; // YYYY-MM-DD format
   students: StudentQueryRow[];
 }
 
-/**
- * Helper: Add GOES logo to the top-right corner of the current page
- * Preserves the current Y position so it doesn't affect document flow
- */
-function addLogoToPage(doc: PDFDocumentInstance, pageWidth: number) {
-  const logoPath = path.join(process.cwd(), 'public', 'goes_logo_2.png');
-
-  // Check if logo exists
-  if (fs.existsSync(logoPath)) {
-    // Save current Y position to restore after adding logo
-    const savedY = doc.y;
-
-    const logoWidth = 50;
-    const logoHeight = 50;
-    const rightMargin = 40;
-    const topMargin = 20;
-    const logoX = pageWidth - logoWidth - rightMargin;
-    const logoY = topMargin;
-
-    doc.image(logoPath, logoX, logoY, {
-      width: logoWidth,
-      height: logoHeight,
-      fit: [logoWidth, logoHeight],
-      align: 'center',
-      valign: 'center',
-    });
-
-    // Restore Y position so logo doesn't affect subsequent content
-    doc.y = savedY;
-  }
-}
+// ─────────────────────────────────────────────────────────────────────────────
+// Consolidated generators (thin wrappers)
+// ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Helper: Format date from YYYY-MM-DD to DD-MM-YYYY for titles
- */
-function formatDateForTitle(isoDate: string): string {
-  const parts = isoDate.split('-');
-  if (parts.length === 3) {
-    return `${parts[2]}-${parts[1]}-${parts[0]}`;
-  }
-  return isoDate;
-}
-
-/**
- * Helper: Group students by school (codigo_ce)
- */
-interface SchoolGroup {
-  codigo_ce: string;
-  nombre_ce: string;
-  departamento: string;
-  distrito: string;
-  zona: string;
-  students: StudentQueryRow[];
-}
-
-function groupBySchool(students: StudentQueryRow[]): SchoolGroup[] {
-  const schoolMap = new Map<string, SchoolGroup>();
-
-  for (const student of students) {
-    const key = student.school_codigo_ce;
-    if (!schoolMap.has(key)) {
-      schoolMap.set(key, {
-        codigo_ce: student.school_codigo_ce,
-        nombre_ce: student.nombre_ce,
-        departamento: student.departamento,
-        distrito: student.distrito,
-        zona: student.zona,
-        students: [],
-      });
-    }
-    schoolMap.get(key)!.students.push(student);
-  }
-
-  return Array.from(schoolMap.values()).sort((a, b) => a.codigo_ce.localeCompare(b.codigo_ce));
-}
-
-/**
- * Helper: Draw a per-school header block with school name, CODIGO, DEPTO, DIST, ZONA
- * Format (centered):
- *   Line 1: {school_name}
- *   Line 2: CODIGO: {code}
- *   Line 3: DEPARTAMENTO: {department} - DISTRITO: {district}
- *   Line 4: ZONA: {zona}
- * All text is bold and capitalized
- * Returns the new Y position after the block
- */
-interface SchoolHeaderBlockOptions {
-  doc: PDFDocumentInstance;
-  xStart: number;
-  yStart: number;
-  availableWidth: number;
-  school: SchoolGroup;
-  fontSize: number;
-}
-
-function drawSchoolHeaderBlock(options: SchoolHeaderBlockOptions): number {
-  const { doc, school, fontSize } = options;
-
-  // Line 1: {school_name}
-  doc
-    .fontSize(fontSize)
-    .font('Helvetica-Bold')
-    .text(school.nombre_ce.toUpperCase(), { align: 'center' });
-
-  // Line 2: CODIGO: {code}
-  doc
-    .fontSize(fontSize)
-    .font('Helvetica-Bold')
-    .text(`CODIGO: ${school.codigo_ce.toUpperCase()}`, { align: 'center' });
-
-  // Line 3: DEPARTAMENTO: {department} - DISTRITO: {district}
-  const departamento = (school.departamento || 'N/A').toUpperCase();
-  const distrito = (school.distrito || 'N/A').toUpperCase();
-  doc
-    .fontSize(fontSize)
-    .font('Helvetica-Bold')
-    .text(`DEPARTAMENTO: ${departamento} - DISTRITO: ${distrito}`, { align: 'center' });
-
-  // Line 4: ZONA: {zona}
-  const zona = (school.zona || 'N/A').toUpperCase();
-  doc.fontSize(fontSize).font('Helvetica-Bold').text(`ZONA: ${zona}`, { align: 'center' });
-
-  const currentY = doc.y + 8; // Add spacing after header block
-
-  return currentY;
-}
-
-/**
- * PDF 1: Cajas Distribution Report
+ * PDF 1: Cajas Distribution Report – "DETALLE DE PROGRAMACIÓN DE CAJAS"
  * Grouping: By codigo_ce, then by grado_ok
- * Columns: No, Departamento, Distrito, Codigo_ce, Nombre_ce, Grado_ok, Cajas_Hombres, Cajas_Mujeres, Cajas_Totales
- *
- * NOTE: STRICT PAGINATION - ONE SCHOOL PER PAGE (hard page break after each school)
  */
 export function generateCajasPDF(options: AgreementReportOptions): PDFDocumentInstance {
-  const { fechaInicio, students } = options;
-
-  const doc = new PDFDocument({
-    size: 'LETTER',
-    layout: 'landscape',
-    margins: { top: 40, bottom: 40, left: 30, right: 30 },
+  return buildConsolidatedPdf({
+    fechaInicio: options.fechaInicio,
+    students: options.students,
+    section: 'cajas',
   });
-
-  const formattedDate = formatDateForTitle(fechaInicio);
-  const title = `DETALLE DE PROGRAMACIÓN DE CAJAS`;
-  const subtitle = `Fecha: ${formattedDate}`;
-
-  const schools = groupBySchool(students);
-
-  let rowIndex = 1;
-
-  for (let s = 0; s < schools.length; s++) {
-    const school = schools[s];
-
-    // Start each school on a new page
-    if (s > 0) {
-      doc.addPage();
-    }
-
-    // Add logo and title to page
-    addLogoToPage(doc, doc.page.width);
-    doc.fontSize(14).font('Helvetica-Bold').text(title, { align: 'center' });
-    doc.fontSize(14).font('Helvetica-Bold').text(subtitle, { align: 'center' });
-    doc.moveDown(2);
-
-    let currentY = doc.y;
-
-    // Group students by grado_ok
-    const gradeMap = new Map<string, { hombres: number; mujeres: number }>();
-    for (const student of school.students) {
-      const grade = student.grado_ok || student.grado || 'N/A';
-      if (!gradeMap.has(grade)) {
-        gradeMap.set(grade, { hombres: 0, mujeres: 0 });
-      }
-      const counts = gradeMap.get(grade)!;
-      if (student.sexo === 'Hombre') {
-        counts.hombres++;
-      } else if (student.sexo === 'Mujer') {
-        counts.mujeres++;
-      }
-    }
-
-    const grades = Array.from(gradeMap.keys()).sort();
-
-    // Draw table header
-    doc.fontSize(9).font('Helvetica-Bold');
-    const colWidths = [30, 90, 90, 60, 230, 80, 50, 50, 50];
-    const colHeaders = [
-      'NO',
-      'DEPARTAMENTO',
-      'DISTRITO',
-      'CODIGO_CE',
-      'NOMBRE_CE',
-      'GRADO',
-      'CAJAS HOMBRES',
-      'CAJAS MUJERES',
-      'CAJAS TOTALES',
-    ];
-
-    let x = 30;
-    const headerHeight = 25;
-    for (let i = 0; i < colHeaders.length; i++) {
-      doc.rect(x, currentY, colWidths[i], headerHeight).stroke();
-      doc.text(colHeaders[i], x + 2, currentY + 4, {
-        width: colWidths[i] - 4,
-        align: 'center',
-      });
-      x += colWidths[i];
-    }
-    currentY += headerHeight;
-
-    // Draw grade rows
-    doc.font('Helvetica').fontSize(8);
-    for (const grade of grades) {
-      const counts = gradeMap.get(grade)!;
-      const total = counts.hombres + counts.mujeres;
-
-      // Calculate dynamic row height based on school name
-      const nameHeight = doc.heightOfString(school.nombre_ce, {
-        width: colWidths[4] - 4,
-      });
-      const dynamicRowHeight = Math.max(25, nameHeight + 8);
-
-      x = 30;
-      const rowData = [
-        rowIndex.toString(),
-        school.departamento || '',
-        school.distrito || '',
-        school.codigo_ce,
-        school.nombre_ce,
-        grade,
-        Math.ceil(counts.hombres * 1.15).toString(),
-        Math.ceil(counts.mujeres * 1.15).toString(),
-        Math.ceil(total * 1.15).toString(),
-      ];
-
-      for (let i = 0; i < rowData.length; i++) {
-        doc.rect(x, currentY, colWidths[i], dynamicRowHeight).stroke();
-        doc.text(rowData[i], x + 2, currentY + 3, {
-          width: colWidths[i] - 4,
-          align: i === 4 ? 'left' : 'center',
-        });
-        x += colWidths[i];
-      }
-      currentY += dynamicRowHeight;
-      rowIndex++;
-    }
-
-    // School summary row
-    doc.font('Helvetica-Bold').fontSize(8);
-    const schoolTotalH = Array.from(gradeMap.values()).reduce((sum, c) => sum + c.hombres, 0);
-    const schoolTotalM = Array.from(gradeMap.values()).reduce((sum, c) => sum + c.mujeres, 0);
-    const schoolTotal = schoolTotalH + schoolTotalM;
-
-    const summaryRowHeight = 16;
-    x = 30;
-    const summaryData = [
-      '',
-      '',
-      '',
-      '',
-      'SUBTOTAL',
-      '',
-      Math.ceil(schoolTotalH * 1.15).toString(),
-      Math.ceil(schoolTotalM * 1.15).toString(),
-      Math.ceil(schoolTotal * 1.15).toString(),
-    ];
-
-    for (let i = 0; i < summaryData.length; i++) {
-      doc.rect(x, currentY, colWidths[i], summaryRowHeight).stroke();
-      doc.text(summaryData[i], x + 2, currentY + 3, {
-        width: colWidths[i] - 4,
-        align: i === 4 ? 'left' : 'center',
-      });
-      x += colWidths[i];
-    }
-    currentY += summaryRowHeight;
-    // No spacing needed - each school gets its own page
-  }
-
-  doc.end();
-  return doc;
 }
+
+/**
+ * PDF 5: School Distribution Card – Uniformes
+ * "FICHA DE DISTRIBUCION POR ESCUELA (UNIFORMES)"
+ */
+export function generateFichaUniformesPDF(options: AgreementReportOptions): PDFDocumentInstance {
+  return buildConsolidatedPdf({
+    fechaInicio: options.fechaInicio,
+    students: options.students,
+    section: 'ficha_uniformes',
+  });
+}
+
+/**
+ * PDF 6: School Distribution Card – Zapatos
+ * "FICHA DE DISTRIBUCION POR ESCUELA (ZAPATOS)"
+ */
+export function generateFichaZapatosPDF(options: AgreementReportOptions): PDFDocumentInstance {
+  return buildConsolidatedPdf({
+    fechaInicio: options.fechaInicio,
+    students: options.students,
+    section: 'ficha_zapatos',
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Non-consolidated generators (original implementations using shared helpers)
+// ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * PDF 2: Camisas Distribution Report
  * Grouping: By codigo_ce, then by tipo_camisa
- * Dynamic size columns: T4, T6, T8, T10, T12, T14, T16, T18, T20, T22, T1X, T2X
- *
- * NOTE: STRICT PAGINATION - ONE SCHOOL PER PAGE (hard page break after each school)
+ * Dynamic size columns: T4–T2X
  */
 export function generateCamisasPDF(options: AgreementReportOptions): PDFDocumentInstance {
   const { fechaInicio, students } = options;
@@ -323,28 +100,24 @@ export function generateCamisasPDF(options: AgreementReportOptions): PDFDocument
 
   const sizes = ['T4', 'T6', 'T8', 'T10', 'T12', 'T14', 'T16', 'T18', 'T20', 'T22', 'T1X', 'T2X'];
 
-  // Layout constants (larger fonts and widths)
   const xStart = 20;
-  const availableWidth = doc.page.width - 40; // 752pt
-  const headerFontSize = 11; // Table header font size
-  const bodyFontSize = 9; // Table body font size
-  const schoolHeaderFontSize = 12; // School header font size (per spec)
+  const availableWidth = doc.page.width - 40;
+  const headerFontSize = 11;
+  const bodyFontSize = 9;
+  const schoolHeaderFontSize = 12;
 
-  // New table structure: TIPO + 12 sizes + TOTAL
-  const sizeColWidth = 35; // increased from 25
-  const totalColWidth = 50; // increased from 30
-  const tipoColWidth = availableWidth - sizes.length * sizeColWidth - totalColWidth; // Dynamic width to use full horizontal space
-  const headerHeight = 28; // increased from 20
+  const sizeColWidth = 35;
+  const totalColWidth = 50;
+  const tipoColWidth = availableWidth - sizes.length * sizeColWidth - totalColWidth;
+  const headerHeight = 28;
 
   for (let s = 0; s < schools.length; s++) {
     const school = schools[s];
 
-    // Start each school on a new page
     if (s > 0) {
       doc.addPage();
     }
 
-    // Add logo and title to page
     addLogoToPage(doc, doc.page.width);
     doc.fontSize(14).font('Helvetica-Bold').text(title, { align: 'center' });
     doc.fontSize(14).font('Helvetica-Bold').text(subtitle, { align: 'center' });
@@ -352,7 +125,6 @@ export function generateCamisasPDF(options: AgreementReportOptions): PDFDocument
 
     let currentY = doc.y;
 
-    // Group by tipo_de_camisa and aggregate sizes
     const tipoMap = new Map<string, { [size: string]: number }>();
 
     for (const student of school.students) {
@@ -368,7 +140,6 @@ export function generateCamisasPDF(options: AgreementReportOptions): PDFDocument
 
     const tipos = Array.from(tipoMap.keys()).sort();
 
-    // Draw per-school header block
     currentY = drawSchoolHeaderBlock({
       doc,
       xStart,
@@ -378,11 +149,9 @@ export function generateCamisasPDF(options: AgreementReportOptions): PDFDocument
       fontSize: schoolHeaderFontSize,
     });
 
-    // Draw table header (TIPO + sizes + TOTAL)
     doc.fontSize(headerFontSize).font('Helvetica-Bold');
     let x = xStart;
 
-    // TIPO column
     doc.rect(x, currentY, tipoColWidth, headerHeight).stroke();
     doc.text('TIPO', x + 2, currentY + 8, {
       width: tipoColWidth - 4,
@@ -390,7 +159,6 @@ export function generateCamisasPDF(options: AgreementReportOptions): PDFDocument
     });
     x += tipoColWidth;
 
-    // Size columns
     for (const size of sizes) {
       doc.rect(x, currentY, sizeColWidth, headerHeight).stroke();
       doc.text(size, x + 2, currentY + 8, {
@@ -400,7 +168,6 @@ export function generateCamisasPDF(options: AgreementReportOptions): PDFDocument
       x += sizeColWidth;
     }
 
-    // Total column
     doc.rect(x, currentY, totalColWidth, headerHeight).stroke();
     doc.text('TOTAL', x + 2, currentY + 8, {
       width: totalColWidth - 4,
@@ -409,15 +176,11 @@ export function generateCamisasPDF(options: AgreementReportOptions): PDFDocument
 
     currentY += headerHeight;
 
-    // Draw tipo rows
     doc.font('Helvetica').fontSize(bodyFontSize);
 
-    // Pre-compute all tipo rows with gap-filling
     const tipoFinalCounts = new Map<string, Record<string, number>>();
     for (const tipo of tipos) {
       const sizeCounts = tipoMap.get(tipo)!;
-
-      // Step 1: compute finals per size
       const rowOriginals: Record<string, number> = {};
       const rowFinals: Record<string, number> = {};
       for (const size of sizes) {
@@ -425,26 +188,21 @@ export function generateCamisasPDF(options: AgreementReportOptions): PDFDocument
         rowOriginals[size] = orig;
         rowFinals[size] = computeFinalCount(orig, 2).final;
       }
-
-      // Step 2: fill interior gaps
       const filled = fillSizeGaps(sizes, rowOriginals, rowFinals);
       tipoFinalCounts.set(tipo, filled);
     }
 
-    // Draw rows using gap-filled values
     for (const tipo of tipos) {
       const filled = tipoFinalCounts.get(tipo)!;
       let rowTotal = 0;
 
-      // Calculate dynamic row height
       const tipoHeight = doc.heightOfString(tipo, {
         width: tipoColWidth - 4,
       });
-      const dynamicRowHeight = Math.max(20, tipoHeight + 8); // increased from 14
+      const dynamicRowHeight = Math.max(20, tipoHeight + 8);
 
       x = xStart;
 
-      // TIPO column
       doc.rect(x, currentY, tipoColWidth, dynamicRowHeight).stroke();
       doc.text(tipo, x + 2, currentY + 4, {
         width: tipoColWidth - 4,
@@ -452,7 +210,6 @@ export function generateCamisasPDF(options: AgreementReportOptions): PDFDocument
       });
       x += tipoColWidth;
 
-      // Size counts (using gap-filled values)
       for (const size of sizes) {
         const finalCount = filled[size] || 0;
         rowTotal += finalCount;
@@ -464,7 +221,6 @@ export function generateCamisasPDF(options: AgreementReportOptions): PDFDocument
         x += sizeColWidth;
       }
 
-      // Total
       doc.rect(x, currentY, totalColWidth, dynamicRowHeight).stroke();
       doc.text(rowTotal.toString(), x + 2, currentY + 4, {
         width: totalColWidth - 4,
@@ -474,9 +230,8 @@ export function generateCamisasPDF(options: AgreementReportOptions): PDFDocument
       currentY += dynamicRowHeight;
     }
 
-    // School summary row (SUBTOTAL in TIPO column)
     doc.font('Helvetica-Bold').fontSize(bodyFontSize);
-    const summaryRowHeight = 20; // increased from 14
+    const summaryRowHeight = 20;
     x = xStart;
 
     doc.rect(x, currentY, tipoColWidth, summaryRowHeight).stroke();
@@ -510,7 +265,6 @@ export function generateCamisasPDF(options: AgreementReportOptions): PDFDocument
     });
 
     currentY += summaryRowHeight;
-    // No spacing needed - each school gets its own page
   }
 
   doc.end();
@@ -519,11 +273,8 @@ export function generateCamisasPDF(options: AgreementReportOptions): PDFDocument
 
 /**
  * PDF 3: Pantalones/Falda/Short Distribution Report
- * Grouping: By codigo_ce, then by tipo_prenda (from t_pantalon_falda_short field)
- * Sizes: from pantalon_falda field
- * Dynamic size columns: T4, T6, T8, T10, T12, T14, T16, T18, T20, T22, T1X, T2X
- *
- * NOTE: STRICT PAGINATION - ONE SCHOOL PER PAGE (hard page break after each school)
+ * Grouping: By codigo_ce, then by tipo_prenda
+ * Dynamic size columns: T4–T2X
  */
 export function generatePantalonesPDF(options: AgreementReportOptions): PDFDocumentInstance {
   const { fechaInicio, students } = options;
@@ -542,28 +293,24 @@ export function generatePantalonesPDF(options: AgreementReportOptions): PDFDocum
 
   const sizes = ['T4', 'T6', 'T8', 'T10', 'T12', 'T14', 'T16', 'T18', 'T20', 'T22', 'T1X', 'T2X'];
 
-  // Layout constants (larger fonts and widths)
   const xStart = 20;
-  const availableWidth = doc.page.width - 40; // 752pt
-  const headerFontSize = 11; // Table header font size
-  const bodyFontSize = 9; // Table body font size
-  const schoolHeaderFontSize = 12; // School header font size (per spec)
+  const availableWidth = doc.page.width - 40;
+  const headerFontSize = 11;
+  const bodyFontSize = 9;
+  const schoolHeaderFontSize = 12;
 
-  // New table structure: TIPO PRENDA + 12 sizes + TOTAL
-  const sizeColWidth = 35; // increased from 25
-  const totalColWidth = 50; // increased from 30
-  const tipoPrendaColWidth = availableWidth - sizes.length * sizeColWidth - totalColWidth; // Dynamic width to use full horizontal space
-  const headerHeight = 28; // increased from 20
+  const sizeColWidth = 35;
+  const totalColWidth = 50;
+  const tipoPrendaColWidth = availableWidth - sizes.length * sizeColWidth - totalColWidth;
+  const headerHeight = 28;
 
   for (let s = 0; s < schools.length; s++) {
     const school = schools[s];
 
-    // Start each school on a new page
     if (s > 0) {
       doc.addPage();
     }
 
-    // Add logo and title to page
     addLogoToPage(doc, doc.page.width);
     doc.fontSize(14).font('Helvetica-Bold').text(title, { align: 'center' });
     doc.fontSize(14).font('Helvetica-Bold').text(subtitle, { align: 'center' });
@@ -571,7 +318,6 @@ export function generatePantalonesPDF(options: AgreementReportOptions): PDFDocum
 
     let currentY = doc.y;
 
-    // Group by tipo_prenda and aggregate sizes
     const tipoPrendMap = new Map<string, { [size: string]: number }>();
 
     for (const student of school.students) {
@@ -587,7 +333,6 @@ export function generatePantalonesPDF(options: AgreementReportOptions): PDFDocum
 
     const tipos = Array.from(tipoPrendMap.keys()).sort();
 
-    // Draw per-school header block
     currentY = drawSchoolHeaderBlock({
       doc,
       xStart,
@@ -597,11 +342,9 @@ export function generatePantalonesPDF(options: AgreementReportOptions): PDFDocum
       fontSize: schoolHeaderFontSize,
     });
 
-    // Draw table header (TIPO PRENDA + sizes + TOTAL)
     doc.fontSize(headerFontSize).font('Helvetica-Bold');
     let x = xStart;
 
-    // TIPO PRENDA column
     doc.rect(x, currentY, tipoPrendaColWidth, headerHeight).stroke();
     doc.text('TIPO PRENDA', x + 2, currentY + 8, {
       width: tipoPrendaColWidth - 4,
@@ -609,7 +352,6 @@ export function generatePantalonesPDF(options: AgreementReportOptions): PDFDocum
     });
     x += tipoPrendaColWidth;
 
-    // Size columns
     for (const size of sizes) {
       doc.rect(x, currentY, sizeColWidth, headerHeight).stroke();
       doc.text(size, x + 2, currentY + 8, {
@@ -619,7 +361,6 @@ export function generatePantalonesPDF(options: AgreementReportOptions): PDFDocum
       x += sizeColWidth;
     }
 
-    // Total column
     doc.rect(x, currentY, totalColWidth, headerHeight).stroke();
     doc.text('TOTAL', x + 2, currentY + 8, {
       width: totalColWidth - 4,
@@ -628,15 +369,11 @@ export function generatePantalonesPDF(options: AgreementReportOptions): PDFDocum
 
     currentY += headerHeight;
 
-    // Draw tipo rows
     doc.font('Helvetica').fontSize(bodyFontSize);
 
-    // Pre-compute all tipo rows with gap-filling
     const tipoPrendaFinalCounts = new Map<string, Record<string, number>>();
     for (const tipo of tipos) {
       const sizeCounts = tipoPrendMap.get(tipo)!;
-
-      // Step 1: compute finals per size
       const rowOriginals: Record<string, number> = {};
       const rowFinals: Record<string, number> = {};
       for (const size of sizes) {
@@ -644,26 +381,21 @@ export function generatePantalonesPDF(options: AgreementReportOptions): PDFDocum
         rowOriginals[size] = orig;
         rowFinals[size] = computeFinalCount(orig, 2).final;
       }
-
-      // Step 2: fill interior gaps
       const filled = fillSizeGaps(sizes, rowOriginals, rowFinals);
       tipoPrendaFinalCounts.set(tipo, filled);
     }
 
-    // Draw rows using gap-filled values
     for (const tipo of tipos) {
       const filled = tipoPrendaFinalCounts.get(tipo)!;
       let rowTotal = 0;
 
-      // Calculate dynamic row height
       const tipoHeight = doc.heightOfString(tipo, {
         width: tipoPrendaColWidth - 4,
       });
-      const dynamicRowHeight = Math.max(20, tipoHeight + 8); // increased from 14
+      const dynamicRowHeight = Math.max(20, tipoHeight + 8);
 
       x = xStart;
 
-      // TIPO PRENDA column
       doc.rect(x, currentY, tipoPrendaColWidth, dynamicRowHeight).stroke();
       doc.text(tipo, x + 2, currentY + 4, {
         width: tipoPrendaColWidth - 4,
@@ -671,7 +403,6 @@ export function generatePantalonesPDF(options: AgreementReportOptions): PDFDocum
       });
       x += tipoPrendaColWidth;
 
-      // Size counts (using gap-filled values)
       for (const size of sizes) {
         const finalCount = filled[size] || 0;
         rowTotal += finalCount;
@@ -683,7 +414,6 @@ export function generatePantalonesPDF(options: AgreementReportOptions): PDFDocum
         x += sizeColWidth;
       }
 
-      // Total
       doc.rect(x, currentY, totalColWidth, dynamicRowHeight).stroke();
       doc.text(rowTotal.toString(), x + 2, currentY + 4, {
         width: totalColWidth - 4,
@@ -693,9 +423,8 @@ export function generatePantalonesPDF(options: AgreementReportOptions): PDFDocum
       currentY += dynamicRowHeight;
     }
 
-    // School summary row (SUBTOTAL in TIPO PRENDA column)
     doc.font('Helvetica-Bold').fontSize(bodyFontSize);
-    const summaryRowHeight = 20; // increased from 14
+    const summaryRowHeight = 20;
     x = xStart;
 
     doc.rect(x, currentY, tipoPrendaColWidth, summaryRowHeight).stroke();
@@ -729,7 +458,6 @@ export function generatePantalonesPDF(options: AgreementReportOptions): PDFDocum
     });
 
     currentY += summaryRowHeight;
-    // No spacing needed - each school gets its own page
   }
 
   doc.end();
@@ -739,9 +467,7 @@ export function generatePantalonesPDF(options: AgreementReportOptions): PDFDocum
 /**
  * PDF 4: Zapatos Distribution Report
  * Grouping: By codigo_ce, then by sexo
- * Dynamic size columns: 23-45
- *
- * NOTE: STRICT PAGINATION - ONE SCHOOL PER PAGE (hard page break after each school)
+ * Dynamic size columns: 23–45
  */
 export function generateZapatosPDF(options: AgreementReportOptions): PDFDocumentInstance {
   const { fechaInicio, students } = options;
@@ -758,34 +484,29 @@ export function generateZapatosPDF(options: AgreementReportOptions): PDFDocument
 
   const schools = groupBySchool(students);
 
-  // Shoe sizes: 23-45
   const sizes: string[] = [];
   for (let i = 23; i <= 45; i++) {
     sizes.push(i.toString());
   }
 
-  // Layout constants (larger fonts and widths)
   const xStart = 15;
-  const availableWidth = doc.page.width - 30; // 762pt
-  const headerFontSize = 10; // Table header font size
-  const bodyFontSize = 8; // Table body font size
-  const schoolHeaderFontSize = 12; // School header font size (per spec)
+  const availableWidth = doc.page.width - 30;
+  const headerFontSize = 10;
+  const bodyFontSize = 8;
+  const schoolHeaderFontSize = 12;
 
-  // New table structure: SEXO + 23 sizes + TOTAL
-  const sizeColWidth = 25; // increased from 18
-  const totalColWidth = 40; // increased from 25
-  const sexoColWidth = availableWidth - sizes.length * sizeColWidth - totalColWidth; // Dynamic width to use full horizontal space
-  const headerHeight = 26; // increased from 20
+  const sizeColWidth = 25;
+  const totalColWidth = 40;
+  const sexoColWidth = availableWidth - sizes.length * sizeColWidth - totalColWidth;
+  const headerHeight = 26;
 
   for (let s = 0; s < schools.length; s++) {
     const school = schools[s];
 
-    // Start each school on a new page
     if (s > 0) {
       doc.addPage();
     }
 
-    // Add logo and title to page
     addLogoToPage(doc, doc.page.width);
     doc.fontSize(14).font('Helvetica-Bold').text(title, { align: 'center' });
     doc.fontSize(14).font('Helvetica-Bold').text(subtitle, { align: 'center' });
@@ -793,7 +514,6 @@ export function generateZapatosPDF(options: AgreementReportOptions): PDFDocument
 
     let currentY = doc.y;
 
-    // Group by sexo and aggregate shoe sizes
     const sexoMap = new Map<string, { [size: string]: number }>();
 
     for (const student of school.students) {
@@ -809,7 +529,6 @@ export function generateZapatosPDF(options: AgreementReportOptions): PDFDocument
 
     const sexos = Array.from(sexoMap.keys()).sort();
 
-    // Draw per-school header block
     currentY = drawSchoolHeaderBlock({
       doc,
       xStart,
@@ -819,11 +538,9 @@ export function generateZapatosPDF(options: AgreementReportOptions): PDFDocument
       fontSize: schoolHeaderFontSize,
     });
 
-    // Draw table header (SEXO + sizes + TOTAL)
     doc.fontSize(headerFontSize).font('Helvetica-Bold');
     let x = xStart;
 
-    // SEXO column
     doc.rect(x, currentY, sexoColWidth, headerHeight).stroke();
     doc.text('SEXO', x + 2, currentY + 8, {
       width: sexoColWidth - 4,
@@ -831,7 +548,6 @@ export function generateZapatosPDF(options: AgreementReportOptions): PDFDocument
     });
     x += sexoColWidth;
 
-    // Size columns (23-45)
     for (const size of sizes) {
       doc.rect(x, currentY, sizeColWidth, headerHeight).stroke();
       doc.text(size, x + 2, currentY + 8, {
@@ -841,7 +557,6 @@ export function generateZapatosPDF(options: AgreementReportOptions): PDFDocument
       x += sizeColWidth;
     }
 
-    // Total column
     doc.rect(x, currentY, totalColWidth, headerHeight).stroke();
     doc.text('TOTAL', x + 2, currentY + 8, {
       width: totalColWidth - 4,
@@ -850,15 +565,11 @@ export function generateZapatosPDF(options: AgreementReportOptions): PDFDocument
 
     currentY += headerHeight;
 
-    // Draw sexo rows
     doc.font('Helvetica').fontSize(bodyFontSize);
 
-    // Pre-compute all sexo rows with gap-filling
     const sexoFinalCounts = new Map<string, Record<string, number>>();
     for (const sexo of sexos) {
       const sizeCounts = sexoMap.get(sexo)!;
-
-      // Step 1: compute finals per size
       const rowOriginals: Record<string, number> = {};
       const rowFinals: Record<string, number> = {};
       for (const size of sizes) {
@@ -866,26 +577,21 @@ export function generateZapatosPDF(options: AgreementReportOptions): PDFDocument
         rowOriginals[size] = orig;
         rowFinals[size] = computeFinalCount(orig, 1).final;
       }
-
-      // Step 2: fill interior gaps
       const filled = fillSizeGaps(sizes, rowOriginals, rowFinals);
       sexoFinalCounts.set(sexo, filled);
     }
 
-    // Draw rows using gap-filled values
     for (const sexo of sexos) {
       const filled = sexoFinalCounts.get(sexo)!;
       let rowTotal = 0;
 
-      // Calculate dynamic row height
       const sexoHeight = doc.heightOfString(sexo, {
         width: sexoColWidth - 4,
       });
-      const dynamicRowHeight = Math.max(18, sexoHeight + 8); // increased from 12
+      const dynamicRowHeight = Math.max(18, sexoHeight + 8);
 
       x = xStart;
 
-      // SEXO column
       doc.rect(x, currentY, sexoColWidth, dynamicRowHeight).stroke();
       doc.text(sexo.toUpperCase(), x + 2, currentY + 4, {
         width: sexoColWidth - 4,
@@ -893,7 +599,6 @@ export function generateZapatosPDF(options: AgreementReportOptions): PDFDocument
       });
       x += sexoColWidth;
 
-      // Size counts (using gap-filled values)
       for (const size of sizes) {
         const finalCount = filled[size] || 0;
         rowTotal += finalCount;
@@ -905,7 +610,6 @@ export function generateZapatosPDF(options: AgreementReportOptions): PDFDocument
         x += sizeColWidth;
       }
 
-      // Total
       doc.rect(x, currentY, totalColWidth, dynamicRowHeight).stroke();
       doc.text(rowTotal.toString(), x + 2, currentY + 4, {
         width: totalColWidth - 4,
@@ -915,9 +619,8 @@ export function generateZapatosPDF(options: AgreementReportOptions): PDFDocument
       currentY += dynamicRowHeight;
     }
 
-    // School summary row (SUBTOTAL in SEXO column)
     doc.font('Helvetica-Bold').fontSize(bodyFontSize);
-    const summaryRowHeight = 18; // increased from 12
+    const summaryRowHeight = 18;
     x = xStart;
 
     doc.rect(x, currentY, sexoColWidth, summaryRowHeight).stroke();
@@ -951,7 +654,6 @@ export function generateZapatosPDF(options: AgreementReportOptions): PDFDocument
     });
 
     currentY += summaryRowHeight;
-    // No spacing needed - each school gets its own page
   }
 
   doc.end();
@@ -959,484 +661,8 @@ export function generateZapatosPDF(options: AgreementReportOptions): PDFDocument
 }
 
 /**
- * PDF 5: School Distribution Card - Uniformes (Ficha de Distribución por Escuela - Uniformes)
- * Aggregates data from Camisas and Pantalones into a vertical list
- * One school per page, only showing items with count > 0
- *
- * NOTE: STRICT PAGINATION - ONE SCHOOL PER PAGE
- */
-export function generateFichaUniformesPDF(options: AgreementReportOptions): PDFDocumentInstance {
-  const { students } = options;
-
-  const doc = new PDFDocument({
-    size: 'LETTER',
-    layout: 'portrait',
-    margins: { top: 40, bottom: 40, left: 40, right: 40 },
-  });
-
-  const title = `FICHA DE DISTRIBUCION POR ESCUELA (UNIFORMES)`;
-
-  const schools = groupBySchool(students);
-
-  for (let s = 0; s < schools.length; s++) {
-    const school = schools[s];
-
-    // Start each school on a new page
-    if (s > 0) {
-      doc.addPage();
-    }
-
-    // Add logo to page
-    addLogoToPage(doc, doc.page.width);
-
-    // Title
-    doc.fontSize(14).font('Helvetica-Bold').text(title, { align: 'center' });
-    doc.moveDown(2);
-
-    // Subtitle: School info (3 lines as per spec)
-    // Line 1: {nombre_ce} [CODIGO: {codigo_ce}]
-    doc.fontSize(12).font('Helvetica-Bold').text(`${school.nombre_ce.toUpperCase()}`, {
-      align: 'center',
-    });
-    doc.fontSize(12).font('Helvetica-Bold').text(`CODIGO: ${school.codigo_ce.toUpperCase()}`, {
-      align: 'center',
-    });
-
-    // Line 2: DEPARTAMENTO: {departamento} - DISTRITO: {distrito}
-    const departamento = school.departamento || 'N/A';
-    const distrito = school.distrito || 'N/A';
-    doc
-      .fontSize(12)
-      .font('Helvetica-Bold')
-      .text(`DEPARTAMENTO: ${departamento.toUpperCase()} - DISTRITO: ${distrito.toUpperCase()}`, {
-        align: 'center',
-      });
-
-    // Line 3: ZONA: {zona}
-    const zona = school.zona || 'N/A';
-    doc
-      .fontSize(12)
-      .font('Helvetica-Bold')
-      .text(`ZONA: ${zona.toUpperCase()}`, { align: 'center' });
-
-    doc.moveDown(1);
-
-    let currentY = doc.y;
-
-    // Aggregate data from all sources
-    interface ItemCount {
-      tipo_talla: string;
-      cantidad: number;
-    }
-
-    const itemCounts: ItemCount[] = [];
-
-    // Source 1: Camisas (tipo_camisa + camisa)
-    // Group by tipo, apply gap-filling per tipo, then flatten
-    const camisaSizeOrder = [
-      'T4',
-      'T6',
-      'T8',
-      'T10',
-      'T12',
-      'T14',
-      'T16',
-      'T18',
-      'T20',
-      'T22',
-      'T1X',
-      'T2X',
-    ];
-
-    // Group by tipo
-    const camisaTipoMap = new Map<string, Map<string, number>>();
-    for (const student of school.students) {
-      const tipo = student.tipo_de_camisa;
-      const size = student.camisa;
-      if (tipo && size) {
-        const tipoKey = `CAMISA ${tipo.toUpperCase()}`;
-        if (!camisaTipoMap.has(tipoKey)) {
-          camisaTipoMap.set(tipoKey, new Map());
-        }
-        const sizeMap = camisaTipoMap.get(tipoKey)!;
-        sizeMap.set(size, (sizeMap.get(size) || 0) + 1);
-      }
-    }
-
-    // Apply gap-filling per tipo and collect results
-    const camisaTypes = Array.from(camisaTipoMap.keys()).sort();
-    for (const tipoKey of camisaTypes) {
-      const sizeMap = camisaTipoMap.get(tipoKey)!;
-
-      // Compute finals per size
-      const rowOriginals: Record<string, number> = {};
-      const rowFinals: Record<string, number> = {};
-      for (const size of camisaSizeOrder) {
-        const orig = sizeMap.get(size) || 0;
-        rowOriginals[size] = orig;
-        rowFinals[size] = computeFinalCount(orig, 2).final;
-      }
-
-      // Apply gap-filling
-      const filled = fillSizeGaps(camisaSizeOrder, rowOriginals, rowFinals);
-
-      // Add to itemCounts (only non-zero)
-      for (const size of camisaSizeOrder) {
-        const finalCount = filled[size] || 0;
-        if (finalCount > 0) {
-          itemCounts.push({ tipo_talla: `${tipoKey} - ${size}`, cantidad: finalCount });
-        }
-      }
-    }
-
-    // Source 2: Pantalones/Faldas (t_pantalon_falda_short + pantalon_falda)
-    // Group by tipo, apply gap-filling per tipo, then flatten
-    const pantalonTipoMap = new Map<string, Map<string, number>>();
-    for (const student of school.students) {
-      const tipo = student.t_pantalon_falda_short;
-      const size = student.pantalon_falda;
-      if (tipo && size) {
-        const tipoKey = tipo.toUpperCase();
-        if (!pantalonTipoMap.has(tipoKey)) {
-          pantalonTipoMap.set(tipoKey, new Map());
-        }
-        const sizeMap = pantalonTipoMap.get(tipoKey)!;
-        sizeMap.set(size, (sizeMap.get(size) || 0) + 1);
-      }
-    }
-
-    // Apply gap-filling per tipo and collect results
-    const pantalonTypes = Array.from(pantalonTipoMap.keys()).sort();
-    for (const tipoKey of pantalonTypes) {
-      const sizeMap = pantalonTipoMap.get(tipoKey)!;
-
-      // Compute finals per size
-      const rowOriginals: Record<string, number> = {};
-      const rowFinals: Record<string, number> = {};
-      for (const size of camisaSizeOrder) {
-        const orig = sizeMap.get(size) || 0;
-        rowOriginals[size] = orig;
-        rowFinals[size] = computeFinalCount(orig, 2).final;
-      }
-
-      // Apply gap-filling
-      const filled = fillSizeGaps(camisaSizeOrder, rowOriginals, rowFinals);
-
-      // Add to itemCounts (only non-zero)
-      for (const size of camisaSizeOrder) {
-        const finalCount = filled[size] || 0;
-        if (finalCount > 0) {
-          itemCounts.push({ tipo_talla: `${tipoKey} - ${size}`, cantidad: finalCount });
-        }
-      }
-    }
-
-    // Table layout - full width
-    const xStart = 40;
-    const cantidadColWidth = 100;
-    const tipoTallaColWidth = doc.page.width - 80 - cantidadColWidth; // Full width minus margins (40+40) and cantidad
-    const headerHeight = 25;
-    const rowHeight = 20;
-
-    // Draw table header
-    doc.fontSize(11).font('Helvetica-Bold');
-    let x = xStart;
-
-    doc.rect(x, currentY, tipoTallaColWidth, headerHeight).stroke();
-    doc.text('TIPO/TALLA', x + 5, currentY + 7, {
-      width: tipoTallaColWidth - 10,
-      align: 'center',
-    });
-    x += tipoTallaColWidth;
-
-    doc.rect(x, currentY, cantidadColWidth, headerHeight).stroke();
-    doc.text('CANTIDAD', x + 5, currentY + 7, {
-      width: cantidadColWidth - 10,
-      align: 'center',
-    });
-
-    currentY += headerHeight;
-
-    // Draw data rows
-    doc.font('Helvetica').fontSize(10);
-    let totalPiezas = 0;
-
-    for (const item of itemCounts) {
-      x = xStart;
-
-      doc.rect(x, currentY, tipoTallaColWidth, rowHeight).stroke();
-      doc.text(item.tipo_talla, x + 5, currentY + 5, {
-        width: tipoTallaColWidth - 10,
-        align: 'center',
-      });
-      x += tipoTallaColWidth;
-
-      doc.rect(x, currentY, cantidadColWidth, rowHeight).stroke();
-      doc.text(item.cantidad.toString(), x + 5, currentY + 5, {
-        width: cantidadColWidth - 10,
-        align: 'center',
-      });
-
-      currentY += rowHeight;
-      totalPiezas += item.cantidad;
-
-      // Check if we need a new page
-      if (currentY > doc.page.height - 100) {
-        doc.addPage();
-        addLogoToPage(doc, doc.page.width);
-        doc.fontSize(14).font('Helvetica-Bold').text(title, { align: 'center' });
-        doc.moveDown(1);
-        doc
-          .fontSize(12)
-          .font('Helvetica-Bold')
-          .text(`${school.nombre_ce.toUpperCase()}`, { align: 'center' });
-        doc
-          .fontSize(12)
-          .font('Helvetica-Bold')
-          .text(`CODIGO: ${school.codigo_ce.toUpperCase()}`, { align: 'center' });
-        doc
-          .fontSize(12)
-          .font('Helvetica-Bold')
-          .text(
-            `DEPARTAMENTO: ${departamento.toUpperCase()} - DISTRITO: ${distrito.toUpperCase()}`,
-            { align: 'center' }
-          );
-        doc
-          .fontSize(12)
-          .font('Helvetica-Bold')
-          .text(`ZONA: ${zona.toUpperCase()}`, { align: 'center' });
-        doc.moveDown(1);
-        currentY = doc.y;
-        doc.font('Helvetica').fontSize(10);
-      }
-    }
-
-    // Footer with total
-    currentY += 10;
-    doc.font('Helvetica-Bold').fontSize(12);
-    doc.text(`TOTAL PIEZAS: ${totalPiezas}`, xStart, currentY, { align: 'left' });
-  }
-
-  doc.end();
-  return doc;
-}
-
-/**
- * PDF 6: School Distribution Card - Zapatos (Ficha de Distribución por Escuela - Zapatos)
- * Aggregates data from Zapatos into a vertical list
- * One school per page, only showing items with count > 0
- *
- * NOTE: STRICT PAGINATION - ONE SCHOOL PER PAGE
- */
-export function generateFichaZapatosPDF(options: AgreementReportOptions): PDFDocumentInstance {
-  const { students } = options;
-
-  const doc = new PDFDocument({
-    size: 'LETTER',
-    layout: 'portrait',
-    margins: { top: 40, bottom: 40, left: 40, right: 40 },
-  });
-
-  const title = `FICHA DE DISTRIBUCION POR ESCUELA (ZAPATOS)`;
-
-  const schools = groupBySchool(students);
-
-  for (let s = 0; s < schools.length; s++) {
-    const school = schools[s];
-
-    // Start each school on a new page
-    if (s > 0) {
-      doc.addPage();
-    }
-
-    // Add logo to page
-    addLogoToPage(doc, doc.page.width);
-
-    // Title
-    doc.fontSize(14).font('Helvetica-Bold').text(title, { align: 'center' });
-    doc.moveDown(1);
-
-    // Subtitle: School info (3 lines as per spec)
-    // Line 1: {nombre_ce} [CODIGO: {codigo_ce}]
-    doc
-      .fontSize(12)
-      .font('Helvetica-Bold')
-      .text(`${school.nombre_ce.toUpperCase()}`, { align: 'center' });
-    doc
-      .fontSize(12)
-      .font('Helvetica-Bold')
-      .text(`CODIGO: ${school.codigo_ce.toUpperCase()}`, { align: 'center' });
-
-    // Line 2: DEPARTAMENTO: {departamento} - DISTRITO: {distrito}
-    const departamento = school.departamento || 'N/A';
-    const distrito = school.distrito || 'N/A';
-    doc
-      .fontSize(12)
-      .font('Helvetica-Bold')
-      .text(`DEPARTAMENTO: ${departamento.toUpperCase()} - DISTRITO: ${distrito.toUpperCase()}`, {
-        align: 'center',
-      });
-
-    // Line 3: ZONA: {zona}
-    const zona = school.zona || 'N/A';
-    doc
-      .fontSize(12)
-      .font('Helvetica-Bold')
-      .text(`ZONA: ${zona.toUpperCase()}`, { align: 'center' });
-
-    doc.moveDown(1);
-
-    let currentY = doc.y;
-
-    // Aggregate data from all sources
-    interface ItemCount {
-      tipo_talla: string;
-      cantidad: number;
-    }
-
-    const itemCounts: ItemCount[] = [];
-
-    // Source 1: Zapatos (sexo + zapato)
-    // Group by sexo, apply gap-filling per sexo, then flatten
-    const shoeSizes: string[] = [];
-    for (let i = 23; i <= 45; i++) {
-      shoeSizes.push(i.toString());
-    }
-
-    // Group by sexo
-    const zapatoSexoMap = new Map<string, Map<string, number>>();
-    for (const student of school.students) {
-      const sexo = student.sexo;
-      const size = student.zapato;
-      if (sexo && size) {
-        const sexoKey = sexo.toUpperCase();
-        if (!zapatoSexoMap.has(sexoKey)) {
-          zapatoSexoMap.set(sexoKey, new Map());
-        }
-        const sizeMap = zapatoSexoMap.get(sexoKey)!;
-        sizeMap.set(size, (sizeMap.get(size) || 0) + 1);
-      }
-    }
-
-    // Apply gap-filling per sexo and collect results
-    const sexoTypes = Array.from(zapatoSexoMap.keys()).sort();
-    for (const sexoKey of sexoTypes) {
-      const sizeMap = zapatoSexoMap.get(sexoKey)!;
-
-      // Compute finals per size
-      const rowOriginals: Record<string, number> = {};
-      const rowFinals: Record<string, number> = {};
-      for (const size of shoeSizes) {
-        const orig = sizeMap.get(size) || 0;
-        rowOriginals[size] = orig;
-        rowFinals[size] = computeFinalCount(orig, 1).final;
-      }
-
-      // Apply gap-filling
-      const filled = fillSizeGaps(shoeSizes, rowOriginals, rowFinals);
-
-      // Add to itemCounts (only non-zero)
-      for (const size of shoeSizes) {
-        const finalCount = filled[size] || 0;
-        if (finalCount > 0) {
-          itemCounts.push({ tipo_talla: `${sexoKey} - ${size}`, cantidad: finalCount });
-        }
-      }
-    }
-
-    // Table layout - full width
-    const xStart = 40;
-    const cantidadColWidth = 100;
-    const tipoTallaColWidth = doc.page.width - 80 - cantidadColWidth; // Full width minus margins (40+40) and cantidad
-    const headerHeight = 25;
-    const rowHeight = 20;
-
-    // Draw table header
-    doc.fontSize(11).font('Helvetica-Bold');
-    let x = xStart;
-
-    doc.rect(x, currentY, tipoTallaColWidth, headerHeight).stroke();
-    doc.text('TIPO/TALLA', x + 5, currentY + 7, {
-      width: tipoTallaColWidth - 10,
-      align: 'center',
-    });
-    x += tipoTallaColWidth;
-
-    doc.rect(x, currentY, cantidadColWidth, headerHeight).stroke();
-    doc.text('CANTIDAD', x + 5, currentY + 7, {
-      width: cantidadColWidth - 10,
-      align: 'center',
-    });
-
-    currentY += headerHeight;
-
-    // Draw data rows
-    doc.font('Helvetica').fontSize(10);
-    let totalPiezas = 0;
-
-    for (const item of itemCounts) {
-      x = xStart;
-
-      doc.rect(x, currentY, tipoTallaColWidth, rowHeight).stroke();
-      doc.text(item.tipo_talla, x + 5, currentY + 5, {
-        width: tipoTallaColWidth - 10,
-        align: 'center',
-      });
-      x += tipoTallaColWidth;
-
-      doc.rect(x, currentY, cantidadColWidth, rowHeight).stroke();
-      doc.text(item.cantidad.toString(), x + 5, currentY + 5, {
-        width: cantidadColWidth - 10,
-        align: 'center',
-      });
-
-      currentY += rowHeight;
-      totalPiezas += item.cantidad;
-
-      // Check if we need a new page
-      if (currentY > doc.page.height - 100) {
-        doc.addPage();
-        addLogoToPage(doc, doc.page.width);
-        doc.fontSize(14).font('Helvetica-Bold').text(title, { align: 'center' });
-        doc.moveDown(1);
-        doc
-          .fontSize(12)
-          .font('Helvetica-Bold')
-          .text(`${school.nombre_ce.toUpperCase()} [CODIGO: ${school.codigo_ce.toUpperCase()}]`, {
-            align: 'center',
-          });
-        doc
-          .fontSize(12)
-          .font('Helvetica-Bold')
-          .text(
-            `DEPARTAMENTO: ${departamento.toUpperCase()} - DISTRITO: ${distrito.toUpperCase()}`,
-            { align: 'center' }
-          );
-        doc
-          .fontSize(12)
-          .font('Helvetica-Bold')
-          .text(`ZONA: ${zona.toUpperCase()}`, { align: 'center' });
-        doc.moveDown(1);
-        currentY = doc.y;
-        doc.font('Helvetica').fontSize(10);
-      }
-    }
-
-    // Footer with total
-    currentY += 10;
-    doc.font('Helvetica-Bold').fontSize(12);
-    doc.text(`TOTAL PIEZAS: ${totalPiezas}`, xStart, currentY, { align: 'left' });
-  }
-
-  doc.end();
-  return doc;
-}
-
-/**
- * PDF 7: Day Distribution Card - Zapatos (Ficha de Distribución por Día - Zapatos)
- * Aggregates data from Zapatos for each school on a given date
- * Only showing items with count > 0
- * One school per page
+ * PDF 7: Day Distribution Card – Zapatos
+ * "FICHA DE DISTRIBUCION POR ESCUELA (ZAPATOS)" with date in header
  */
 export function generateDayZapatosPDF(options: AgreementReportOptions): PDFDocumentInstance {
   const { fechaInicio, students } = options;
@@ -1455,38 +681,27 @@ export function generateDayZapatosPDF(options: AgreementReportOptions): PDFDocum
   for (let s = 0; s < schools.length; s++) {
     const school = schools[s];
 
-    // Start each school on a new page
     if (s > 0) {
       doc.addPage();
     }
 
-    // Add logo to page
     addLogoToPage(doc, doc.page.width);
-
-    // Title
     doc.fontSize(14).font('Helvetica-Bold').text(title, { align: 'center' });
     doc.moveDown(1);
 
-    // Subtitle: 3 lines - school name, CODIGO, FECHA
-    // Line 1: {nombre_ce}
     doc
       .fontSize(12)
       .font('Helvetica-Bold')
       .text(`${school.nombre_ce.toUpperCase()}`, { align: 'center' });
-
-    // Line 2: CODIGO: {codigo_ce}
     doc
       .fontSize(12)
       .font('Helvetica-Bold')
       .text(`CODIGO: ${school.codigo_ce.toUpperCase()}`, { align: 'center' });
-
-    // Line 3: FECHA: {fecha_inicio}
     doc.fontSize(12).font('Helvetica-Bold').text(`FECHA: ${formattedDate}`, { align: 'center' });
     doc.moveDown(1);
 
     let currentY = doc.y;
 
-    // Aggregate data from all sources
     interface ItemCount {
       tipo_talla: string;
       cantidad: number;
@@ -1494,14 +709,11 @@ export function generateDayZapatosPDF(options: AgreementReportOptions): PDFDocum
 
     const itemCounts: ItemCount[] = [];
 
-    // Source 1: Zapatos (sexo + zapato)
-    // Group by sexo, apply gap-filling per sexo, then flatten
     const shoeSizes: string[] = [];
     for (let i = 23; i <= 45; i++) {
       shoeSizes.push(i.toString());
     }
 
-    // Group by sexo
     const zapatoSexoMap = new Map<string, Map<string, number>>();
     for (const student of school.students) {
       const sexo = student.sexo;
@@ -1516,12 +728,9 @@ export function generateDayZapatosPDF(options: AgreementReportOptions): PDFDocum
       }
     }
 
-    // Apply gap-filling per sexo and collect results
     const sexoTypes = Array.from(zapatoSexoMap.keys()).sort();
     for (const sexoKey of sexoTypes) {
       const sizeMap = zapatoSexoMap.get(sexoKey)!;
-
-      // Compute finals per size
       const rowOriginals: Record<string, number> = {};
       const rowFinals: Record<string, number> = {};
       for (const size of shoeSizes) {
@@ -1529,11 +738,7 @@ export function generateDayZapatosPDF(options: AgreementReportOptions): PDFDocum
         rowOriginals[size] = orig;
         rowFinals[size] = computeFinalCount(orig, 1).final;
       }
-
-      // Apply gap-filling
       const filled = fillSizeGaps(shoeSizes, rowOriginals, rowFinals);
-
-      // Add to itemCounts (only non-zero)
       for (const size of shoeSizes) {
         const finalCount = filled[size] || 0;
         if (finalCount > 0) {
@@ -1542,14 +747,12 @@ export function generateDayZapatosPDF(options: AgreementReportOptions): PDFDocum
       }
     }
 
-    // Table layout
     const xStart = 40;
     const tipoTallaColWidth = 350;
     const cantidadColWidth = 100;
     const headerHeight = 25;
     const rowHeight = 20;
 
-    // Draw table header
     doc.fontSize(11).font('Helvetica-Bold');
     let x = xStart;
 
@@ -1568,7 +771,6 @@ export function generateDayZapatosPDF(options: AgreementReportOptions): PDFDocum
 
     currentY += headerHeight;
 
-    // Draw data rows
     doc.font('Helvetica').fontSize(10);
     let totalPiezas = 0;
 
@@ -1591,7 +793,6 @@ export function generateDayZapatosPDF(options: AgreementReportOptions): PDFDocum
       currentY += rowHeight;
       totalPiezas += item.cantidad;
 
-      // Check if we need a new page
       if (currentY > doc.page.height - 100) {
         doc.addPage();
         addLogoToPage(doc, doc.page.width);
@@ -1615,7 +816,6 @@ export function generateDayZapatosPDF(options: AgreementReportOptions): PDFDocum
       }
     }
 
-    // Footer with total
     currentY += 10;
     doc.font('Helvetica-Bold').fontSize(12);
     doc.text(`TOTAL PIEZAS: ${totalPiezas}`, xStart, currentY, { align: 'left' });
@@ -1626,10 +826,8 @@ export function generateDayZapatosPDF(options: AgreementReportOptions): PDFDocum
 }
 
 /**
- * PDF 8: Day Distribution Card - Uniformes (Ficha de Distribución por Día - Uniformes)
- * Aggregates data from Camisas and Pantalones for each school on a given date
- * Only showing items with count > 0
- * One school per page
+ * PDF 8: Day Distribution Card – Uniformes
+ * "FICHA DE DISTRIBUCION POR ESCUELA (UNIFORMES)" with date in header
  */
 export function generateDayUniformesPDF(options: AgreementReportOptions): PDFDocumentInstance {
   const { fechaInicio, students } = options;
@@ -1648,38 +846,27 @@ export function generateDayUniformesPDF(options: AgreementReportOptions): PDFDoc
   for (let s = 0; s < schools.length; s++) {
     const school = schools[s];
 
-    // Start each school on a new page
     if (s > 0) {
       doc.addPage();
     }
 
-    // Add logo to page
     addLogoToPage(doc, doc.page.width);
-
-    // Title
     doc.fontSize(14).font('Helvetica-Bold').text(title, { align: 'center' });
     doc.moveDown(1);
 
-    // Subtitle: 3 lines - school name, CODIGO, FECHA
-    // Line 1: {nombre_ce}
     doc
       .fontSize(12)
       .font('Helvetica-Bold')
       .text(`${school.nombre_ce.toUpperCase()}`, { align: 'center' });
-
-    // Line 2: CODIGO: {codigo_ce}
     doc
       .fontSize(12)
       .font('Helvetica-Bold')
       .text(`CODIGO: ${school.codigo_ce.toUpperCase()}`, { align: 'center' });
-
-    // Line 3: FECHA: {fecha_inicio}
     doc.fontSize(12).font('Helvetica-Bold').text(`FECHA: ${formattedDate}`, { align: 'center' });
     doc.moveDown(1);
 
     let currentY = doc.y;
 
-    // Aggregate data from all sources
     interface ItemCount {
       tipo_talla: string;
       cantidad: number;
@@ -1687,8 +874,6 @@ export function generateDayUniformesPDF(options: AgreementReportOptions): PDFDoc
 
     const itemCounts: ItemCount[] = [];
 
-    // Source 1: Camisas (tipo_camisa + camisa)
-    // Group by tipo, apply gap-filling per tipo, then flatten
     const camisaSizeOrder = [
       'T4',
       'T6',
@@ -1704,7 +889,6 @@ export function generateDayUniformesPDF(options: AgreementReportOptions): PDFDoc
       'T2X',
     ];
 
-    // Group by tipo
     const camisaTipoMap = new Map<string, Map<string, number>>();
     for (const student of school.students) {
       const tipo = student.tipo_de_camisa;
@@ -1719,12 +903,9 @@ export function generateDayUniformesPDF(options: AgreementReportOptions): PDFDoc
       }
     }
 
-    // Apply gap-filling per tipo and collect results
     const camisaTypes = Array.from(camisaTipoMap.keys()).sort();
     for (const tipoKey of camisaTypes) {
       const sizeMap = camisaTipoMap.get(tipoKey)!;
-
-      // Compute finals per size
       const rowOriginals: Record<string, number> = {};
       const rowFinals: Record<string, number> = {};
       for (const size of camisaSizeOrder) {
@@ -1732,11 +913,7 @@ export function generateDayUniformesPDF(options: AgreementReportOptions): PDFDoc
         rowOriginals[size] = orig;
         rowFinals[size] = computeFinalCount(orig, 2).final;
       }
-
-      // Apply gap-filling
       const filled = fillSizeGaps(camisaSizeOrder, rowOriginals, rowFinals);
-
-      // Add to itemCounts (only non-zero)
       for (const size of camisaSizeOrder) {
         const finalCount = filled[size] || 0;
         if (finalCount > 0) {
@@ -1745,8 +922,6 @@ export function generateDayUniformesPDF(options: AgreementReportOptions): PDFDoc
       }
     }
 
-    // Source 2: Pantalones/Faldas (t_pantalon_falda_short + pantalon_falda)
-    // Group by tipo, apply gap-filling per tipo, then flatten
     const pantalonTipoMap = new Map<string, Map<string, number>>();
     for (const student of school.students) {
       const tipo = student.t_pantalon_falda_short;
@@ -1761,12 +936,9 @@ export function generateDayUniformesPDF(options: AgreementReportOptions): PDFDoc
       }
     }
 
-    // Apply gap-filling per tipo and collect results
     const pantalonTypes = Array.from(pantalonTipoMap.keys()).sort();
     for (const tipoKey of pantalonTypes) {
       const sizeMap = pantalonTipoMap.get(tipoKey)!;
-
-      // Compute finals per size
       const rowOriginals: Record<string, number> = {};
       const rowFinals: Record<string, number> = {};
       for (const size of camisaSizeOrder) {
@@ -1774,11 +946,7 @@ export function generateDayUniformesPDF(options: AgreementReportOptions): PDFDoc
         rowOriginals[size] = orig;
         rowFinals[size] = computeFinalCount(orig, 2).final;
       }
-
-      // Apply gap-filling
       const filled = fillSizeGaps(camisaSizeOrder, rowOriginals, rowFinals);
-
-      // Add to itemCounts (only non-zero)
       for (const size of camisaSizeOrder) {
         const finalCount = filled[size] || 0;
         if (finalCount > 0) {
@@ -1787,14 +955,12 @@ export function generateDayUniformesPDF(options: AgreementReportOptions): PDFDoc
       }
     }
 
-    // Table layout
     const xStart = 40;
     const tipoTallaColWidth = 350;
     const cantidadColWidth = 100;
     const headerHeight = 25;
     const rowHeight = 20;
 
-    // Draw table header
     doc.fontSize(11).font('Helvetica-Bold');
     let x = xStart;
 
@@ -1813,7 +979,6 @@ export function generateDayUniformesPDF(options: AgreementReportOptions): PDFDoc
 
     currentY += headerHeight;
 
-    // Draw data rows
     doc.font('Helvetica').fontSize(10);
     let totalPiezas = 0;
 
@@ -1836,7 +1001,6 @@ export function generateDayUniformesPDF(options: AgreementReportOptions): PDFDoc
       currentY += rowHeight;
       totalPiezas += item.cantidad;
 
-      // Check if we need a new page
       if (currentY > doc.page.height - 100) {
         doc.addPage();
         addLogoToPage(doc, doc.page.width);
@@ -1860,7 +1024,6 @@ export function generateDayUniformesPDF(options: AgreementReportOptions): PDFDoc
       }
     }
 
-    // Footer with total
     currentY += 10;
     doc.font('Helvetica-Bold').fontSize(12);
     doc.text(`TOTAL PIEZAS: ${totalPiezas}`, xStart, currentY, { align: 'left' });
@@ -1871,7 +1034,7 @@ export function generateDayUniformesPDF(options: AgreementReportOptions): PDFDoc
 }
 
 /**
- * Legacy function - kept for backwards compatibility
+ * Legacy function – kept for backwards compatibility
  * @deprecated Use generateFichaUniformesPDF or generateFichaZapatosPDF instead
  */
 export function generateFichaPDF(options: AgreementReportOptions): PDFDocumentInstance {
