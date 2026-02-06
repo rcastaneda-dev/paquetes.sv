@@ -7,6 +7,10 @@ import {
   generatePantalonesPDF,
   generateZapatosPDF,
   generateFichaPDF,
+  generateFichaUniformesPDF,
+  generateFichaZapatosPDF,
+  generateDayZapatosPDF,
+  generateDayUniformesPDF,
 } from '@/lib/pdf/generator';
 import type { StudentQueryRow } from '@/types/database';
 import { validateQueryParams } from '@/lib/validation/helpers';
@@ -16,7 +20,17 @@ export const dynamic = 'force-dynamic';
 
 // Schema for debug query params
 const debugQuerySchema = z.object({
-  type: z.enum(['cajas', 'camisas', 'pantalones', 'zapatos', 'ficha']),
+  type: z.enum([
+    'cajas',
+    'camisas',
+    'pantalones',
+    'zapatos',
+    'ficha',
+    'ficha-uniformes',
+    'ficha-zapatos',
+    'day-zapatos',
+    'day-uniformes',
+  ]),
   limit: z.coerce.number().int().min(1).max(50).default(10),
 });
 
@@ -124,6 +138,9 @@ export async function GET(request: NextRequest) {
       fechaInicio = new Date().toISOString().split('T')[0];
     }
 
+    // Format date for filename (replace dashes with underscores)
+    const formattedDate = fechaInicio.replace(/-/g, '_');
+
     // Generate the appropriate PDF based on type
     let pdfStream;
     let fileName: string;
@@ -163,6 +180,34 @@ export async function GET(request: NextRequest) {
           students: allStudents,
         });
         fileName = `debug-ficha-${schools.length}-escuelas.pdf`;
+        break;
+      case 'ficha-uniformes':
+        pdfStream = generateFichaUniformesPDF({
+          fechaInicio,
+          students: allStudents,
+        });
+        fileName = `debug-ficha-uniformes-${schools.length}-escuelas.pdf`;
+        break;
+      case 'ficha-zapatos':
+        pdfStream = generateFichaZapatosPDF({
+          fechaInicio,
+          students: allStudents,
+        });
+        fileName = `debug-ficha-zapatos-${schools.length}-escuelas.pdf`;
+        break;
+      case 'day-zapatos':
+        pdfStream = generateDayZapatosPDF({
+          fechaInicio,
+          students: allStudents,
+        });
+        fileName = `debug-day-zapatos-${formattedDate}.pdf`;
+        break;
+      case 'day-uniformes':
+        pdfStream = generateDayUniformesPDF({
+          fechaInicio,
+          students: allStudents,
+        });
+        fileName = `debug-day-uniformes-${formattedDate}.pdf`;
         break;
     }
 

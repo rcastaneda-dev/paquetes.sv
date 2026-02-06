@@ -10,6 +10,10 @@ export {
   generatePantalonesPDF,
   generateZapatosPDF,
   generateFichaPDF,
+  generateFichaUniformesPDF,
+  generateFichaZapatosPDF,
+  generateDayZapatosPDF,
+  generateDayUniformesPDF,
 } from './generators-agreement';
 
 /**
@@ -17,7 +21,7 @@ export {
  * Preserves the current Y position so it doesn't affect document flow
  */
 function addLogoToPage(doc: PDFDocumentInstance, pageWidth: number) {
-  const logoPath = path.join(process.cwd(), 'public', 'goes_logo.png');
+  const logoPath = path.join(process.cwd(), 'public', 'goes_logo_2.png');
 
   // Check if logo exists
   if (fs.existsSync(logoPath)) {

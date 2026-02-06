@@ -183,6 +183,38 @@ export default function HomePage() {
     window.open('/api/reports/debug-random?type=ficha&limit=10', '_blank', 'noopener,noreferrer');
   };
 
+  const handleDebugFichaUniformes = () => {
+    window.open(
+      '/api/reports/debug-random?type=ficha-uniformes&limit=10',
+      '_blank',
+      'noopener,noreferrer'
+    );
+  };
+
+  const handleDebugFichaZapatos = () => {
+    window.open(
+      '/api/reports/debug-random?type=ficha-zapatos&limit=10',
+      '_blank',
+      'noopener,noreferrer'
+    );
+  };
+
+  const handleDebugDayZapatos = () => {
+    window.open(
+      '/api/reports/debug-random?type=day-zapatos&limit=10',
+      '_blank',
+      'noopener,noreferrer'
+    );
+  };
+
+  const handleDebugDayUniformes = () => {
+    window.open(
+      '/api/reports/debug-random?type=day-uniformes&limit=10',
+      '_blank',
+      'noopener,noreferrer'
+    );
+  };
+
   // Show debug buttons if explicitly enabled
   const showDebugButtons = process.env.NEXT_PUBLIC_ENABLE_DEBUG_BUTTONS === 'true';
 
@@ -304,6 +336,43 @@ export default function HomePage() {
                   >
                     <span className="text-base font-semibold">Ficha</span>
                     <span className="text-xs text-muted-foreground">10 escuelas</span>
+                  </Button>
+                </div>
+                <div className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
+                  Fichas por Escuela y Día:
+                </div>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  <Button
+                    variant="outline"
+                    onClick={handleDebugFichaUniformes}
+                    className="h-auto flex-col border-emerald-300 py-3 hover:bg-emerald-50 dark:border-emerald-700 dark:hover:bg-emerald-950"
+                  >
+                    <span className="text-base font-semibold">Ficha Uniformes</span>
+                    <span className="text-xs text-muted-foreground">Por escuela</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleDebugFichaZapatos}
+                    className="h-auto flex-col border-emerald-300 py-3 hover:bg-emerald-50 dark:border-emerald-700 dark:hover:bg-emerald-950"
+                  >
+                    <span className="text-base font-semibold">Ficha Zapatos</span>
+                    <span className="text-xs text-muted-foreground">Por escuela</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleDebugDayUniformes}
+                    className="h-auto flex-col border-emerald-300 py-3 hover:bg-emerald-50 dark:border-emerald-700 dark:hover:bg-emerald-950"
+                  >
+                    <span className="text-base font-semibold">Day Uniformes</span>
+                    <span className="text-xs text-muted-foreground">Consolidado</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleDebugDayZapatos}
+                    className="h-auto flex-col border-emerald-300 py-3 hover:bg-emerald-50 dark:border-emerald-700 dark:hover:bg-emerald-950"
+                  >
+                    <span className="text-base font-semibold">Day Zapatos</span>
+                    <span className="text-xs text-muted-foreground">Consolidado</span>
                   </Button>
                 </div>
               </div>

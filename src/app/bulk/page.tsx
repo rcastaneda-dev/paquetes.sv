@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import { DatePicker, formatDateOnlyYYYYMMDD } from '@/components/ui/DatePicker';
 
 import type { ReportJob } from '@/types/database';
 
@@ -17,7 +18,7 @@ export default function BulkReportsPage() {
   const [isCreatingCategory, setIsCreatingCategory] = useState(false);
   const [isDeletingPast, setIsDeletingPast] = useState(false);
   const [showCategoryForm, setShowCategoryForm] = useState(false);
-  const [fechaInicio, setFechaInicio] = useState('');
+  const [fechaInicioDate, setFechaInicioDate] = useState<Date | undefined>(undefined);
 
   const fetchJobs = async () => {
     try {
@@ -63,10 +64,12 @@ export default function BulkReportsPage() {
   };
 
   const handleCreateCategoryJob = async () => {
-    if (!fechaInicio) {
+    if (!fechaInicioDate) {
       alert('Por favor selecciona una fecha de inicio');
       return;
     }
+
+    const fechaInicio = formatDateOnlyYYYYMMDD(fechaInicioDate);
 
     setIsCreatingCategory(true);
     try {
@@ -84,7 +87,7 @@ export default function BulkReportsPage() {
 
       alert(`Trabajo de categorías creado exitosamente! ID: ${data.jobId}`);
       setShowCategoryForm(false);
-      setFechaInicio('');
+      setFechaInicioDate(undefined);
       fetchJobs();
     } catch (error) {
       console.error('Error creating category job:', error);
@@ -223,17 +226,17 @@ export default function BulkReportsPage() {
                     <label htmlFor="fecha-inicio" className="mb-1 block text-sm font-medium">
                       Fecha de Inicio
                     </label>
-                    <input
+                    <DatePicker
                       id="fecha-inicio"
-                      type="date"
-                      value={fechaInicio}
-                      onChange={e => setFechaInicio(e.target.value)}
-                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      value={fechaInicioDate}
+                      onChange={setFechaInicioDate}
+                      placeholder="Seleccionar fecha"
+                      disabled={isCreatingCategory}
                     />
                   </div>
                   <Button
                     onClick={handleCreateCategoryJob}
-                    disabled={isCreatingCategory || !fechaInicio}
+                    disabled={isCreatingCategory || !fechaInicioDate}
                     className="whitespace-nowrap"
                   >
                     {isCreatingCategory ? 'Creando...' : 'Crear Trabajo'}
