@@ -14,7 +14,6 @@ export default function BulkReportsPage() {
   const router = useRouter();
   const [jobs, setJobs] = useState<ReportJob[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isCreating, setIsCreating] = useState(false);
   const [isCreatingCategory, setIsCreatingCategory] = useState(false);
   const [isDeletingPast, setIsDeletingPast] = useState(false);
   const [showCategoryForm, setShowCategoryForm] = useState(false);
@@ -39,29 +38,6 @@ export default function BulkReportsPage() {
     const interval = setInterval(fetchJobs, 5000);
     return () => clearInterval(interval);
   }, []);
-
-  const handleCreateJob = async () => {
-    setIsCreating(true);
-    try {
-      const response = await fetch('/api/bulk/jobs', {
-        method: 'POST',
-      });
-      const data = await response.json();
-
-      if (data.error) {
-        alert(`Error: ${data.error}`);
-        return;
-      }
-
-      alert(`Trabajo creado exitosamente! ID: ${data.jobId}`);
-      fetchJobs();
-    } catch (error) {
-      console.error('Error creating job:', error);
-      alert('Error al crear el trabajo');
-    } finally {
-      setIsCreating(false);
-    }
-  };
 
   const handleCreateCategoryJob = async () => {
     if (!fechaInicioDate) {
@@ -180,14 +156,6 @@ export default function BulkReportsPage() {
               <div className="flex flex-wrap gap-2">
                 <Button
                   variant="outline"
-                  onClick={fetchJobs}
-                  disabled={isLoading}
-                  className="whitespace-nowrap px-3 text-sm sm:px-4"
-                >
-                  {isLoading ? 'Sincronizando...' : 'Sincronizar'}
-                </Button>
-                <Button
-                  variant="outline"
                   onClick={handleDeletePastJobs}
                   disabled={isLoading || isDeletingPast}
                   className="whitespace-nowrap px-3 text-sm text-destructive hover:text-destructive sm:px-4"
@@ -195,15 +163,7 @@ export default function BulkReportsPage() {
                   {isDeletingPast ? 'Eliminando...' : 'Eliminar finalizados'}
                 </Button>
                 <Button
-                  onClick={handleCreateJob}
-                  disabled={isCreating}
-                  className="whitespace-nowrap px-3 text-sm sm:px-4"
-                >
-                  {isCreating ? 'Creando...' : 'Generar Todos los PDFs'}
-                </Button>
-                <Button
                   onClick={() => setShowCategoryForm(!showCategoryForm)}
-                  variant="outline"
                   className="whitespace-nowrap px-3 text-sm sm:px-4"
                 >
                   {showCategoryForm ? 'Cancelar' : 'Reportes por Categoría'}
@@ -218,8 +178,9 @@ export default function BulkReportsPage() {
                   Nuevo Trabajo de Reportes por Categoría
                 </h3>
                 <p className="mb-4 text-xs text-muted-foreground">
-                  Este tipo de trabajo genera 4 reportes (Cajas, Camisas, Pantalones, Zapatos)
-                  agrupados por código CE para estudiantes de la fecha seleccionada.
+                  Este tipo de trabajo genera 6 reportes (Cajas, Camisas, Prenda Inferior,
+                  Zapatos, Ficha Uniformes, Ficha Zapatos) agrupados por código CE para
+                  estudiantes de la fecha seleccionada.
                 </p>
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
                   <div className="flex-1">
@@ -253,7 +214,7 @@ export default function BulkReportsPage() {
               <div className="py-12 text-center text-muted-foreground">
                 <p>No hay trabajos aún.</p>
                 <p className="mt-2 text-sm">
-                  Haz clic en &quot;Generar Todos los PDFs&quot; para crear uno.
+                  Haz clic en &quot;Reportes por Categoría&quot; para crear uno.
                 </p>
               </div>
             ) : (
