@@ -47,6 +47,22 @@ export default function JobDetailPage() {
       }
     >
   >({});
+  const [loadingCategories, setLoadingCategories] = useState<Record<string, boolean>>({});
+  const [categoryZipStatuses, setCategoryZipStatuses] = useState<
+    Record<
+      string,
+      {
+        status: 'queued' | 'processing' | 'complete' | 'failed';
+        downloadUrl?: string;
+        zipSizeMB?: string;
+        pdfCount?: number;
+        error?: string;
+        progress?: {
+          message?: string;
+        };
+      }
+    >
+  >({});
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [downloadingTasks, setDownloadingTasks] = useState<Record<string, boolean>>({});
@@ -207,6 +223,113 @@ export default function JobDetailPage() {
       alert(`Error al descargar ZIP de ${region}`);
       setLoadingRegions(prev => ({ ...prev, [region]: false }));
     }
+  };
+
+  const handleDownloadCategory = async (category: string) => {
+    try {
+      setLoadingCategories(prev => ({ ...prev, [category]: true }));
+
+      // Step 1: Create category ZIP job
+      const createResponse = await fetch(
+        `/api/bulk/jobs/${jobId}/create-category-zip-job?category=${category}`,
+        { method: 'POST' }
+      );
+      const createData = await createResponse.json();
+
+      if (!createResponse.ok) {
+        alert(`Error: ${createData.error || 'Error al crear trabajo de ZIP'}`);
+        setLoadingCategories(prev => ({ ...prev, [category]: false }));
+        return;
+      }
+
+      const zipJobId = createData.zipJobId;
+
+      // If already complete, download immediately
+      if (createData.status === 'complete' && createData.downloadUrl) {
+        window.open(createData.downloadUrl, '_blank');
+        alert(
+          `ZIP de ${getCategoryLabel(category)} descargado\n${createData.pdfCount || 0} PDFs, ${createData.zipSizeMB || 0} MB`
+        );
+        setLoadingCategories(prev => ({ ...prev, [category]: false }));
+        return;
+      }
+
+      // Step 2: Poll for completion
+      let attempts = 0;
+      const maxAttempts = 120; // 10 minutes at 5 second intervals
+      const pollInterval = 5000;
+
+      const pollStatus = async () => {
+        try {
+          const statusResponse = await fetch(
+            `/api/bulk/jobs/${jobId}/category-zip-status?zipJobId=${zipJobId}`
+          );
+          const statusData = await statusResponse.json();
+
+          // Update local state for UI feedback
+          setCategoryZipStatuses(prev => ({ ...prev, [category]: statusData }));
+
+          if (statusData.status === 'complete' && statusData.downloadUrl) {
+            // Success! Download the ZIP
+            window.open(statusData.downloadUrl, '_blank');
+            alert(
+              `ZIP de ${getCategoryLabel(category)} generado exitosamente!\n${statusData.pdfCount || 0} PDFs, ${statusData.zipSizeMB || 0} MB`
+            );
+            setLoadingCategories(prev => ({ ...prev, [category]: false }));
+            return true;
+          }
+
+          if (statusData.status === 'failed') {
+            alert(
+              `Error al generar ZIP de ${getCategoryLabel(category)}: ${statusData.error || 'Error desconocido'}`
+            );
+            setLoadingCategories(prev => ({ ...prev, [category]: false }));
+            return true;
+          }
+
+          // Still processing or queued, continue polling
+          attempts++;
+          if (attempts >= maxAttempts) {
+            alert(
+              `Tiempo de espera agotado para ZIP de ${getCategoryLabel(category)}. Por favor, intenta de nuevo más tarde.`
+            );
+            setLoadingCategories(prev => ({ ...prev, [category]: false }));
+            return true;
+          }
+
+          // Continue polling
+          setTimeout(pollStatus, pollInterval);
+          return false;
+        } catch (err) {
+          console.error('Error polling category ZIP status:', err);
+          attempts++;
+          if (attempts >= maxAttempts) {
+            alert(`Error al verificar el estado del ZIP de ${getCategoryLabel(category)}`);
+            setLoadingCategories(prev => ({ ...prev, [category]: false }));
+            return true;
+          }
+          setTimeout(pollStatus, pollInterval);
+          return false;
+        }
+      };
+
+      // Start polling
+      pollStatus();
+    } catch (error) {
+      console.error(`Error downloading ${category}:`, error);
+      alert(`Error al descargar ZIP de ${getCategoryLabel(category)}`);
+      setLoadingCategories(prev => ({ ...prev, [category]: false }));
+    }
+  };
+
+  const getCategoryLabel = (category: string) => {
+    const labels: Record<string, string> = {
+      estudiantes: 'Cajas',
+      camisa: 'Camisas',
+      prenda_inferior: 'Prenda Inferior',
+      zapatos: 'Zapatos',
+    };
+    return labels[category] || category;
   };
 
   const handleCancelJob = async () => {
@@ -410,8 +533,8 @@ export default function JobDetailPage() {
           )}
         </Card>
 
-        {/* Regional Downloads */}
-        {(job.status === 'complete' || job.status === 'failed') && (
+        {/* Regional Downloads (for regular jobs) */}
+        {!isCategoryJob && (job.status === 'complete' || job.status === 'failed') && (
           <Card>
             <CardHeader>
               <CardTitle>Descargar PDFs por Región</CardTitle>
@@ -453,6 +576,61 @@ export default function JobDetailPage() {
                       className="h-auto flex-col items-start p-4"
                     >
                       <span className="text-lg font-semibold capitalize">{region}</span>
+                      <span className="text-xs text-muted-foreground">{statusText}</span>
+                    </Button>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                💡 La descarga comenzará automáticamente cuando esté listo.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Category Downloads (for category jobs) */}
+        {isCategoryJob && (job.status === 'complete' || job.status === 'failed') && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Descargar PDFs por Categoría</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {job.status === 'failed' && progress && progress.failed_tasks > 0 && (
+                <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-3 text-sm dark:border-yellow-800 dark:bg-yellow-950/20">
+                  <p className="font-medium text-yellow-800 dark:text-yellow-200">
+                    ⚠️ Algunos PDFs fallaron
+                  </p>
+                  <p className="mt-1 text-yellow-700 dark:text-yellow-300">
+                    {progress.failed_tasks} tarea(s) fallida(s). Las descargas contienen solo los
+                    PDFs generados exitosamente.
+                  </p>
+                </div>
+              )}
+              <p className="text-sm text-muted-foreground">
+                Haz clic en una categoría para generar y descargar el archivo ZIP (toma alrededor
+                de 1-3 minutos)
+              </p>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {['estudiantes', 'camisa', 'prenda_inferior', 'zapatos'].map(category => {
+                  const zipStatus = categoryZipStatuses[category];
+                  const isLoading = loadingCategories[category];
+
+                  let statusText = 'Descargar ZIP';
+                  if (isLoading && zipStatus?.progress?.message) {
+                    statusText = zipStatus.progress.message;
+                  } else if (isLoading) {
+                    statusText = 'Generando ZIP...';
+                  }
+
+                  return (
+                    <Button
+                      key={category}
+                      onClick={() => handleDownloadCategory(category)}
+                      disabled={isLoading}
+                      variant="outline"
+                      className="h-auto flex-col items-start p-4"
+                    >
+                      <span className="text-lg font-semibold">{getCategoryLabel(category)}</span>
                       <span className="text-xs text-muted-foreground">{statusText}</span>
                     </Button>
                   );

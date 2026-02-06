@@ -31,27 +31,46 @@ serve(async req => {
       });
     }
 
-    // Trigger PDF task processing on Vercel
-    const path = '/api/worker/process-tasks';
-    const res = await fetch(`${nextjsUrl}${path}`, {
+    // Trigger both regular and category PDF task processing on Vercel
+    const headers = {
+      'x-worker-secret': expectedSecret || '',
+    };
+
+    // Process regular tasks (school reports)
+    const regularRes = await fetch(`${nextjsUrl}/api/worker/process-tasks`, {
       method: 'POST',
-      headers: {
-        Authorization: expectedSecret ? `Bearer ${expectedSecret}` : '',
-      },
+      headers,
     });
 
-    const text = await res.text();
+    const regularText = await regularRes.text();
+
+    // Process category tasks (agreement reports)
+    const categoryRes = await fetch(`${nextjsUrl}/api/worker/process-category-tasks`, {
+      method: 'POST',
+      headers,
+    });
+
+    const categoryText = await categoryRes.text();
 
     return new Response(
       JSON.stringify(
         {
-          upstreamStatus: res.status,
-          upstreamBody: text,
+          regular: {
+            status: regularRes.status,
+            body: regularText,
+          },
+          category: {
+            status: categoryRes.status,
+            body: categoryText,
+          },
         },
         null,
         2
       ),
-      { status: res.ok ? 200 : 500, headers: { 'Content-Type': 'application/json' } }
+      {
+        status: regularRes.ok && categoryRes.ok ? 200 : 500,
+        headers: { 'Content-Type': 'application/json' },
+      }
     );
   } catch (error) {
     console.error('Worker error:', error);

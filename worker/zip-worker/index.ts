@@ -18,7 +18,9 @@ import { Readable } from 'stream';
 interface ZipJob {
   job_id: string;
   report_job_id: string;
-  region: string;
+  job_kind: 'region' | 'category';
+  region: string | null;
+  category: string | null;
 }
 
 interface Task {
@@ -76,7 +78,11 @@ async function main() {
 
       const job = jobs[0] as ZipJob;
       console.log(`\n📦 Processing ZIP job: ${job.job_id}`);
-      console.log(`   Report: ${job.report_job_id}, Region: ${job.region.toUpperCase()}`);
+      console.log(
+        `   Report: ${job.report_job_id}, Kind: ${job.job_kind}, ${
+          job.job_kind === 'region' ? `Region: ${job.region?.toUpperCase()}` : `Category: ${job.category}`
+        }`
+      );
 
       // Process the job
       await processZipJob(supabase, job);
@@ -88,13 +94,51 @@ async function main() {
 }
 
 /**
- * Process a single ZIP job
+ * Process a single ZIP job (region or category)
  */
 async function processZipJob(supabase: SupabaseClient, job: ZipJob) {
   const startTime = Date.now();
 
   try {
-    const regionUpper = job.region.toUpperCase();
+    if (job.job_kind === 'region') {
+      await processRegionZipJob(supabase, job, startTime);
+    } else if (job.job_kind === 'category') {
+      await processCategoryZipJob(supabase, job, startTime);
+    } else {
+      throw new Error(`Unknown job_kind: ${job.job_kind}`);
+    }
+  } catch (error) {
+    const elapsedSeconds = ((Date.now() - startTime) / 1000).toFixed(1);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+    console.error(`   ❌ Job failed after ${elapsedSeconds}s:`, errorMessage);
+
+    // Update job status to failed
+    try {
+      await supabase.rpc('update_zip_job_status', {
+        p_job_id: job.job_id,
+        p_status: 'failed',
+        p_error: errorMessage,
+      });
+    } catch (updateError) {
+      console.error('   ❌ Failed to update job status:', updateError);
+    }
+  }
+}
+
+/**
+ * Process a region-scoped ZIP job
+ */
+async function processRegionZipJob(
+  supabase: SupabaseClient,
+  job: ZipJob,
+  startTime: number
+) {
+  if (!job.region) {
+    throw new Error('Region is required for region ZIP jobs');
+  }
+
+  const regionUpper = job.region.toUpperCase();
 
     // 1. Fetch all completed tasks for this region from database
     console.log(`   🔍 Fetching PDFs for region ${regionUpper}...`);
@@ -222,23 +266,144 @@ async function processZipJob(supabase: SupabaseClient, job: ZipJob) {
 
     const elapsedSeconds = ((Date.now() - startTime) / 1000).toFixed(1);
     console.log(`   ✅ Job completed in ${elapsedSeconds}s`);
-  } catch (error) {
-    const elapsedSeconds = ((Date.now() - startTime) / 1000).toFixed(1);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+}
 
-    console.error(`   ❌ Job failed after ${elapsedSeconds}s:`, errorMessage);
+/**
+ * Process a category-scoped ZIP job
+ */
+async function processCategoryZipJob(
+  supabase: SupabaseClient,
+  job: ZipJob,
+  startTime: number
+) {
+  if (!job.category) {
+    throw new Error('Category is required for category ZIP jobs');
+  }
 
-    // Update job status to failed
-    try {
-      await supabase.rpc('update_zip_job_status', {
-        p_job_id: job.job_id,
-        p_status: 'failed',
-        p_error: errorMessage,
-      });
-    } catch (updateError) {
-      console.error('   ❌ Failed to update job status:', updateError);
+  const category = job.category;
+  console.log(`   🔍 Fetching PDFs for category ${category}...`);
+
+  // 1. Get fecha_inicio from job params
+  const { data: jobData, error: jobError } = await supabase
+    .from('report_jobs')
+    .select('job_params')
+    .eq('id', job.report_job_id)
+    .single();
+
+  if (jobError || !jobData) {
+    throw new Error(`Failed to fetch job params: ${jobError?.message}`);
+  }
+
+  const fechaInicio = (jobData.job_params as { fecha_inicio?: string })?.fecha_inicio || '';
+
+  // 2. Fetch all completed category tasks for this job + category
+  const { data: tasks, error: tasksError } = await supabase
+    .from('report_category_tasks')
+    .select('id, pdf_path, school_codigo_ce, category')
+    .eq('job_id', job.report_job_id)
+    .eq('category', category)
+    .eq('status', 'complete')
+    .not('pdf_path', 'is', null)
+    .order('school_codigo_ce', { ascending: true });
+
+  if (tasksError) {
+    throw new Error(`Failed to fetch tasks: ${tasksError.message}`);
+  }
+
+  if (!tasks || tasks.length === 0) {
+    throw new Error(`No PDFs found for category ${category}`);
+  }
+
+  console.log(`   ✅ Found ${tasks.length} schools with PDFs for category ${category}`);
+
+  // 3. Create ZIP archive
+  const archive = archiver('zip', {
+    zlib: { level: COMPRESSION_LEVEL },
+  });
+
+  const chunks: Buffer[] = [];
+  archive.on('data', (chunk: Buffer) => chunks.push(chunk));
+
+  let pdfCount = 0;
+
+  // 4. Download PDFs in batches and add to archive
+  for (let i = 0; i < tasks.length; i += BATCH_SIZE) {
+    const batch = tasks.slice(i, i + BATCH_SIZE);
+    const batchProgress = `${i + batch.length}/${tasks.length}`;
+
+    console.log(`   📥 Downloading batch: ${batchProgress} schools`);
+
+    await Promise.all(
+      batch.map(async task => {
+        try {
+          const pdfPath = task.pdf_path!;
+
+          // Download PDF
+          const { data: pdfData, error: downloadError } = await supabase.storage
+            .from('reports')
+            .download(pdfPath);
+
+          if (downloadError || !pdfData) {
+            console.warn(`   ⚠️  Failed to download: ${pdfPath}`);
+            return;
+          }
+
+          const buffer = Buffer.from(await pdfData.arrayBuffer());
+
+          // Use school code as filename in ZIP
+          const fileName = `${task.school_codigo_ce}.pdf`;
+          archive.append(buffer, { name: fileName });
+          pdfCount++;
+        } catch (err) {
+          console.error(`   ❌ Error processing task ${task.id}:`, err);
+        }
+      })
+    );
+
+    if ((i + batch.length) % 100 === 0 || i + batch.length >= tasks.length) {
+      console.log(`   📊 Progress: ${pdfCount} PDFs added to archive`);
     }
   }
+
+  // 5. Finalize ZIP
+  console.log(`   🗜️  Finalizing ZIP archive...`);
+  archive.finalize();
+
+  await new Promise((resolve, reject) => {
+    archive.on('end', resolve);
+    archive.on('error', reject);
+  });
+
+  const zipBuffer = Buffer.concat(chunks);
+  const zipSizeMB = (zipBuffer.length / 1024 / 1024).toFixed(2);
+  console.log(`   ✅ ZIP created: ${zipSizeMB} MB, ${pdfCount} PDFs`);
+
+  // 6. Upload ZIP to Supabase Storage
+  const zipPath = `bundles/${job.report_job_id}/${fechaInicio}/${category}.zip`;
+  console.log(`   ⬆️  Uploading to storage: ${zipPath}...`);
+
+  const { error: uploadError } = await supabase.storage.from('reports').upload(zipPath, zipBuffer, {
+    contentType: 'application/zip',
+    upsert: true,
+  });
+
+  if (uploadError) {
+    throw new Error(`Upload failed: ${uploadError.message}`);
+  }
+
+  console.log(`   ✅ Upload complete`);
+
+  // 7. Update job status to complete
+  await supabase.rpc('update_zip_job_status', {
+    p_job_id: job.job_id,
+    p_status: 'complete',
+    p_zip_path: zipPath,
+    p_zip_size_bytes: zipBuffer.length,
+    p_pdf_count: pdfCount,
+  });
+
+  const elapsedSeconds = ((Date.now() - startTime) / 1000).toFixed(1);
+  console.log(`   ✅ Job completed in ${elapsedSeconds}s`);
 }
 
 /**

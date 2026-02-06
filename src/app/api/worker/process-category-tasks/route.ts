@@ -25,10 +25,14 @@ export async function POST(request: NextRequest) {
     const authConfig = validateEnv(authConfigSchema);
     const expectedSecret = authConfig.SUPABASE_FUNCTION_SECRET || authConfig.CRON_SECRET;
 
-    // Simple authentication check (for cron jobs)
+    // Simple authentication check (for cron jobs and Supabase Edge Functions)
+    // Accept either Authorization: Bearer <secret> or x-worker-secret: <secret>
     const authHeader = request.headers.get('authorization');
+    const workerSecret = request.headers.get('x-worker-secret');
 
-    if (expectedSecret && authHeader !== `Bearer ${expectedSecret}`) {
+    const providedSecret = workerSecret || (authHeader?.replace('Bearer ', '') ?? '');
+
+    if (expectedSecret && providedSecret !== expectedSecret) {
       return createUnauthorizedResponse();
     }
 
@@ -46,6 +50,7 @@ export async function POST(request: NextRequest) {
     let totalFailed = 0;
     let batchCount = 0;
     const allJobIds = new Set<string>();
+    let didRequeueStale = false;
 
     // Drain queue until time budget exhausted or no more tasks
     while (Date.now() - startTime < maxRuntime) {
@@ -65,11 +70,40 @@ export async function POST(request: NextRequest) {
       const tasks = claimedTasks as Array<{
         task_id: string;
         job_id: string;
+        school_codigo_ce: string;
         category: string;
         fecha_inicio: string;
       }>;
 
       if (tasks.length === 0) {
+        // If there are no pending tasks, we might still be "stuck" with stale running tasks
+        // left behind by crashed/time-limited workers. Try requeuing them once per invocation.
+        if (!didRequeueStale) {
+          didRequeueStale = true;
+
+          const staleSeconds = parseInt(process.env.WORKER_STALE_TASK_SECONDS || '900', 10); // 15m default
+          const requeueLimit = parseInt(process.env.WORKER_STALE_TASK_LIMIT || '5000', 10);
+
+          const { data: requeuedCount, error: requeueError } = await supabaseServer.rpc(
+            'requeue_stale_running_category_tasks',
+            {
+              p_stale_seconds: staleSeconds,
+              p_limit: requeueLimit,
+            }
+          );
+
+          if (requeueError) {
+            console.error('Error requeuing stale running category tasks:', requeueError);
+            break;
+          }
+
+          const count =
+            typeof requeuedCount === 'number' ? requeuedCount : Number(requeuedCount ?? 0);
+          if (count > 0) {
+            continue;
+          }
+        }
+
         break;
       }
 
@@ -126,6 +160,7 @@ async function processTasksWithConcurrencyLimit(
   tasks: Array<{
     task_id: string;
     job_id: string;
+    school_codigo_ce: string;
     category: string;
     fecha_inicio: string;
   }>,
@@ -145,11 +180,12 @@ async function processTasksWithConcurrencyLimit(
 async function processCategoryTask(task: {
   task_id: string;
   job_id: string;
+  school_codigo_ce: string;
   category: string;
   fecha_inicio: string;
 }): Promise<void> {
   try {
-    const { task_id, job_id, category, fecha_inicio } = task;
+    const { task_id, job_id, school_codigo_ce, category, fecha_inicio } = task;
 
     // Check if the parent job is cancelled
     const { data: job, error: jobError } = await supabaseServer
@@ -166,15 +202,15 @@ async function processCategoryTask(task: {
       return;
     }
 
-    // Fetch all students for this fecha_inicio
-    const students = await fetchStudentsByFechaInicio(fecha_inicio);
+    // Fetch all students for this school and fecha_inicio
+    const students = await fetchStudentsBySchoolAndFechaInicio(school_codigo_ce, fecha_inicio);
 
     if (students.length === 0) {
       await supabaseServer.rpc('update_category_task_status', {
         p_task_id: task_id,
         p_status: 'complete',
         p_pdf_path: null,
-        p_error: `No students found for fecha_inicio=${fecha_inicio}`,
+        p_error: `No students found for school=${school_codigo_ce}, fecha_inicio=${fecha_inicio}`,
       });
       return;
     }
@@ -211,18 +247,8 @@ async function processCategoryTask(task: {
     // Convert stream to buffer
     const pdfBuffer = await toBuffer(pdfStream);
 
-    // Build storage key using new hierarchy
-    const storagePath = buildAgreementReportStorageKey({
-      jobId: job_id,
-      fechaInicio: fecha_inicio,
-      categoryFolder: category as
-        | 'estudiantes'
-        | 'camisa'
-        | 'prenda_inferior'
-        | 'zapatos'
-        | 'distribucion_por_escuela',
-      fileName: fileName,
-    });
+    // Build storage key: {jobId}/{fechaInicio}/{category}/{schoolCodigoCe}.pdf
+    const storagePath = `${job_id}/${fecha_inicio}/${category}/${school_codigo_ce}.pdf`;
 
     // Upload PDF to Supabase Storage
     const { error: uploadError } = await supabaseServer.storage
@@ -259,36 +285,28 @@ async function processCategoryTask(task: {
 }
 
 /**
- * Fetch all students matching the fecha_inicio filter
+ * Fetch all students for a specific school and fecha_inicio
  */
-async function fetchStudentsByFechaInicio(fechaInicio: string): Promise<StudentQueryRow[]> {
+async function fetchStudentsBySchoolAndFechaInicio(
+  schoolCodigoCe: string,
+  fechaInicio: string
+): Promise<StudentQueryRow[]> {
   const pageSize = 2000;
-  const maxRows = 100000; // Higher limit for bulk operations
+  const maxRows = 10000; // One school should not have more than this
 
   let offset = 0;
   let totalCount: number | null = null;
   const all: StudentQueryRow[] = [];
-  let useFechaInicioParam = true;
 
   while (true) {
-    const baseArgs = {
-      p_school_codigo_ce: null,
+    const { data, error } = await supabaseServer.rpc('query_students', {
+      p_school_codigo_ce: schoolCodigoCe,
       p_grado: null,
       p_departamento: null,
+      p_fecha_inicio: fechaInicio,
       p_limit: pageSize,
       p_offset: offset,
-    };
-
-    // Try with p_fecha_inicio parameter first (new migration)
-    const args = useFechaInicioParam ? { ...baseArgs, p_fecha_inicio: fechaInicio } : baseArgs;
-
-    let { data, error } = await supabaseServer.rpc('query_students', args);
-
-    // Fallback: if PostgREST returns PGRST203 (unknown parameter), retry without p_fecha_inicio
-    if (error?.code === 'PGRST203' && useFechaInicioParam) {
-      useFechaInicioParam = false;
-      ({ data, error } = await supabaseServer.rpc('query_students', baseArgs));
-    }
+    });
 
     if (error) {
       throw new Error(error.message);
@@ -299,11 +317,7 @@ async function fetchStudentsByFechaInicio(fechaInicio: string): Promise<StudentQ
       break;
     }
 
-    // If we're not using the fecha_inicio parameter, filter client-side
-    const filtered = useFechaInicioParam
-      ? rows
-      : rows.filter(row => row.fecha_inicio === fechaInicio);
-    all.push(...filtered);
+    all.push(...rows);
 
     if (totalCount === null && rows.length > 0) {
       totalCount = rows[0]?.total_count ?? 0;

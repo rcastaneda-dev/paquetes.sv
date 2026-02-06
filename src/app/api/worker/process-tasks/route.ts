@@ -20,10 +20,14 @@ export async function POST(request: NextRequest) {
     const authConfig = validateEnv(authConfigSchema);
     const expectedSecret = authConfig.SUPABASE_FUNCTION_SECRET || authConfig.CRON_SECRET;
 
-    // Simple authentication check (for cron jobs)
+    // Simple authentication check (for cron jobs and Supabase Edge Functions)
+    // Accept either Authorization: Bearer <secret> or x-worker-secret: <secret>
     const authHeader = request.headers.get('authorization');
+    const workerSecret = request.headers.get('x-worker-secret');
 
-    if (expectedSecret && authHeader !== `Bearer ${expectedSecret}`) {
+    const providedSecret = workerSecret || (authHeader?.replace('Bearer ', '') ?? '');
+
+    if (expectedSecret && providedSecret !== expectedSecret) {
       return createUnauthorizedResponse();
     }
 
