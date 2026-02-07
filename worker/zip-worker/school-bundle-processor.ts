@@ -201,12 +201,41 @@ function renderCajasSection(ctx: SectionRenderContext): void {
   const formattedDate = formatDateForTitle(fechaInicio);
   const title = 'DETALLE DE PROGRAMACIÓN DE CAJAS';
   const subtitle = `Fecha: ${formattedDate}`;
+  const departamento = school.departamento || 'N/A';
+  const distrito = school.distrito || 'N/A';
+  const zona = school.zona || 'N/A';
 
-  addLogoToPage(doc, doc.page.width);
-  doc.fontSize(14).font('Helvetica-Bold').text(title, { align: 'center' });
-  doc.fontSize(14).font('Helvetica-Bold').text(subtitle, { align: 'center' });
-  doc.moveDown(2);
+  // Helper function to draw complete header (title, date, school info)
+  const drawCompleteHeader = (): void => {
+    addLogoToPage(doc, doc.page.width);
+    doc.fontSize(14).font('Helvetica-Bold').text(title, { align: 'center' });
+    doc.fontSize(14).font('Helvetica-Bold').text(subtitle, { align: 'center' });
+    doc.moveDown(2);
 
+    // School header
+    doc
+      .fontSize(12)
+      .font('Helvetica-Bold')
+      .text(school.nombre_ce.toUpperCase(), { align: 'center' });
+    doc
+      .fontSize(12)
+      .font('Helvetica-Bold')
+      .text(`CODIGO: ${school.codigo_ce.toUpperCase()}`, { align: 'center' });
+    doc
+      .fontSize(12)
+      .font('Helvetica-Bold')
+      .text(`DEPARTAMENTO: ${departamento.toUpperCase()} - DISTRITO: ${distrito.toUpperCase()}`, {
+        align: 'center',
+      });
+    doc
+      .fontSize(12)
+      .font('Helvetica-Bold')
+      .text(`ZONA: ${zona.toUpperCase()}`, { align: 'center' });
+    doc.moveDown(1);
+  };
+
+  // Draw initial header
+  drawCompleteHeader();
   let currentY = doc.y;
 
   // Group students by grado_ok
@@ -221,32 +250,46 @@ function renderCajasSection(ctx: SectionRenderContext): void {
 
   const grades = Array.from(gradeMap.keys()).sort();
 
-  // Table header
-  doc.fontSize(9).font('Helvetica-Bold');
-  const colWidths = [30, 90, 90, 60, 230, 80, 50, 50, 50];
-  const colHeaders = [
-    'NO',
-    'DEPARTAMENTO',
-    'DISTRITO',
-    'CODIGO_CE',
-    'NOMBRE_CE',
-    'GRADO',
-    'CAJAS HOMBRES',
-    'CAJAS MUJERES',
-    'CAJAS TOTALES',
-  ];
+  // Define table structure (fixed column widths)
+  // Total available width: 792pt (landscape) - 60pt (margins) = 732pt
+  const colWidths = [80, 240, 137, 137, 138];
+  const colHeaders = ['NO', 'GRADO', 'CAJAS HOMBRES', 'CAJAS MUJERES', 'CAJAS TOTALES'];
+  const headerHeight = 30;
+  const pageBottomMargin = 40; // Reserve space at bottom of page
 
-  let x = 30;
-  const headerHeight = 25;
-  for (let i = 0; i < colHeaders.length; i++) {
-    doc.rect(x, currentY, colWidths[i], headerHeight).stroke();
-    doc.text(colHeaders[i], x + 2, currentY + 4, { width: colWidths[i] - 4, align: 'center' });
-    x += colWidths[i];
-  }
-  currentY += headerHeight;
+  // Helper function to draw table header
+  const drawTableHeader = (yPos: number): number => {
+    doc.fontSize(11).font('Helvetica-Bold');
+    let x = 30;
+    for (let i = 0; i < colHeaders.length; i++) {
+      doc.rect(x, yPos, colWidths[i], headerHeight).stroke();
+      doc.text(colHeaders[i], x + 4, yPos + 8, {
+        width: colWidths[i] - 8,
+        align: 'center',
+      });
+      x += colWidths[i];
+    }
+    return yPos + headerHeight;
+  };
 
-  // Grade rows
-  doc.font('Helvetica').fontSize(8);
+  // Helper function to check if we need a new page
+  const checkPageBreak = (requiredHeight: number): number => {
+    const pageHeight = doc.page.height;
+    if (currentY + requiredHeight > pageHeight - pageBottomMargin) {
+      // Add new page and redraw complete header
+      doc.addPage(CAJAS_PAGE_OPTIONS);
+      drawCompleteHeader();
+      currentY = doc.y;
+      currentY = drawTableHeader(currentY);
+    }
+    return currentY;
+  };
+
+  // Draw initial table header
+  currentY = drawTableHeader(currentY);
+
+  // Draw grade rows
+  doc.font('Helvetica').fontSize(10);
   let rowIndex = 1;
 
   // Track per-grade calculated boxes for accurate subtotal
@@ -267,16 +310,14 @@ function renderCajasSection(ctx: SectionRenderContext): void {
     // Store for subtotal calculation
     gradeLevelBoxes.push({ hombres: cajasHombres, mujeres: cajasMujeres });
 
-    const nameHeight = doc.heightOfString(school.nombre_ce, { width: colWidths[4] - 4 });
-    const dynamicRowHeight = Math.max(25, nameHeight + 8);
+    const rowHeight = 30;
 
-    x = 30;
+    // Check if we need a new page before drawing this row
+    currentY = checkPageBreak(rowHeight);
+
+    let x = 30;
     const rowData = [
       rowIndex.toString(),
-      school.departamento || '',
-      school.distrito || '',
-      school.codigo_ce,
-      school.nombre_ce,
       grade,
       cajasHombres.toString(),
       cajasMujeres.toString(),
@@ -284,32 +325,32 @@ function renderCajasSection(ctx: SectionRenderContext): void {
     ];
 
     for (let i = 0; i < rowData.length; i++) {
-      doc.rect(x, currentY, colWidths[i], dynamicRowHeight).stroke();
-      doc.text(rowData[i], x + 2, currentY + 3, {
-        width: colWidths[i] - 4,
-        align: i === 4 ? 'left' : 'center',
+      doc.rect(x, currentY, colWidths[i], rowHeight).stroke();
+      doc.text(rowData[i], x + 4, currentY + 8, {
+        width: colWidths[i] - 8,
+        align: 'center',
       });
       x += colWidths[i];
     }
-    currentY += dynamicRowHeight;
+    currentY += rowHeight;
     rowIndex++;
   }
 
   // Subtotal row - sum of grade-level calculated boxes
-  doc.font('Helvetica-Bold').fontSize(8);
+  const summaryRowHeight = 30;
+
+  // Check if we need a new page before drawing summary
+  currentY = checkPageBreak(summaryRowHeight);
+
+  doc.font('Helvetica-Bold').fontSize(10);
   const schoolTotalBoxesH = gradeLevelBoxes.reduce((sum, b) => sum + b.hombres, 0);
   const schoolTotalBoxesM = gradeLevelBoxes.reduce((sum, b) => sum + b.mujeres, 0);
   const schoolTotalBoxes = schoolTotalBoxesH + schoolTotalBoxesM;
 
-  const summaryRowHeight = 16;
-  x = 30;
+  let x = 30;
   const summaryData = [
     '',
-    '',
-    '',
-    '',
     'SUBTOTAL',
-    '',
     schoolTotalBoxesH.toString(),
     schoolTotalBoxesM.toString(),
     schoolTotalBoxes.toString(),
@@ -317,9 +358,9 @@ function renderCajasSection(ctx: SectionRenderContext): void {
 
   for (let i = 0; i < summaryData.length; i++) {
     doc.rect(x, currentY, colWidths[i], summaryRowHeight).stroke();
-    doc.text(summaryData[i], x + 2, currentY + 3, {
-      width: colWidths[i] - 4,
-      align: i === 4 ? 'left' : 'center',
+    doc.text(summaryData[i], x + 4, currentY + 8, {
+      width: colWidths[i] - 8,
+      align: 'center',
     });
     x += colWidths[i];
   }
