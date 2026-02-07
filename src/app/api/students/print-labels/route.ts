@@ -26,11 +26,11 @@ async function fetchAllStudents(params: {
   school_codigo_ce: string;
   grado: string | null;
 }): Promise<StudentQueryRow[]> {
-  const pageSize = 2000;
+  // Must be ≤ PostgREST max-rows (Supabase default = 1000)
+  const pageSize = 1000;
   const maxRows = 20000;
 
   let offset = 0;
-  let totalCount: number | null = null;
   const all: StudentQueryRow[] = [];
   let useExtendedRpcSignature = false;
 
@@ -65,17 +65,14 @@ async function fetchAllStudents(params: {
       break;
     }
 
-    if (totalCount === null) {
-      totalCount = rows[0]?.total_count ?? 0;
-    }
-
     all.push(...rows);
 
     if (all.length >= maxRows) {
       throw new Error(`Too many rows to print (${all.length}+). Please narrow your filters.`);
     }
 
-    if (totalCount !== null && all.length >= totalCount) {
+    // If we received fewer rows than requested, we've reached the last page
+    if (rows.length < pageSize) {
       break;
     }
 

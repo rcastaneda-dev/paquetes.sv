@@ -779,15 +779,20 @@ function streamToBuffer(stream: NodeJS.ReadableStream): Promise<Buffer> {
 // Paginated student fetcher
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * PostgREST enforces a server-side `max-rows` limit (default 1000).
+ * We page in increments of 1000 and use `rows.length < pageSize`
+ * to detect the last page reliably.
+ */
 async function fetchAllStudentsForDate(
   supabase: SupabaseClient,
   fechaInicio: string
 ): Promise<StudentQueryRow[]> {
-  const pageSize = 5000;
+  // Must be ≤ PostgREST max-rows (Supabase default = 1000)
+  const pageSize = 1000;
   const maxRows = 200000;
 
   let offset = 0;
-  let totalCount: number | null = null;
   const all: StudentQueryRow[] = [];
 
   while (true) {
@@ -807,12 +812,13 @@ async function fetchAllStudentsForDate(
 
     all.push(...rows);
 
-    if (totalCount === null && rows.length > 0) {
-      totalCount = rows[0]?.total_count ?? 0;
+    if (all.length >= maxRows) {
+      console.warn(`fetchAllStudentsForDate: hit maxRows (${maxRows})`);
+      break;
     }
 
-    if (all.length >= maxRows) break;
-    if (totalCount !== null && offset + pageSize >= totalCount) break;
+    // If we received fewer rows than requested, we've reached the last page
+    if (rows.length < pageSize) break;
 
     offset += pageSize;
   }

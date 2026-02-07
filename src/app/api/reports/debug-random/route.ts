@@ -94,7 +94,8 @@ export async function GET(request: NextRequest) {
       }
 
       // Fetch all students for this school using the same RPC as the regular reports
-      const pageSize = 2000;
+      // Must be ≤ PostgREST max-rows (Supabase default = 1000)
+      const pageSize = 1000;
       let offset = 0;
       const schoolStudents: StudentQueryRow[] = [];
 
@@ -116,9 +117,8 @@ export async function GET(request: NextRequest) {
 
         schoolStudents.push(...rows);
 
-        // Check if we've fetched all students for this school
-        const totalCount = rows[0]?.total_count ?? 0;
-        if (schoolStudents.length >= totalCount) break;
+        // If we received fewer rows than requested, we've reached the last page
+        if (rows.length < pageSize) break;
 
         offset += pageSize;
       }

@@ -207,6 +207,10 @@ async function processCategoryTask(task: {
     // Fetch all students for this school and fecha_inicio
     const students = await fetchStudentsBySchoolAndFechaInicio(school_codigo_ce, fecha_inicio);
 
+    console.log(
+      `[category-task] school=${school_codigo_ce} category=${category} fecha=${fecha_inicio} → ${students.length} students fetched (total_count=${students[0]?.total_count ?? 'N/A'})`
+    );
+
     if (students.length === 0) {
       await supabaseServer.rpc('update_category_task_status', {
         p_task_id: task_id,
@@ -295,17 +299,24 @@ async function processCategoryTask(task: {
 }
 
 /**
- * Fetch all students for a specific school and fecha_inicio
+ * Fetch all students for a specific school and fecha_inicio.
+ *
+ * NOTE: Supabase PostgREST enforces a server-side `max-rows` limit (default 1000).
+ * Even though the RPC accepts `p_limit`, PostgREST will silently truncate any
+ * response exceeding `max-rows`. We therefore page in increments of 1000 and
+ * rely on `rows.length < pageSize` to detect the last page – NOT on
+ * `offset + pageSize >= totalCount`, which would exit prematurely when
+ * PostgREST truncates rows but `total_count` reflects the untruncated total.
  */
 async function fetchStudentsBySchoolAndFechaInicio(
   schoolCodigoCe: string,
   fechaInicio: string
 ): Promise<StudentQueryRow[]> {
-  const pageSize = 2000;
+  // Must be ≤ PostgREST max-rows (Supabase default = 1000)
+  const pageSize = 1000;
   const maxRows = 10000; // One school should not have more than this
 
   let offset = 0;
-  let totalCount: number | null = null;
   const all: StudentQueryRow[] = [];
 
   while (true) {
@@ -329,15 +340,15 @@ async function fetchStudentsBySchoolAndFechaInicio(
 
     all.push(...rows);
 
-    if (totalCount === null && rows.length > 0) {
-      totalCount = rows[0]?.total_count ?? 0;
-    }
-
     if (all.length >= maxRows) {
+      console.warn(
+        `fetchStudentsBySchoolAndFechaInicio: hit maxRows (${maxRows}) for school ${schoolCodigoCe}`
+      );
       break;
     }
 
-    if (totalCount !== null && offset + pageSize >= totalCount) {
+    // If we received fewer rows than requested, we've reached the last page
+    if (rows.length < pageSize) {
       break;
     }
 
