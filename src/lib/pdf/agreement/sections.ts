@@ -203,9 +203,24 @@ export function renderCajasSection(ctx: SectionRenderContext): void {
   // Draw grade rows
   doc.font('Helvetica').fontSize(8);
   let rowIndex = 1;
+
+  // Track per-grade calculated boxes for accurate subtotal
+  const gradeLevelBoxes: Array<{ hombres: number; mujeres: number }> = [];
+
   for (const grade of grades) {
     const counts = gradeMap.get(grade)!;
-    const total = counts.hombres + counts.mujeres;
+
+    // Apply conditional increment based on student count per gender
+    // If zero students, no boxes needed
+    const incrementH = counts.hombres > 15 ? 1.1 : 1.15;
+    const incrementM = counts.mujeres > 15 ? 1.1 : 1.15;
+
+    const cajasHombres = counts.hombres === 0 ? 0 : Math.ceil(counts.hombres * incrementH);
+    const cajasMujeres = counts.mujeres === 0 ? 0 : Math.ceil(counts.mujeres * incrementM);
+    const cajasTotales = cajasHombres + cajasMujeres;
+
+    // Store for subtotal calculation
+    gradeLevelBoxes.push({ hombres: cajasHombres, mujeres: cajasMujeres });
 
     const nameHeight = doc.heightOfString(school.nombre_ce, {
       width: colWidths[4] - 4,
@@ -220,9 +235,9 @@ export function renderCajasSection(ctx: SectionRenderContext): void {
       school.codigo_ce,
       school.nombre_ce,
       grade,
-      Math.ceil(counts.hombres * 1.15).toString(),
-      Math.ceil(counts.mujeres * 1.15).toString(),
-      Math.ceil(total * 1.15).toString(),
+      cajasHombres.toString(),
+      cajasMujeres.toString(),
+      cajasTotales.toString(),
     ];
 
     for (let i = 0; i < rowData.length; i++) {
@@ -237,11 +252,11 @@ export function renderCajasSection(ctx: SectionRenderContext): void {
     rowIndex++;
   }
 
-  // School summary row
+  // School summary row - sum of grade-level calculated boxes
   doc.font('Helvetica-Bold').fontSize(8);
-  const schoolTotalH = Array.from(gradeMap.values()).reduce((sum, c) => sum + c.hombres, 0);
-  const schoolTotalM = Array.from(gradeMap.values()).reduce((sum, c) => sum + c.mujeres, 0);
-  const schoolTotal = schoolTotalH + schoolTotalM;
+  const schoolTotalBoxesH = gradeLevelBoxes.reduce((sum, b) => sum + b.hombres, 0);
+  const schoolTotalBoxesM = gradeLevelBoxes.reduce((sum, b) => sum + b.mujeres, 0);
+  const schoolTotalBoxes = schoolTotalBoxesH + schoolTotalBoxesM;
 
   const summaryRowHeight = 16;
   x = 30;
@@ -252,9 +267,9 @@ export function renderCajasSection(ctx: SectionRenderContext): void {
     '',
     'SUBTOTAL',
     '',
-    Math.ceil(schoolTotalH * 1.15).toString(),
-    Math.ceil(schoolTotalM * 1.15).toString(),
-    Math.ceil(schoolTotal * 1.15).toString(),
+    schoolTotalBoxesH.toString(),
+    schoolTotalBoxesM.toString(),
+    schoolTotalBoxes.toString(),
   ];
 
   for (let i = 0; i < summaryData.length; i++) {
