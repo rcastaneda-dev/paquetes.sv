@@ -25,6 +25,9 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./
 
+# Copy logo asset for PDF generation
+COPY --from=builder /app/assets ./assets
+
 # Run as non-root user
 USER node
 

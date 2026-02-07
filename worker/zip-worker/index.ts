@@ -1,6 +1,6 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import archiver from 'archiver';
-import { Readable } from 'stream';
+import { processSchoolBundleDirectly } from './school-bundle-processor';
 
 /**
  * Background ZIP Worker
@@ -35,8 +35,7 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const POLL_INTERVAL_MS = parseInt(process.env.POLL_INTERVAL_MS || '5000', 10);
 const BATCH_SIZE = parseInt(process.env.DOWNLOAD_BATCH_SIZE || '50', 10);
 const COMPRESSION_LEVEL = parseInt(process.env.COMPRESSION_LEVEL || '6', 10);
-const APP_URL = process.env.APP_URL || ''; // Next.js app URL for delegated processing
-const WORKER_SECRET = process.env.SUPABASE_FUNCTION_SECRET || process.env.CRON_SECRET || '';
+// APP_URL/WORKER_SECRET no longer needed – school_bundle is processed locally
 
 // Validate environment
 if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
@@ -403,63 +402,35 @@ async function processCategoryZipJob(supabase: SupabaseClient, job: ZipJob, star
 }
 
 /**
- * Process a school-bundle ZIP job.
+ * Process a school-bundle ZIP job directly in the worker.
  *
- * This delegates the heavy lifting (PDF generation + ZIP assembly) to the
- * Next.js API route at /api/worker/process-school-bundle-zip because the
- * worker process does not have pdfkit or the rendering logic available.
+ * Generates one merged PDF per school (Cajas + Uniformes + Zapatos),
+ * bundles them into a ZIP, and uploads to Supabase Storage.
  *
- * Flow:
- *   1. Worker claims the job (already done by caller)
- *   2. Worker POSTs to APP_URL/api/worker/process-school-bundle-zip
- *   3. The API route generates PDFs, creates ZIP, uploads to Storage
- *   4. API route returns { zipPath, zipSizeBytes, pdfCount }
- *   5. Worker marks the job complete (or failed on error)
+ * All PDF rendering is handled by the local school-bundle-processor module.
  */
 async function processSchoolBundleZipJob(supabase: SupabaseClient, job: ZipJob, startTime: number) {
-  if (!APP_URL) {
-    throw new Error(
-      'APP_URL environment variable is required for school_bundle jobs. ' +
-        'Set it to the Next.js app URL (e.g. https://paquetes.sv or http://localhost:3000).'
-    );
-  }
+  const result = await processSchoolBundleDirectly(
+    supabase,
+    job.job_id,
+    job.report_job_id,
+    COMPRESSION_LEVEL
+  );
 
-  const url = `${APP_URL}/api/worker/process-school-bundle-zip`;
-  console.log(`   🌐 Delegating to Next.js API: ${url}`);
-
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(WORKER_SECRET ? { 'x-worker-secret': WORKER_SECRET } : {}),
-    },
-    body: JSON.stringify({
-      zipJobId: job.job_id,
-      reportJobId: job.report_job_id,
-    }),
+  // Mark job complete
+  await supabase.rpc('update_zip_job_status', {
+    p_job_id: job.job_id,
+    p_status: 'complete',
+    p_zip_path: result.zipPath,
+    p_zip_size_bytes: result.zipSizeBytes,
+    p_pdf_count: result.pdfCount,
   });
 
-  if (!response.ok) {
-    const errorBody = await response.text();
-    throw new Error(`API returned ${response.status}: ${errorBody}`);
-  }
-
-  const result = (await response.json()) as {
-    error?: string;
-    pdfCount?: number;
-    zipSizeMB?: string;
-  };
-
-  if (result.error) {
-    throw new Error(`API error: ${result.error}`);
-  }
-
-  // The API route handles marking the job complete/failed,
-  // but log the results here for visibility
   const elapsedSeconds = ((Date.now() - startTime) / 1000).toFixed(1);
+  const zipSizeMB = (result.zipSizeBytes / 1024 / 1024).toFixed(2);
   console.log(
     `   ✅ School bundle job completed in ${elapsedSeconds}s ` +
-      `(${result.pdfCount ?? 0} PDFs, ${result.zipSizeMB ?? '?'} MB)`
+      `(${result.pdfCount} PDFs, ${zipSizeMB} MB)`
   );
 }
 
