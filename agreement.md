@@ -189,14 +189,13 @@ _Font: Helvetica 12pt_
 **Data Logic (Aggregation):**
 This report consolidates data from Shoes into a single vertical list.
 
-1.  **Source 1:** Zapatos (`sexo` + `zapato_size`)
-    1.1. **Sort by:** alphabetic by sexo
-    1.2. **Style:** Capitalized
+1.  **Source 1:** Zapatos (`zapato_size`)
+    1.1. **Sort by:** numeric by size (ascending)
 
 **Table Columns:**
 
-1.  **TIPO/TALLA** (String Concatenation)
-    - _Example format:_ "HOMBRE - 38"
+1.  **TALLA**
+    - _Example format:_ "38"
 2.  **CANTIDAD** (Integer Count)
 
 **Footer:**
@@ -213,25 +212,24 @@ This report consolidates data from Shoes into a single vertical list.
   - Line 1: `{nombre_ce}`
   - Line 2: `CODIGO: {codigo_ce}`
   - Line 3: `FECHA: {schools.fecha_inicio}`
-- **Grouping:** combined grouping by: `type and size`.
+- **Grouping:** group by: `size` only.
 - **Filter:** Only include rows where `Count > 0`.
 
 **Header Layout:**
 _Font: Helvetica 12pt_
 
-> Line 1: `Detalle por tipo y talla (solo cantidades > 0)`
+> Line 1: `Detalle por talla (solo cantidades > 0)`
 
 **Data Logic (Aggregation):**
 This report consolidates data from Shoes for a given day based considering all schools on schools.fecha_inicio into a single vertical list.
 
-1.  **Source 1:** Zapatos (`sexo` + `zapato_size`)
-    1.1. **Sort by:** alphabetic by sexo
-    1.2. **Style:** Capitalized
+1.  **Source 1:** Zapatos (`zapato_size`)
+    1.1. **Sort by:** numeric by size (ascending)
 
 **Table Columns:**
 
-1.  **TIPO/TALLA** (String Concatenation)
-    - _Example format:_ "HOMBRE - 38"
+1.  **TALLA**
+    - _Example format:_ "38"
 2.  **CANTIDAD** (Integer Count)
 
 **Footer:**

@@ -78,7 +78,7 @@ function computeFinalCount(
 
 function fillSizeGaps(
   orderedSizes: string[],
-  originalCounts: Record<string, number>,
+  baseCounts: Record<string, number>,
   finalCounts: Record<string, number>
 ): Record<string, number> {
   const result = { ...finalCounts };
@@ -89,9 +89,9 @@ function fillSizeGaps(
     if (currentFinal > 0) continue;
 
     const nextSize = orderedSizes[n + 1];
-    const nextOriginal = originalCounts[nextSize] || 0;
-    if (nextOriginal > 0) {
-      result[size] = ceilToEven(nextOriginal / 2);
+    const nextBase = baseCounts[nextSize] || 0;
+    if (nextBase > 0) {
+      result[size] = ceilToEven(nextBase / 2);
     }
   }
 
@@ -439,13 +439,16 @@ function renderFichaUniformesSection(ctx: SectionRenderContext): void {
   for (const tipoKey of camisaTypes) {
     const sizeMap = camisaTipoMap.get(tipoKey)!;
     const rowOriginals: Record<string, number> = {};
+    const rowBases: Record<string, number> = {};
     const rowFinals: Record<string, number> = {};
     for (const size of camisaSizeOrder) {
       const orig = sizeMap.get(size) || 0;
       rowOriginals[size] = orig;
-      rowFinals[size] = computeFinalCount(orig, 2).final;
+      const computed = computeFinalCount(orig, 2);
+      rowBases[size] = computed.base;
+      rowFinals[size] = computed.final;
     }
-    const filled = fillSizeGaps(camisaSizeOrder, rowOriginals, rowFinals);
+    const filled = fillSizeGaps(camisaSizeOrder, rowBases, rowFinals);
     for (const size of camisaSizeOrder) {
       const finalCount = filled[size] || 0;
       if (finalCount > 0) {
@@ -471,13 +474,16 @@ function renderFichaUniformesSection(ctx: SectionRenderContext): void {
   for (const tipoKey of pantalonTypes) {
     const sizeMap = pantalonTipoMap.get(tipoKey)!;
     const rowOriginals: Record<string, number> = {};
+    const rowBases: Record<string, number> = {};
     const rowFinals: Record<string, number> = {};
     for (const size of camisaSizeOrder) {
       const orig = sizeMap.get(size) || 0;
       rowOriginals[size] = orig;
-      rowFinals[size] = computeFinalCount(orig, 2).final;
+      const computed = computeFinalCount(orig, 2);
+      rowBases[size] = computed.base;
+      rowFinals[size] = computed.final;
     }
-    const filled = fillSizeGaps(camisaSizeOrder, rowOriginals, rowFinals);
+    const filled = fillSizeGaps(camisaSizeOrder, rowBases, rowFinals);
     for (const size of camisaSizeOrder) {
       const finalCount = filled[size] || 0;
       if (finalCount > 0) {
@@ -606,7 +612,7 @@ function renderFichaZapatosSection(ctx: SectionRenderContext): void {
 
   // Aggregate shoe data
   interface ItemCount {
-    tipo_talla: string;
+    talla: string;
     cantidad: number;
   }
 
@@ -617,43 +623,38 @@ function renderFichaZapatosSection(ctx: SectionRenderContext): void {
     shoeSizes.push(i.toString());
   }
 
-  // Group by sexo
-  const zapatoSexoMap = new Map<string, Map<string, number>>();
+  // Group by talla only (aggregate across all students)
+  const zapatoTallaMap = new Map<string, number>();
   for (const student of school.students) {
-    const sexo = student.sexo;
     const size = student.zapato;
-    if (sexo && size) {
-      const sexoKey = sexo.toUpperCase();
-      if (!zapatoSexoMap.has(sexoKey)) zapatoSexoMap.set(sexoKey, new Map());
-      const sizeMap = zapatoSexoMap.get(sexoKey)!;
-      sizeMap.set(size, (sizeMap.get(size) || 0) + 1);
+    if (size && shoeSizes.includes(size)) {
+      zapatoTallaMap.set(size, (zapatoTallaMap.get(size) || 0) + 1);
     }
   }
 
-  // Apply gap-filling per sexo
-  const sexoTypes = Array.from(zapatoSexoMap.keys()).sort();
-  for (const sexoKey of sexoTypes) {
-    const sizeMap = zapatoSexoMap.get(sexoKey)!;
-    const rowOriginals: Record<string, number> = {};
-    const rowFinals: Record<string, number> = {};
-    for (const size of shoeSizes) {
-      const orig = sizeMap.get(size) || 0;
-      rowOriginals[size] = orig;
-      rowFinals[size] = computeFinalCount(orig, 1).final;
-    }
-    const filled = fillSizeGaps(shoeSizes, rowOriginals, rowFinals);
-    for (const size of shoeSizes) {
-      const finalCount = filled[size] || 0;
-      if (finalCount > 0) {
-        itemCounts.push({ tipo_talla: `${sexoKey} - ${size}`, cantidad: finalCount });
-      }
+  // Apply gap-filling over the aggregated size distribution
+  const rowOriginals: Record<string, number> = {};
+  const rowBases: Record<string, number> = {};
+  const rowFinals: Record<string, number> = {};
+  for (const size of shoeSizes) {
+    const orig = zapatoTallaMap.get(size) || 0;
+    rowOriginals[size] = orig;
+    const computed = computeFinalCount(orig, 1);
+    rowBases[size] = computed.base;
+    rowFinals[size] = computed.final;
+  }
+  const filled = fillSizeGaps(shoeSizes, rowBases, rowFinals);
+  for (const size of shoeSizes) {
+    const finalCount = filled[size] || 0;
+    if (finalCount > 0) {
+      itemCounts.push({ talla: size, cantidad: finalCount });
     }
   }
 
   // Table layout
   const xStart = 40;
   const cantidadColWidth = 100;
-  const tipoTallaColWidth = doc.page.width - 80 - cantidadColWidth;
+  const tallaColWidth = doc.page.width - 80 - cantidadColWidth;
   const headerHeight = 25;
   const rowHeight = 20;
 
@@ -661,12 +662,12 @@ function renderFichaZapatosSection(ctx: SectionRenderContext): void {
   doc.fontSize(11).font('Helvetica-Bold');
   let x = xStart;
 
-  doc.rect(x, currentY, tipoTallaColWidth, headerHeight).stroke();
-  doc.text('TIPO/TALLA', x + 5, currentY + 7, {
-    width: tipoTallaColWidth - 10,
+  doc.rect(x, currentY, tallaColWidth, headerHeight).stroke();
+  doc.text('TALLA', x + 5, currentY + 7, {
+    width: tallaColWidth - 10,
     align: 'center',
   });
-  x += tipoTallaColWidth;
+  x += tallaColWidth;
 
   doc.rect(x, currentY, cantidadColWidth, headerHeight).stroke();
   doc.text('CANTIDAD', x + 5, currentY + 7, {
@@ -683,12 +684,12 @@ function renderFichaZapatosSection(ctx: SectionRenderContext): void {
   for (const item of itemCounts) {
     x = xStart;
 
-    doc.rect(x, currentY, tipoTallaColWidth, rowHeight).stroke();
-    doc.text(item.tipo_talla, x + 5, currentY + 5, {
-      width: tipoTallaColWidth - 10,
+    doc.rect(x, currentY, tallaColWidth, rowHeight).stroke();
+    doc.text(item.talla, x + 5, currentY + 5, {
+      width: tallaColWidth - 10,
       align: 'center',
     });
-    x += tipoTallaColWidth;
+    x += tallaColWidth;
 
     doc.rect(x, currentY, cantidadColWidth, rowHeight).stroke();
     doc.text(item.cantidad.toString(), x + 5, currentY + 5, {

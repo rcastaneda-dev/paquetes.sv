@@ -10,6 +10,95 @@
  * All calculations are non-destructive and deterministic.
  */
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Size range restrictions
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Canonical size order for clothing (shirts, bottoms). */
+export const CLOTHING_SIZE_ORDER = [
+  'T4',
+  'T6',
+  'T8',
+  'T10',
+  'T12',
+  'T14',
+  'T16',
+  'T18',
+  'T20',
+  'T22',
+  'T1X',
+  'T2X',
+] as const;
+
+export type SizeRestrictionCategory = 'tipo_de_camisa' | 't_pantalon_falda_short';
+
+interface SizeRange {
+  min: string;
+  max: string;
+}
+
+/**
+ * Valid size ranges per garment type within each category.
+ * Keys are normalized to UPPERCASE.
+ */
+export const SIZE_RESTRICTIONS: Record<SizeRestrictionCategory, Record<string, SizeRange>> = {
+  tipo_de_camisa: {
+    CELESTE: { min: 'T4', max: 'T12' },
+    BLANCA: { min: 'T6', max: 'T2X' },
+  },
+  t_pantalon_falda_short: {
+    'FALDA AZUL': { min: 'T6', max: 'T2X' },
+    'FALDA AZUL CON TIRANTE': { min: 'T4', max: 'T12' },
+    'FALDA BEIGE': { min: 'T16', max: 'T2X' },
+    'SHORT AZUL': { min: 'T4', max: 'T12' },
+    'PANTALON BEIGE': { min: 'T16', max: 'T2X' },
+    'PANTALON AZUL': { min: 'T6', max: 'T2X' },
+  },
+};
+
+/**
+ * Return the subset of `orderedSizes` that falls within the configured
+ * min/max range for the given category + garment type.
+ *
+ * Normalization: garmentType is uppercased/trimmed. For `tipo_de_camisa`,
+ * a leading "CAMISA " prefix is stripped so both "CELESTE" and
+ * "CAMISA CELESTE" resolve to the same entry.
+ *
+ * If no restriction is found, returns `orderedSizes` unchanged.
+ */
+export function getRestrictedSizeOrder(
+  category: SizeRestrictionCategory,
+  garmentType: string,
+  orderedSizes: readonly string[]
+): string[] {
+  let normalized = garmentType.toUpperCase().trim();
+
+  if (category === 'tipo_de_camisa') {
+    normalized = normalized.replace(/^CAMISA\s+/, '');
+  }
+
+  const range = SIZE_RESTRICTIONS[category]?.[normalized];
+  if (!range) return [...orderedSizes];
+
+  const minIdx = orderedSizes.indexOf(range.min);
+  const maxIdx = orderedSizes.indexOf(range.max);
+
+  if (minIdx === -1 || maxIdx === -1) return [...orderedSizes];
+
+  return orderedSizes.slice(minIdx, maxIdx + 1);
+}
+
+/** Context for restricting which sizes get the vacíos transformation. */
+export interface SizeRestriction {
+  category: SizeRestrictionCategory;
+  garmentType: string;
+  orderedSizes: readonly string[];
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Core vacíos calculations
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
  * Round a number up to the nearest even integer.
  * Examples:
@@ -59,8 +148,13 @@ export function computeFinalCount(
  * Apply the vacíos transformation to a map of size counts.
  * This is a convenience function for transforming entire size distributions.
  *
+ * When a `restriction` is provided, only sizes within the configured
+ * min/max range for the garment type are transformed. Out-of-range sizes
+ * keep their raw (original) count.
+ *
  * @param sizeCounts - Map from size string to original count
  * @param multiplier - 2 for clothing, 1 for shoes
+ * @param restriction - Optional garment-type context to limit which sizes are transformed
  * @returns Map from size string to final count
  *
  * @example
@@ -70,11 +164,27 @@ export function computeFinalCount(
  */
 export function transformSizeCounts(
   sizeCounts: Record<string, number>,
-  multiplier: 1 | 2
+  multiplier: 1 | 2,
+  restriction?: SizeRestriction
 ): Record<string, number> {
+  const allowedSizes = restriction
+    ? new Set(
+        getRestrictedSizeOrder(
+          restriction.category,
+          restriction.garmentType,
+          restriction.orderedSizes
+        )
+      )
+    : null;
+
   const result: Record<string, number> = {};
 
   for (const [size, original] of Object.entries(sizeCounts)) {
+    if (allowedSizes && !allowedSizes.has(size)) {
+      result[size] = original;
+      continue;
+    }
+
     const { final } = computeFinalCount(original, multiplier);
     result[size] = final;
   }
@@ -87,28 +197,28 @@ export function transformSizeCounts(
  *
  * After computing final counts (base + vacíos), scan left→right.
  * If the current size has a final count of 0 and the NEXT size has a
- * positive original count y, assign ceilToEven(y / 2) as a buffer.
+ * positive base count (original × multiplier), assign ceilToEven(base / 2) as a buffer.
  *
  * This ensures there are spare units for sizes adjacent to populated sizes,
  * including leading gaps before the first populated size.
  *
  * @param orderedSizes - Array of size strings in display order (e.g. ['T4', 'T6', ..., 'T2X'])
- * @param originalCounts - Map from size to original student count
+ * @param baseCounts - Map from size to base count (original × multiplier)
  * @param finalCounts - Map from size to final count (after applying vacíos formula)
  * @returns Updated final counts with gaps filled
  *
  * @example
  * const sizes = ['T4', 'T6', 'T8'];
- * const original = { 'T4': 0, 'T6': 10, 'T8': 0 };
+ * const base = { 'T4': 0, 'T6': 20, 'T8': 0 };  // 10 students × 2
  * const final = { 'T4': 0, 'T6': 24, 'T8': 0 };
- * const filled = fillSizeGaps(sizes, original, final);
- * // => { 'T4': 20, 'T6': 24, 'T8': 0 }
- * // T4 gets filled (ceilToEven(10/2) = 10, then base+vacios applied)
- * // T8 is not filled (next original is 0)
+ * const filled = fillSizeGaps(sizes, base, final);
+ * // => { 'T4': 10, 'T6': 24, 'T8': 0 }
+ * // T4 gets filled with ceilToEven(20/2) = 10
+ * // T8 is not filled (next base is 0)
  */
 export function fillSizeGaps(
   orderedSizes: string[],
-  originalCounts: Record<string, number>,
+  baseCounts: Record<string, number>,
   finalCounts: Record<string, number>
 ): Record<string, number> {
   const result = { ...finalCounts };
@@ -123,11 +233,11 @@ export function fillSizeGaps(
     }
 
     const nextSize = orderedSizes[n + 1];
-    const nextOriginal = originalCounts[nextSize] || 0;
+    const nextBase = baseCounts[nextSize] || 0;
 
-    // Fill gap if next size has original count
-    if (nextOriginal > 0) {
-      result[size] = ceilToEven(nextOriginal / 2);
+    // Fill gap if next size has base count
+    if (nextBase > 0) {
+      result[size] = ceilToEven(nextBase / 2);
     }
   }
 
