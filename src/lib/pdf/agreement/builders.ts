@@ -16,6 +16,7 @@ import {
   FICHA_UNIFORMES_PAGE_OPTIONS,
   FICHA_ZAPATOS_PAGE_OPTIONS,
 } from './sections';
+import { computeFinalCount, fillSizeGaps, getRestrictedSizeOrder } from '@/lib/reports/vacios';
 
 interface PageOptions {
   size: 'LETTER';
@@ -38,6 +39,188 @@ const RENDERER_BY_SECTION: Record<AgreementSectionType, SectionRenderer> = {
 };
 
 /**
+ * Calculate total CAJAS for a school (sum of hombres + mujeres boxes)
+ */
+function calculateCajasTotales(school: SchoolGroup): number {
+  const gradeMap = new Map<string, { hombres: number; mujeres: number }>();
+
+  for (const student of school.students) {
+    const grade = student.grado_ok || student.grado || 'N/A';
+    if (!gradeMap.has(grade)) {
+      gradeMap.set(grade, { hombres: 0, mujeres: 0 });
+    }
+    const counts = gradeMap.get(grade)!;
+    if (student.sexo === 'Hombre') {
+      counts.hombres++;
+    } else if (student.sexo === 'Mujer') {
+      counts.mujeres++;
+    }
+  }
+
+  let totalBoxes = 0;
+  for (const counts of gradeMap.values()) {
+    const incrementH = counts.hombres > 15 ? 1.1 : 1.15;
+    const incrementM = counts.mujeres > 15 ? 1.1 : 1.15;
+    const cajasHombres = counts.hombres === 0 ? 0 : Math.ceil(counts.hombres * incrementH);
+    const cajasMujeres = counts.mujeres === 0 ? 0 : Math.ceil(counts.mujeres * incrementM);
+    totalBoxes += cajasHombres + cajasMujeres;
+  }
+
+  return totalBoxes;
+}
+
+/**
+ * Calculate total PIEZAS for uniformes (camisas + pantalones/faldas)
+ */
+function calculateUniformesTotalPiezas(school: SchoolGroup): number {
+  let totalPiezas = 0;
+  const camisaSizeOrder = [
+    'T4',
+    'T6',
+    'T8',
+    'T10',
+    'T12',
+    'T14',
+    'T16',
+    'T18',
+    'T20',
+    'T22',
+    'T1X',
+    'T2X',
+  ];
+
+  // Count camisas
+  const camisaTipoMap = new Map<string, Map<string, number>>();
+  for (const student of school.students) {
+    const tipo = student.tipo_de_camisa;
+    const size = student.camisa;
+    if (tipo && size) {
+      const tipoKey = `CAMISA ${tipo.toUpperCase()}`;
+      if (!camisaTipoMap.has(tipoKey)) {
+        camisaTipoMap.set(tipoKey, new Map());
+      }
+      const sizeMap = camisaTipoMap.get(tipoKey)!;
+      sizeMap.set(size, (sizeMap.get(size) || 0) + 1);
+    }
+  }
+
+  for (const tipoKey of camisaTipoMap.keys()) {
+    const sizeMap = camisaTipoMap.get(tipoKey)!;
+    const restrictedSizes = getRestrictedSizeOrder('tipo_de_camisa', tipoKey, camisaSizeOrder);
+    const allowedSet = new Set(restrictedSizes);
+    const rowBases: Record<string, number> = {};
+    const rowFinals: Record<string, number> = {};
+    for (const size of camisaSizeOrder) {
+      const orig = sizeMap.get(size) || 0;
+      const computed = computeFinalCount(orig, 2);
+      rowBases[size] = allowedSet.has(size) ? computed.base : 0;
+      rowFinals[size] = allowedSet.has(size) ? computed.final : orig;
+    }
+    const filled = fillSizeGaps(restrictedSizes, rowBases, rowFinals);
+    for (const finalCount of Object.values(filled)) {
+      totalPiezas += finalCount;
+    }
+  }
+
+  // Count pantalones/faldas
+  const pantalonTipoMap = new Map<string, Map<string, number>>();
+  for (const student of school.students) {
+    const tipo = student.t_pantalon_falda_short;
+    const size = student.pantalon_falda;
+    if (tipo && size) {
+      const tipoKey = tipo.toUpperCase();
+      if (!pantalonTipoMap.has(tipoKey)) {
+        pantalonTipoMap.set(tipoKey, new Map());
+      }
+      const sizeMap = pantalonTipoMap.get(tipoKey)!;
+      sizeMap.set(size, (sizeMap.get(size) || 0) + 1);
+    }
+  }
+
+  for (const tipoKey of pantalonTipoMap.keys()) {
+    const sizeMap = pantalonTipoMap.get(tipoKey)!;
+    const restrictedSizes = getRestrictedSizeOrder(
+      't_pantalon_falda_short',
+      tipoKey,
+      camisaSizeOrder
+    );
+    const allowedSet = new Set(restrictedSizes);
+    const rowBases: Record<string, number> = {};
+    const rowFinals: Record<string, number> = {};
+    for (const size of camisaSizeOrder) {
+      const orig = sizeMap.get(size) || 0;
+      const computed = computeFinalCount(orig, 2);
+      rowBases[size] = allowedSet.has(size) ? computed.base : 0;
+      rowFinals[size] = allowedSet.has(size) ? computed.final : orig;
+    }
+    const filled = fillSizeGaps(restrictedSizes, rowBases, rowFinals);
+    for (const finalCount of Object.values(filled)) {
+      totalPiezas += finalCount;
+    }
+  }
+
+  return totalPiezas;
+}
+
+/**
+ * Calculate total PIEZAS for zapatos
+ */
+function calculateZapatosTotalPiezas(school: SchoolGroup): number {
+  let totalPiezas = 0;
+  const shoeSizes: string[] = [];
+  for (let i = 23; i <= 45; i++) {
+    shoeSizes.push(i.toString());
+  }
+
+  const zapatoTallaMap = new Map<string, number>();
+  for (const student of school.students) {
+    const size = student.zapato;
+    if (size && shoeSizes.includes(size)) {
+      zapatoTallaMap.set(size, (zapatoTallaMap.get(size) || 0) + 1);
+    }
+  }
+
+  const rowBases: Record<string, number> = {};
+  const rowFinals: Record<string, number> = {};
+  for (const size of shoeSizes) {
+    const orig = zapatoTallaMap.get(size) || 0;
+    const computed = computeFinalCount(orig, 1);
+    rowBases[size] = computed.base;
+    rowFinals[size] = computed.final;
+  }
+  const filled = fillSizeGaps(shoeSizes, rowBases, rowFinals);
+  for (const finalCount of Object.values(filled)) {
+    totalPiezas += finalCount;
+  }
+
+  return totalPiezas;
+}
+
+/**
+ * Sort schools by their calculated totals in descending order
+ */
+function sortSchoolsByTotal(schools: SchoolGroup[], section: AgreementSectionType): SchoolGroup[] {
+  return schools.sort((a, b) => {
+    let totalA = 0;
+    let totalB = 0;
+
+    if (section === 'cajas') {
+      totalA = calculateCajasTotales(a);
+      totalB = calculateCajasTotales(b);
+    } else if (section === 'ficha_uniformes') {
+      totalA = calculateUniformesTotalPiezas(a);
+      totalB = calculateUniformesTotalPiezas(b);
+    } else if (section === 'ficha_zapatos') {
+      totalA = calculateZapatosTotalPiezas(a);
+      totalB = calculateZapatosTotalPiezas(b);
+    }
+
+    // Sort descending (highest first)
+    return totalB - totalA;
+  });
+}
+
+/**
  * Build a consolidated PDF merging all schools for a single section type.
  * Each school starts on a new page. The document is finalized (doc.end()) before return.
  */
@@ -48,15 +231,19 @@ export function buildConsolidatedPdf(options: {
 }): PDFDocumentInstance {
   const { fechaInicio, students, section } = options;
   const schools = groupBySchool(students);
+
+  // Sort schools by their totals in descending order
+  const sortedSchools = sortSchoolsByTotal(schools, section);
+
   const pageOptions = PAGE_OPTIONS_BY_SECTION[section];
   const renderer = RENDERER_BY_SECTION[section];
 
   const doc = new PDFDocument(pageOptions) as PDFDocumentInstance;
 
-  for (let i = 0; i < schools.length; i++) {
+  for (let i = 0; i < sortedSchools.length; i++) {
     renderer({
       doc,
-      school: schools[i],
+      school: sortedSchools[i],
       fechaInicio,
       addPage: i > 0,
     });

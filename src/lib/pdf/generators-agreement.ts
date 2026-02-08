@@ -691,6 +691,37 @@ export function generateDayZapatosPDF(options: AgreementReportOptions): PDFDocum
 
   const schools = groupBySchool(students);
 
+  // Sort schools by total piezas descending
+  schools.sort((a, b) => {
+    const shoeSizes: string[] = [];
+    for (let i = 23; i <= 45; i++) {
+      shoeSizes.push(i.toString());
+    }
+
+    const calculateTotal = (school: SchoolGroup): number => {
+      const zapatoTallaMap = new Map<string, number>();
+      for (const student of school.students) {
+        const size = student.zapato;
+        if (size && shoeSizes.includes(size)) {
+          zapatoTallaMap.set(size, (zapatoTallaMap.get(size) || 0) + 1);
+        }
+      }
+
+      const rowBases: Record<string, number> = {};
+      const rowFinals: Record<string, number> = {};
+      for (const size of shoeSizes) {
+        const orig = zapatoTallaMap.get(size) || 0;
+        const computed = computeFinalCount(orig, 1);
+        rowBases[size] = computed.base;
+        rowFinals[size] = computed.final;
+      }
+      const filled = fillSizeGaps(shoeSizes, rowBases, rowFinals);
+      return Object.values(filled).reduce((sum, count) => sum + count, 0);
+    };
+
+    return calculateTotal(b) - calculateTotal(a);
+  });
+
   for (let s = 0; s < schools.length; s++) {
     const school = schools[s];
 
@@ -849,6 +880,101 @@ export function generateDayUniformesPDF(options: AgreementReportOptions): PDFDoc
   const formattedDate = formatDateForTitle(fechaInicio);
 
   const schools = groupBySchool(students);
+
+  // Sort schools by total piezas descending
+  schools.sort((a, b) => {
+    const calculateTotal = (school: SchoolGroup): number => {
+      let totalPiezas = 0;
+      const camisaSizeOrder = [
+        'T4',
+        'T6',
+        'T8',
+        'T10',
+        'T12',
+        'T14',
+        'T16',
+        'T18',
+        'T20',
+        'T22',
+        'T1X',
+        'T2X',
+      ];
+
+      // Count camisas
+      const camisaTipoMap = new Map<string, Map<string, number>>();
+      for (const student of school.students) {
+        const tipo = student.tipo_de_camisa;
+        const size = student.camisa;
+        if (tipo && size) {
+          const tipoKey = `CAMISA ${tipo.toUpperCase()}`;
+          if (!camisaTipoMap.has(tipoKey)) {
+            camisaTipoMap.set(tipoKey, new Map());
+          }
+          const sizeMap = camisaTipoMap.get(tipoKey)!;
+          sizeMap.set(size, (sizeMap.get(size) || 0) + 1);
+        }
+      }
+
+      for (const tipoKey of camisaTipoMap.keys()) {
+        const sizeMap = camisaTipoMap.get(tipoKey)!;
+        const restrictedSizes = getRestrictedSizeOrder('tipo_de_camisa', tipoKey, camisaSizeOrder);
+        const allowedSet = new Set(restrictedSizes);
+        const rowBases: Record<string, number> = {};
+        const rowFinals: Record<string, number> = {};
+        for (const size of camisaSizeOrder) {
+          const orig = sizeMap.get(size) || 0;
+          const computed = computeFinalCount(orig, 2);
+          rowBases[size] = allowedSet.has(size) ? computed.base : 0;
+          rowFinals[size] = allowedSet.has(size) ? computed.final : orig;
+        }
+        const filled = fillSizeGaps(restrictedSizes, rowBases, rowFinals);
+        for (const finalCount of Object.values(filled)) {
+          totalPiezas += finalCount;
+        }
+      }
+
+      // Count pantalones/faldas
+      const pantalonTipoMap = new Map<string, Map<string, number>>();
+      for (const student of school.students) {
+        const tipo = student.t_pantalon_falda_short;
+        const size = student.pantalon_falda;
+        if (tipo && size) {
+          const tipoKey = tipo.toUpperCase();
+          if (!pantalonTipoMap.has(tipoKey)) {
+            pantalonTipoMap.set(tipoKey, new Map());
+          }
+          const sizeMap = pantalonTipoMap.get(tipoKey)!;
+          sizeMap.set(size, (sizeMap.get(size) || 0) + 1);
+        }
+      }
+
+      for (const tipoKey of pantalonTipoMap.keys()) {
+        const sizeMap = pantalonTipoMap.get(tipoKey)!;
+        const restrictedSizes = getRestrictedSizeOrder(
+          't_pantalon_falda_short',
+          tipoKey,
+          camisaSizeOrder
+        );
+        const allowedSet = new Set(restrictedSizes);
+        const rowBases: Record<string, number> = {};
+        const rowFinals: Record<string, number> = {};
+        for (const size of camisaSizeOrder) {
+          const orig = sizeMap.get(size) || 0;
+          const computed = computeFinalCount(orig, 2);
+          rowBases[size] = allowedSet.has(size) ? computed.base : 0;
+          rowFinals[size] = allowedSet.has(size) ? computed.final : orig;
+        }
+        const filled = fillSizeGaps(restrictedSizes, rowBases, rowFinals);
+        for (const finalCount of Object.values(filled)) {
+          totalPiezas += finalCount;
+        }
+      }
+
+      return totalPiezas;
+    };
+
+    return calculateTotal(b) - calculateTotal(a);
+  });
 
   for (let s = 0; s < schools.length; s++) {
     const school = schools[s];
