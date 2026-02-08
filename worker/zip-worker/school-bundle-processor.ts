@@ -367,15 +367,17 @@ function renderCajasSection(ctx: SectionRenderContext): void {
 }
 
 function renderFichaUniformesSection(ctx: SectionRenderContext): void {
-  const { doc, school, addPage: shouldAddPage } = ctx;
+  const { doc, school, fechaInicio, addPage: shouldAddPage } = ctx;
 
   if (shouldAddPage) doc.addPage(FICHA_UNIFORMES_PAGE_OPTIONS);
 
   const title = 'FICHA DE DISTRIBUCION POR ESCUELA (UNIFORMES)';
+  const formattedDate = formatDateForTitle(fechaInicio);
 
   addLogoToPage(doc, doc.page.width);
   doc.fontSize(14).font('Helvetica-Bold').text(title, { align: 'center' });
-  doc.moveDown(2);
+  doc.fontSize(12).font('Helvetica-Bold').text(`Fecha: ${formattedDate}`, { align: 'center' });
+  doc.moveDown(1);
 
   // School header
   doc.fontSize(12).font('Helvetica-Bold').text(school.nombre_ce.toUpperCase(), { align: 'center' });
@@ -546,6 +548,7 @@ function renderFichaUniformesSection(ctx: SectionRenderContext): void {
       doc.addPage(FICHA_UNIFORMES_PAGE_OPTIONS);
       addLogoToPage(doc, doc.page.width);
       doc.fontSize(14).font('Helvetica-Bold').text(title, { align: 'center' });
+      doc.fontSize(12).font('Helvetica-Bold').text(`Fecha: ${formattedDate}`, { align: 'center' });
       doc.moveDown(1);
       doc
         .fontSize(12)
@@ -578,14 +581,16 @@ function renderFichaUniformesSection(ctx: SectionRenderContext): void {
 }
 
 function renderFichaZapatosSection(ctx: SectionRenderContext): void {
-  const { doc, school, addPage: shouldAddPage } = ctx;
+  const { doc, school, fechaInicio, addPage: shouldAddPage } = ctx;
 
   if (shouldAddPage) doc.addPage(FICHA_ZAPATOS_PAGE_OPTIONS);
 
   const title = 'FICHA DE DISTRIBUCION POR ESCUELA (ZAPATOS)';
+  const formattedDate = formatDateForTitle(fechaInicio);
 
   addLogoToPage(doc, doc.page.width);
   doc.fontSize(14).font('Helvetica-Bold').text(title, { align: 'center' });
+  doc.fontSize(12).font('Helvetica-Bold').text(`Fecha: ${formattedDate}`, { align: 'center' });
   doc.moveDown(1);
 
   // School header
@@ -705,6 +710,7 @@ function renderFichaZapatosSection(ctx: SectionRenderContext): void {
       doc.addPage(FICHA_ZAPATOS_PAGE_OPTIONS);
       addLogoToPage(doc, doc.page.width);
       doc.fontSize(14).font('Helvetica-Bold').text(title, { align: 'center' });
+      doc.fontSize(12).font('Helvetica-Bold').text(`Fecha: ${formattedDate}`, { align: 'center' });
       doc.moveDown(1);
       doc
         .fontSize(12)
