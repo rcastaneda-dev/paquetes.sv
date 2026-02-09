@@ -76,6 +76,27 @@ function computeFinalCount(
   return { base, extra, final };
 }
 
+function fillBaseGaps(
+  orderedSizes: string[],
+  baseCounts: Record<string, number>
+): Record<string, number> {
+  const result = { ...baseCounts };
+
+  for (let n = 0; n < orderedSizes.length - 1; n++) {
+    const size = orderedSizes[n];
+    const currentBase = result[size] || 0;
+    if (currentBase > 0) continue;
+
+    const nextSize = orderedSizes[n + 1];
+    const nextBase = result[nextSize] || 0;
+    if (nextBase > 0) {
+      result[size] = ceilToEven(nextBase / 2);
+    }
+  }
+
+  return result;
+}
+
 function fillSizeGaps(
   orderedSizes: string[],
   baseCounts: Record<string, number>,
@@ -440,20 +461,23 @@ function renderFichaUniformesSection(ctx: SectionRenderContext): void {
   const camisaTypes = Array.from(camisaTipoMap.keys()).sort();
   for (const tipoKey of camisaTypes) {
     const sizeMap = camisaTipoMap.get(tipoKey)!;
-    const rowOriginals: Record<string, number> = {};
+
+    // Step 1 & 2: Compute base counts
     const rowBases: Record<string, number> = {};
-    const rowFinals: Record<string, number> = {};
     for (const size of camisaSizeOrder) {
       const orig = sizeMap.get(size) || 0;
-      rowOriginals[size] = orig;
-      const computed = computeFinalCount(orig, 2);
-      rowBases[size] = computed.base;
-      rowFinals[size] = computed.final;
+      rowBases[size] = orig * 2;
     }
-    const filled = fillSizeGaps(camisaSizeOrder, rowBases, rowFinals);
+
+    // Step 3: Fill gaps in base counts
+    const filledBases = fillBaseGaps(camisaSizeOrder, rowBases);
+
+    // Step 4 & 5: Compute extra and final counts
     for (const size of camisaSizeOrder) {
-      const finalCount = filled[size] || 0;
-      if (finalCount > 0) {
+      const base = filledBases[size] || 0;
+      if (base > 0) {
+        const extra = ceilToEven(base * 0.15);
+        const finalCount = base + extra;
         itemCounts.push({ tipo_talla: `${tipoKey} - ${size}`, cantidad: finalCount });
       }
     }
@@ -475,20 +499,23 @@ function renderFichaUniformesSection(ctx: SectionRenderContext): void {
   const pantalonTypes = Array.from(pantalonTipoMap.keys()).sort();
   for (const tipoKey of pantalonTypes) {
     const sizeMap = pantalonTipoMap.get(tipoKey)!;
-    const rowOriginals: Record<string, number> = {};
+
+    // Step 1 & 2: Compute base counts
     const rowBases: Record<string, number> = {};
-    const rowFinals: Record<string, number> = {};
     for (const size of camisaSizeOrder) {
       const orig = sizeMap.get(size) || 0;
-      rowOriginals[size] = orig;
-      const computed = computeFinalCount(orig, 2);
-      rowBases[size] = computed.base;
-      rowFinals[size] = computed.final;
+      rowBases[size] = orig * 2;
     }
-    const filled = fillSizeGaps(camisaSizeOrder, rowBases, rowFinals);
+
+    // Step 3: Fill gaps in base counts
+    const filledBases = fillBaseGaps(camisaSizeOrder, rowBases);
+
+    // Step 4 & 5: Compute extra and final counts
     for (const size of camisaSizeOrder) {
-      const finalCount = filled[size] || 0;
-      if (finalCount > 0) {
+      const base = filledBases[size] || 0;
+      if (base > 0) {
+        const extra = ceilToEven(base * 0.15);
+        const finalCount = base + extra;
         itemCounts.push({ tipo_talla: `${tipoKey} - ${size}`, cantidad: finalCount });
       }
     }

@@ -7,7 +7,13 @@
  */
 import PDFDocument from 'pdfkit';
 import type { StudentQueryRow } from '@/types/database';
-import { computeFinalCount, fillSizeGaps, getRestrictedSizeOrder } from '@/lib/reports/vacios';
+import {
+  computeFinalCount,
+  fillSizeGaps,
+  fillBaseGaps,
+  getRestrictedSizeOrder,
+  ceilToEven,
+} from '@/lib/reports/vacios';
 import { buildConsolidatedPdf } from './agreement/builders';
 import {
   addLogoToPage,
@@ -183,18 +189,31 @@ export function generateCamisasPDF(options: AgreementReportOptions): PDFDocument
       const sizeCounts = tipoMap.get(tipo)!;
       const restrictedSizes = getRestrictedSizeOrder('tipo_de_camisa', tipo, sizes);
       const allowedSet = new Set(restrictedSizes);
-      const rowOriginals: Record<string, number> = {};
+
+      // Step 1 & 2: Compute base counts
       const rowBases: Record<string, number> = {};
-      const rowFinals: Record<string, number> = {};
       for (const size of sizes) {
         const orig = sizeCounts[size] || 0;
-        rowOriginals[size] = orig;
-        const computed = computeFinalCount(orig, 2);
-        rowBases[size] = allowedSet.has(size) ? computed.base : 0;
-        rowFinals[size] = allowedSet.has(size) ? computed.final : orig;
+        const base = orig * 2;
+        rowBases[size] = allowedSet.has(size) ? base : 0;
       }
-      const filled = fillSizeGaps(restrictedSizes, rowBases, rowFinals);
-      tipoFinalCounts.set(tipo, filled);
+
+      // Step 3: Fill gaps in base counts
+      const filledBases = fillBaseGaps(restrictedSizes, rowBases);
+
+      // Step 4 & 5: Compute extra and final counts
+      const rowFinals: Record<string, number> = {};
+      for (const size of sizes) {
+        const base = filledBases[size] || 0;
+        if (base > 0) {
+          const extra = ceilToEven(base * 0.15);
+          rowFinals[size] = base + extra;
+        } else {
+          rowFinals[size] = 0;
+        }
+      }
+
+      tipoFinalCounts.set(tipo, rowFinals);
     }
 
     for (const tipo of tipos) {
@@ -381,18 +400,31 @@ export function generatePantalonesPDF(options: AgreementReportOptions): PDFDocum
       const sizeCounts = tipoPrendMap.get(tipo)!;
       const restrictedSizes = getRestrictedSizeOrder('t_pantalon_falda_short', tipo, sizes);
       const allowedSet = new Set(restrictedSizes);
-      const rowOriginals: Record<string, number> = {};
+
+      // Step 1 & 2: Compute base counts
       const rowBases: Record<string, number> = {};
-      const rowFinals: Record<string, number> = {};
       for (const size of sizes) {
         const orig = sizeCounts[size] || 0;
-        rowOriginals[size] = orig;
-        const computed = computeFinalCount(orig, 2);
-        rowBases[size] = allowedSet.has(size) ? computed.base : 0;
-        rowFinals[size] = allowedSet.has(size) ? computed.final : orig;
+        const base = orig * 2;
+        rowBases[size] = allowedSet.has(size) ? base : 0;
       }
-      const filled = fillSizeGaps(restrictedSizes, rowBases, rowFinals);
-      tipoPrendaFinalCounts.set(tipo, filled);
+
+      // Step 3: Fill gaps in base counts
+      const filledBases = fillBaseGaps(restrictedSizes, rowBases);
+
+      // Step 4 & 5: Compute extra and final counts
+      const rowFinals: Record<string, number> = {};
+      for (const size of sizes) {
+        const base = filledBases[size] || 0;
+        if (base > 0) {
+          const extra = ceilToEven(base * 0.15);
+          rowFinals[size] = base + extra;
+        } else {
+          rowFinals[size] = 0;
+        }
+      }
+
+      tipoPrendaFinalCounts.set(tipo, rowFinals);
     }
 
     for (const tipo of tipos) {
@@ -919,17 +951,26 @@ export function generateDayUniformesPDF(options: AgreementReportOptions): PDFDoc
         const sizeMap = camisaTipoMap.get(tipoKey)!;
         const restrictedSizes = getRestrictedSizeOrder('tipo_de_camisa', tipoKey, camisaSizeOrder);
         const allowedSet = new Set(restrictedSizes);
+
+        // Step 1 & 2: Compute base counts
         const rowBases: Record<string, number> = {};
-        const rowFinals: Record<string, number> = {};
         for (const size of camisaSizeOrder) {
           const orig = sizeMap.get(size) || 0;
-          const computed = computeFinalCount(orig, 2);
-          rowBases[size] = allowedSet.has(size) ? computed.base : 0;
-          rowFinals[size] = allowedSet.has(size) ? computed.final : orig;
+          const base = orig * 2;
+          rowBases[size] = allowedSet.has(size) ? base : 0;
         }
-        const filled = fillSizeGaps(restrictedSizes, rowBases, rowFinals);
-        for (const finalCount of Object.values(filled)) {
-          totalPiezas += finalCount;
+
+        // Step 3: Fill gaps in base counts
+        const filledBases = fillBaseGaps(restrictedSizes, rowBases);
+
+        // Step 4 & 5: Compute extra and final counts
+        for (const size of camisaSizeOrder) {
+          const base = filledBases[size] || 0;
+          if (base > 0) {
+            const extra = ceilToEven(base * 0.15);
+            const finalCount = base + extra;
+            totalPiezas += finalCount;
+          }
         }
       }
 
@@ -956,17 +997,26 @@ export function generateDayUniformesPDF(options: AgreementReportOptions): PDFDoc
           camisaSizeOrder
         );
         const allowedSet = new Set(restrictedSizes);
+
+        // Step 1 & 2: Compute base counts
         const rowBases: Record<string, number> = {};
-        const rowFinals: Record<string, number> = {};
         for (const size of camisaSizeOrder) {
           const orig = sizeMap.get(size) || 0;
-          const computed = computeFinalCount(orig, 2);
-          rowBases[size] = allowedSet.has(size) ? computed.base : 0;
-          rowFinals[size] = allowedSet.has(size) ? computed.final : orig;
+          const base = orig * 2;
+          rowBases[size] = allowedSet.has(size) ? base : 0;
         }
-        const filled = fillSizeGaps(restrictedSizes, rowBases, rowFinals);
-        for (const finalCount of Object.values(filled)) {
-          totalPiezas += finalCount;
+
+        // Step 3: Fill gaps in base counts
+        const filledBases = fillBaseGaps(restrictedSizes, rowBases);
+
+        // Step 4 & 5: Compute extra and final counts
+        for (const size of camisaSizeOrder) {
+          const base = filledBases[size] || 0;
+          if (base > 0) {
+            const extra = ceilToEven(base * 0.15);
+            const finalCount = base + extra;
+            totalPiezas += finalCount;
+          }
         }
       }
 
@@ -1041,20 +1091,24 @@ export function generateDayUniformesPDF(options: AgreementReportOptions): PDFDoc
       const sizeMap = camisaTipoMap.get(tipoKey)!;
       const restrictedSizes = getRestrictedSizeOrder('tipo_de_camisa', tipoKey, camisaSizeOrder);
       const allowedSet = new Set(restrictedSizes);
-      const rowOriginals: Record<string, number> = {};
+
+      // Step 1 & 2: Compute base counts
       const rowBases: Record<string, number> = {};
-      const rowFinals: Record<string, number> = {};
       for (const size of camisaSizeOrder) {
         const orig = sizeMap.get(size) || 0;
-        rowOriginals[size] = orig;
-        const computed = computeFinalCount(orig, 2);
-        rowBases[size] = allowedSet.has(size) ? computed.base : 0;
-        rowFinals[size] = allowedSet.has(size) ? computed.final : orig;
+        const base = orig * 2;
+        rowBases[size] = allowedSet.has(size) ? base : 0;
       }
-      const filled = fillSizeGaps(restrictedSizes, rowBases, rowFinals);
+
+      // Step 3: Fill gaps in base counts
+      const filledBases = fillBaseGaps(restrictedSizes, rowBases);
+
+      // Step 4 & 5: Compute extra and final counts
       for (const size of camisaSizeOrder) {
-        const finalCount = filled[size] || 0;
-        if (finalCount > 0) {
+        const base = filledBases[size] || 0;
+        if (base > 0) {
+          const extra = ceilToEven(base * 0.15);
+          const finalCount = base + extra;
           itemCounts.push({ tipo_talla: `${tipoKey} - ${size}`, cantidad: finalCount });
         }
       }
@@ -1083,20 +1137,24 @@ export function generateDayUniformesPDF(options: AgreementReportOptions): PDFDoc
         camisaSizeOrder
       );
       const allowedSet = new Set(restrictedSizes);
-      const rowOriginals: Record<string, number> = {};
+
+      // Step 1 & 2: Compute base counts
       const rowBases: Record<string, number> = {};
-      const rowFinals: Record<string, number> = {};
       for (const size of camisaSizeOrder) {
         const orig = sizeMap.get(size) || 0;
-        rowOriginals[size] = orig;
-        const computed = computeFinalCount(orig, 2);
-        rowBases[size] = allowedSet.has(size) ? computed.base : 0;
-        rowFinals[size] = allowedSet.has(size) ? computed.final : orig;
+        const base = orig * 2;
+        rowBases[size] = allowedSet.has(size) ? base : 0;
       }
-      const filled = fillSizeGaps(restrictedSizes, rowBases, rowFinals);
+
+      // Step 3: Fill gaps in base counts
+      const filledBases = fillBaseGaps(restrictedSizes, rowBases);
+
+      // Step 4 & 5: Compute extra and final counts
       for (const size of camisaSizeOrder) {
-        const finalCount = filled[size] || 0;
-        if (finalCount > 0) {
+        const base = filledBases[size] || 0;
+        if (base > 0) {
+          const extra = ceilToEven(base * 0.15);
+          const finalCount = base + extra;
           itemCounts.push({ tipo_talla: `${tipoKey} - ${size}`, cantidad: finalCount });
         }
       }

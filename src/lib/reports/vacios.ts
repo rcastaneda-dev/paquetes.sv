@@ -4,8 +4,9 @@
  * This module computes the final size frequencies for agreement reports.
  * The transformation follows these rules:
  * 1. Base count = original × multiplier (2 for clothing, 1 for shoes)
- * 2. Extra (vacíos) = ceilToEven(base × 0.15)
- * 3. Final count = base + extra
+ * 2. Gap filling on base: If size has 0 base but next size has base > 0, fill with ceilToEven(nextBase / 2)
+ * 3. Extra (vacíos) = ceilToEven(base × 0.15)
+ * 4. Final count = base + extra
  *
  * All calculations are non-destructive and deterministic.
  */
@@ -193,7 +194,57 @@ export function transformSizeCounts(
 }
 
 /**
- * Fill gaps in a size distribution.
+ * Fill gaps in BASE counts (before applying vacíos formula).
+ *
+ * Scan left→right through the size order. If the current size has a base count
+ * of 0 and the NEXT size has a positive base count, assign ceilToEven(nextBase / 2).
+ *
+ * This ensures buffer inventory exists for sizes adjacent to populated sizes,
+ * and those buffers will then receive their own 15% vacíos in the next step.
+ *
+ * @param orderedSizes - Array of size strings in display order (e.g. ['T4', 'T6', ..., 'T2X'])
+ * @param baseCounts - Map from size to base count (original × multiplier)
+ * @returns Updated base counts with gaps filled
+ *
+ * @example
+ * const sizes = ['T4', 'T6', 'T8'];
+ * const base = { 'T4': 0, 'T6': 20, 'T8': 0 };  // 10 students × 2
+ * const filled = fillBaseGaps(sizes, base);
+ * // => { 'T4': 10, 'T6': 20, 'T8': 0 }
+ * // T4 gets filled with ceilToEven(20/2) = 10
+ * // T8 is not filled (next base is 0)
+ */
+export function fillBaseGaps(
+  orderedSizes: string[],
+  baseCounts: Record<string, number>
+): Record<string, number> {
+  const result = { ...baseCounts };
+
+  for (let n = 0; n < orderedSizes.length - 1; n++) {
+    const size = orderedSizes[n];
+    const currentBase = result[size] || 0;
+
+    // Skip if current already has a value
+    if (currentBase > 0) {
+      continue;
+    }
+
+    const nextSize = orderedSizes[n + 1];
+    const nextBase = result[nextSize] || 0;
+
+    // Fill gap if next size has base count
+    if (nextBase > 0) {
+      result[size] = ceilToEven(nextBase / 2);
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Fill gaps in a size distribution (LEGACY - kept for backward compatibility).
+ *
+ * @deprecated Use fillBaseGaps instead - gap filling should happen BEFORE vacíos calculation
  *
  * After computing final counts (base + vacíos), scan left→right.
  * If the current size has a final count of 0 and the NEXT size has a

@@ -7,7 +7,13 @@
  */
 import fs from 'fs';
 import path from 'path';
-import { computeFinalCount, fillSizeGaps, getRestrictedSizeOrder } from '@/lib/reports/vacios';
+import {
+  computeFinalCount,
+  fillSizeGaps,
+  fillBaseGaps,
+  getRestrictedSizeOrder,
+  ceilToEven,
+} from '@/lib/reports/vacios';
 import type { StudentQueryRow } from '@/types/database';
 import type { PDFDocumentInstance, SchoolGroup, SectionRenderContext } from './types';
 
@@ -403,20 +409,24 @@ export function renderFichaUniformesSection(ctx: SectionRenderContext): void {
     const sizeMap = camisaTipoMap.get(tipoKey)!;
     const restrictedSizes = getRestrictedSizeOrder('tipo_de_camisa', tipoKey, camisaSizeOrder);
     const allowedSet = new Set(restrictedSizes);
-    const rowOriginals: Record<string, number> = {};
+
+    // Step 1 & 2: Compute original and base counts
     const rowBases: Record<string, number> = {};
-    const rowFinals: Record<string, number> = {};
     for (const size of camisaSizeOrder) {
       const orig = sizeMap.get(size) || 0;
-      rowOriginals[size] = orig;
-      const computed = computeFinalCount(orig, 2);
-      rowBases[size] = allowedSet.has(size) ? computed.base : 0;
-      rowFinals[size] = allowedSet.has(size) ? computed.final : orig;
+      const base = orig * 2;
+      rowBases[size] = allowedSet.has(size) ? base : 0;
     }
-    const filled = fillSizeGaps(restrictedSizes, rowBases, rowFinals);
+
+    // Step 3: Fill gaps in base counts
+    const filledBases = fillBaseGaps(restrictedSizes, rowBases);
+
+    // Step 4 & 5: Compute extra (vacíos) and final counts
     for (const size of camisaSizeOrder) {
-      const finalCount = filled[size] || 0;
-      if (finalCount > 0) {
+      const base = filledBases[size] || 0;
+      if (base > 0) {
+        const extra = ceilToEven(base * 0.15);
+        const finalCount = base + extra;
         itemCounts.push({ tipo_talla: `${tipoKey} - ${size}`, cantidad: finalCount });
       }
     }
@@ -446,20 +456,24 @@ export function renderFichaUniformesSection(ctx: SectionRenderContext): void {
       camisaSizeOrder
     );
     const allowedSet = new Set(restrictedSizes);
-    const rowOriginals: Record<string, number> = {};
+
+    // Step 1 & 2: Compute original and base counts
     const rowBases: Record<string, number> = {};
-    const rowFinals: Record<string, number> = {};
     for (const size of camisaSizeOrder) {
       const orig = sizeMap.get(size) || 0;
-      rowOriginals[size] = orig;
-      const computed = computeFinalCount(orig, 2);
-      rowBases[size] = allowedSet.has(size) ? computed.base : 0;
-      rowFinals[size] = allowedSet.has(size) ? computed.final : orig;
+      const base = orig * 2;
+      rowBases[size] = allowedSet.has(size) ? base : 0;
     }
-    const filled = fillSizeGaps(restrictedSizes, rowBases, rowFinals);
+
+    // Step 3: Fill gaps in base counts
+    const filledBases = fillBaseGaps(restrictedSizes, rowBases);
+
+    // Step 4 & 5: Compute extra (vacíos) and final counts
     for (const size of camisaSizeOrder) {
-      const finalCount = filled[size] || 0;
-      if (finalCount > 0) {
+      const base = filledBases[size] || 0;
+      if (base > 0) {
+        const extra = ceilToEven(base * 0.15);
+        const finalCount = base + extra;
         itemCounts.push({ tipo_talla: `${tipoKey} - ${size}`, cantidad: finalCount });
       }
     }
