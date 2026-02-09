@@ -20,6 +20,7 @@ import {
   formatDateForTitle,
   groupBySchool,
   drawSchoolHeaderBlock,
+  AGREEMENT_FONT,
 } from './agreement/sections';
 import type { SchoolGroup } from './agreement/types';
 
@@ -31,6 +32,7 @@ export {
   formatDateForTitle,
   groupBySchool,
   drawSchoolHeaderBlock,
+  AGREEMENT_FONT,
 } from './agreement/sections';
 
 type PDFDocumentInstance = InstanceType<typeof PDFDocument>;
@@ -108,9 +110,6 @@ export function generateCamisasPDF(options: AgreementReportOptions): PDFDocument
 
   const xStart = 20;
   const availableWidth = doc.page.width - 40;
-  const headerFontSize = 11;
-  const bodyFontSize = 9;
-  const schoolHeaderFontSize = 12;
 
   const sizeColWidth = 35;
   const totalColWidth = 50;
@@ -125,8 +124,8 @@ export function generateCamisasPDF(options: AgreementReportOptions): PDFDocument
     }
 
     addLogoToPage(doc, doc.page.width);
-    doc.fontSize(14).font('Helvetica-Bold').text(title, { align: 'center' });
-    doc.fontSize(14).font('Helvetica-Bold').text(subtitle, { align: 'center' });
+    doc.fontSize(AGREEMENT_FONT.TITLE).font('Helvetica-Bold').text(title, { align: 'center' });
+    doc.fontSize(AGREEMENT_FONT.TITLE).font('Helvetica-Bold').text(subtitle, { align: 'center' });
     doc.moveDown(2);
 
     let currentY = doc.y;
@@ -152,10 +151,10 @@ export function generateCamisasPDF(options: AgreementReportOptions): PDFDocument
       yStart: currentY,
       availableWidth,
       school,
-      fontSize: schoolHeaderFontSize,
+      fontSize: AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER,
     });
 
-    doc.fontSize(headerFontSize).font('Helvetica-Bold');
+    doc.fontSize(AGREEMENT_FONT.COLUMN_HEADER).font('Helvetica-Bold');
     let x = xStart;
 
     doc.rect(x, currentY, tipoColWidth, headerHeight).stroke();
@@ -182,7 +181,7 @@ export function generateCamisasPDF(options: AgreementReportOptions): PDFDocument
 
     currentY += headerHeight;
 
-    doc.font('Helvetica').fontSize(bodyFontSize);
+    doc.font('Helvetica').fontSize(AGREEMENT_FONT.BODY);
 
     const tipoFinalCounts = new Map<string, Record<string, number>>();
     for (const tipo of tipos) {
@@ -254,7 +253,7 @@ export function generateCamisasPDF(options: AgreementReportOptions): PDFDocument
       currentY += dynamicRowHeight;
     }
 
-    doc.font('Helvetica-Bold').fontSize(bodyFontSize);
+    doc.font('Helvetica-Bold').fontSize(AGREEMENT_FONT.BODY);
     const summaryRowHeight = 20;
     x = xStart;
 
@@ -319,9 +318,6 @@ export function generatePantalonesPDF(options: AgreementReportOptions): PDFDocum
 
   const xStart = 20;
   const availableWidth = doc.page.width - 40;
-  const headerFontSize = 11;
-  const bodyFontSize = 9;
-  const schoolHeaderFontSize = 12;
 
   const sizeColWidth = 35;
   const totalColWidth = 50;
@@ -336,8 +332,8 @@ export function generatePantalonesPDF(options: AgreementReportOptions): PDFDocum
     }
 
     addLogoToPage(doc, doc.page.width);
-    doc.fontSize(14).font('Helvetica-Bold').text(title, { align: 'center' });
-    doc.fontSize(14).font('Helvetica-Bold').text(subtitle, { align: 'center' });
+    doc.fontSize(AGREEMENT_FONT.TITLE).font('Helvetica-Bold').text(title, { align: 'center' });
+    doc.fontSize(AGREEMENT_FONT.TITLE).font('Helvetica-Bold').text(subtitle, { align: 'center' });
     doc.moveDown(2);
 
     let currentY = doc.y;
@@ -363,10 +359,10 @@ export function generatePantalonesPDF(options: AgreementReportOptions): PDFDocum
       yStart: currentY,
       availableWidth,
       school,
-      fontSize: schoolHeaderFontSize,
+      fontSize: AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER,
     });
 
-    doc.fontSize(headerFontSize).font('Helvetica-Bold');
+    doc.fontSize(AGREEMENT_FONT.COLUMN_HEADER).font('Helvetica-Bold');
     let x = xStart;
 
     doc.rect(x, currentY, tipoPrendaColWidth, headerHeight).stroke();
@@ -393,7 +389,7 @@ export function generatePantalonesPDF(options: AgreementReportOptions): PDFDocum
 
     currentY += headerHeight;
 
-    doc.font('Helvetica').fontSize(bodyFontSize);
+    doc.font('Helvetica').fontSize(AGREEMENT_FONT.BODY);
 
     const tipoPrendaFinalCounts = new Map<string, Record<string, number>>();
     for (const tipo of tipos) {
@@ -465,7 +461,7 @@ export function generatePantalonesPDF(options: AgreementReportOptions): PDFDocum
       currentY += dynamicRowHeight;
     }
 
-    doc.font('Helvetica-Bold').fontSize(bodyFontSize);
+    doc.font('Helvetica-Bold').fontSize(AGREEMENT_FONT.BODY);
     const summaryRowHeight = 20;
     x = xStart;
 
@@ -533,9 +529,6 @@ export function generateZapatosPDF(options: AgreementReportOptions): PDFDocument
 
   const xStart = 15;
   const availableWidth = doc.page.width - 30;
-  const headerFontSize = 10;
-  const bodyFontSize = 8;
-  const schoolHeaderFontSize = 12;
 
   const sizeColWidth = 25;
   const totalColWidth = 40;
@@ -550,8 +543,8 @@ export function generateZapatosPDF(options: AgreementReportOptions): PDFDocument
     }
 
     addLogoToPage(doc, doc.page.width);
-    doc.fontSize(14).font('Helvetica-Bold').text(title, { align: 'center' });
-    doc.fontSize(14).font('Helvetica-Bold').text(subtitle, { align: 'center' });
+    doc.fontSize(AGREEMENT_FONT.TITLE).font('Helvetica-Bold').text(title, { align: 'center' });
+    doc.fontSize(AGREEMENT_FONT.TITLE).font('Helvetica-Bold').text(subtitle, { align: 'center' });
     doc.moveDown(2);
 
     let currentY = doc.y;
@@ -577,10 +570,10 @@ export function generateZapatosPDF(options: AgreementReportOptions): PDFDocument
       yStart: currentY,
       availableWidth,
       school,
-      fontSize: schoolHeaderFontSize,
+      fontSize: AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER,
     });
 
-    doc.fontSize(headerFontSize).font('Helvetica-Bold');
+    doc.fontSize(AGREEMENT_FONT.COLUMN_HEADER).font('Helvetica-Bold');
     let x = xStart;
 
     doc.rect(x, currentY, sexoColWidth, headerHeight).stroke();
@@ -607,7 +600,7 @@ export function generateZapatosPDF(options: AgreementReportOptions): PDFDocument
 
     currentY += headerHeight;
 
-    doc.font('Helvetica').fontSize(bodyFontSize);
+    doc.font('Helvetica').fontSize(AGREEMENT_FONT.BODY);
 
     const sexoFinalCounts = new Map<string, Record<string, number>>();
     for (const sexo of sexos) {
@@ -664,7 +657,7 @@ export function generateZapatosPDF(options: AgreementReportOptions): PDFDocument
       currentY += dynamicRowHeight;
     }
 
-    doc.font('Helvetica-Bold').fontSize(bodyFontSize);
+    doc.font('Helvetica-Bold').fontSize(AGREEMENT_FONT.BODY);
     const summaryRowHeight = 18;
     x = xStart;
 
@@ -762,18 +755,21 @@ export function generateDayZapatosPDF(options: AgreementReportOptions): PDFDocum
     }
 
     addLogoToPage(doc, doc.page.width);
-    doc.fontSize(14).font('Helvetica-Bold').text(title, { align: 'center' });
+    doc.fontSize(AGREEMENT_FONT.TITLE).font('Helvetica-Bold').text(title, { align: 'center' });
     doc.moveDown(1);
 
     doc
-      .fontSize(12)
+      .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
       .font('Helvetica-Bold')
       .text(school.nombre_ce.toUpperCase(), { align: 'center' });
     doc
-      .fontSize(12)
+      .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
       .font('Helvetica-Bold')
       .text(`CODIGO: ${school.codigo_ce.toUpperCase()}`, { align: 'center' });
-    doc.fontSize(12).font('Helvetica-Bold').text(`FECHA: ${formattedDate}`, { align: 'center' });
+    doc
+      .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+      .font('Helvetica-Bold')
+      .text(`FECHA: ${formattedDate}`, { align: 'center' });
     doc.moveDown(1);
 
     let currentY = doc.y;
@@ -823,7 +819,7 @@ export function generateDayZapatosPDF(options: AgreementReportOptions): PDFDocum
     const headerHeight = 25;
     const rowHeight = 20;
 
-    doc.fontSize(11).font('Helvetica-Bold');
+    doc.fontSize(AGREEMENT_FONT.COLUMN_HEADER).font('Helvetica-Bold');
     let x = xStart;
 
     doc.rect(x, currentY, tallaColWidth, headerHeight).stroke();
@@ -841,7 +837,7 @@ export function generateDayZapatosPDF(options: AgreementReportOptions): PDFDocum
 
     currentY += headerHeight;
 
-    doc.font('Helvetica').fontSize(10);
+    doc.font('Helvetica').fontSize(AGREEMENT_FONT.BODY);
     let totalPiezas = 0;
 
     for (const item of itemCounts) {
@@ -866,28 +862,28 @@ export function generateDayZapatosPDF(options: AgreementReportOptions): PDFDocum
       if (currentY > doc.page.height - 100) {
         doc.addPage();
         addLogoToPage(doc, doc.page.width);
-        doc.fontSize(14).font('Helvetica-Bold').text(title, { align: 'center' });
+        doc.fontSize(AGREEMENT_FONT.TITLE).font('Helvetica-Bold').text(title, { align: 'center' });
         doc.moveDown(1);
         doc
-          .fontSize(12)
+          .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
           .font('Helvetica-Bold')
           .text(school.nombre_ce.toUpperCase(), { align: 'center' });
         doc
-          .fontSize(12)
+          .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
           .font('Helvetica-Bold')
           .text(`CODIGO: ${school.codigo_ce.toUpperCase()}`, { align: 'center' });
         doc
-          .fontSize(12)
+          .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
           .font('Helvetica-Bold')
           .text(`FECHA: ${formattedDate}`, { align: 'center' });
         doc.moveDown(1);
         currentY = doc.y;
-        doc.font('Helvetica').fontSize(10);
+        doc.font('Helvetica').fontSize(AGREEMENT_FONT.BODY);
       }
     }
 
     currentY += 10;
-    doc.font('Helvetica-Bold').fontSize(12);
+    doc.font('Helvetica-Bold').fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER);
     doc.text(`TOTAL PIEZAS: ${totalPiezas}`, xStart, currentY, { align: 'left' });
   }
 
@@ -1034,18 +1030,21 @@ export function generateDayUniformesPDF(options: AgreementReportOptions): PDFDoc
     }
 
     addLogoToPage(doc, doc.page.width);
-    doc.fontSize(14).font('Helvetica-Bold').text(title, { align: 'center' });
+    doc.fontSize(AGREEMENT_FONT.TITLE).font('Helvetica-Bold').text(title, { align: 'center' });
     doc.moveDown(1);
 
     doc
-      .fontSize(12)
+      .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
       .font('Helvetica-Bold')
       .text(school.nombre_ce.toUpperCase(), { align: 'center' });
     doc
-      .fontSize(12)
+      .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
       .font('Helvetica-Bold')
       .text(`CODIGO: ${school.codigo_ce.toUpperCase()}`, { align: 'center' });
-    doc.fontSize(12).font('Helvetica-Bold').text(`FECHA: ${formattedDate}`, { align: 'center' });
+    doc
+      .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+      .font('Helvetica-Bold')
+      .text(`FECHA: ${formattedDate}`, { align: 'center' });
     doc.moveDown(1);
 
     let currentY = doc.y;
@@ -1166,7 +1165,7 @@ export function generateDayUniformesPDF(options: AgreementReportOptions): PDFDoc
     const headerHeight = 25;
     const rowHeight = 20;
 
-    doc.fontSize(11).font('Helvetica-Bold');
+    doc.fontSize(AGREEMENT_FONT.COLUMN_HEADER).font('Helvetica-Bold');
     let x = xStart;
 
     doc.rect(x, currentY, tipoTallaColWidth, headerHeight).stroke();
@@ -1184,7 +1183,7 @@ export function generateDayUniformesPDF(options: AgreementReportOptions): PDFDoc
 
     currentY += headerHeight;
 
-    doc.font('Helvetica').fontSize(10);
+    doc.font('Helvetica').fontSize(AGREEMENT_FONT.BODY);
     let totalPiezas = 0;
 
     for (const item of itemCounts) {
@@ -1209,28 +1208,28 @@ export function generateDayUniformesPDF(options: AgreementReportOptions): PDFDoc
       if (currentY > doc.page.height - 100) {
         doc.addPage();
         addLogoToPage(doc, doc.page.width);
-        doc.fontSize(14).font('Helvetica-Bold').text(title, { align: 'center' });
+        doc.fontSize(AGREEMENT_FONT.TITLE).font('Helvetica-Bold').text(title, { align: 'center' });
         doc.moveDown(1);
         doc
-          .fontSize(12)
+          .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
           .font('Helvetica-Bold')
           .text(school.nombre_ce.toUpperCase(), { align: 'center' });
         doc
-          .fontSize(12)
+          .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
           .font('Helvetica-Bold')
           .text(`CODIGO: ${school.codigo_ce.toUpperCase()}`, { align: 'center' });
         doc
-          .fontSize(12)
+          .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
           .font('Helvetica-Bold')
           .text(`FECHA: ${formattedDate}`, { align: 'center' });
         doc.moveDown(1);
         currentY = doc.y;
-        doc.font('Helvetica').fontSize(10);
+        doc.font('Helvetica').fontSize(AGREEMENT_FONT.BODY);
       }
     }
 
     currentY += 10;
-    doc.font('Helvetica-Bold').fontSize(12);
+    doc.font('Helvetica-Bold').fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER);
     doc.text(`TOTAL PIEZAS: ${totalPiezas}`, xStart, currentY, { align: 'left' });
   }
 

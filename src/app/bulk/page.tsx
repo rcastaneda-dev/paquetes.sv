@@ -178,9 +178,9 @@ export default function BulkReportsPage() {
                   Nuevo Trabajo de Reportes por Categoría
                 </h3>
                 <p className="mb-4 text-xs text-muted-foreground">
-                  Este tipo de trabajo genera 6 reportes (Cajas, Camisas, Prenda Inferior,
-                  Zapatos, Ficha Uniformes, Ficha Zapatos) agrupados por código CE para
-                  estudiantes de la fecha seleccionada.
+                  Este tipo de trabajo genera 6 reportes (Cajas, Camisas, Prenda Inferior, Zapatos,
+                  Ficha Uniformes, Ficha Zapatos) agrupados por código CE para estudiantes de la
+                  fecha seleccionada.
                 </p>
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
                   <div className="flex-1">

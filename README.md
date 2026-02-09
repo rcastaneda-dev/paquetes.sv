@@ -70,4 +70,3 @@ npm run dev
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` (solo UI)
 - `SUPABASE_SERVICE_ROLE_KEY` (solo server/worker)
 - `SUPABASE_FUNCTION_SECRET` o `CRON_SECRET` (autenticación de endpoints `/api/worker/*`)
-

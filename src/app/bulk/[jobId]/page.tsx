@@ -263,10 +263,9 @@ export default function JobDetailPage() {
       setSchoolBundleLoading(true);
 
       // Step 1: Create school bundle ZIP job
-      const createResponse = await fetch(
-        `/api/bulk/jobs/${jobId}/create-school-bundle-zip-job`,
-        { method: 'POST' }
-      );
+      const createResponse = await fetch(`/api/bulk/jobs/${jobId}/create-school-bundle-zip-job`, {
+        method: 'POST',
+      });
       const createData = await createResponse.json();
 
       if (!createResponse.ok) {
