@@ -89,6 +89,7 @@ export interface StudentQueryRow {
   departamento: string;
   distrito: string;
   zona: string;
+  transporte: string;
   fecha_inicio: string;
   camisa: string;
   tipo_de_camisa: string;

@@ -16,6 +16,7 @@ export interface SchoolGroup {
   departamento: string;
   distrito: string;
   zona: string;
+  transporte: string;
   students: StudentQueryRow[];
 }
 

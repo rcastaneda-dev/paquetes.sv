@@ -16,6 +16,7 @@ import {
 } from '@/lib/reports/vacios';
 import type { StudentQueryRow } from '@/types/database';
 import type { PDFDocumentInstance, SchoolGroup, SectionRenderContext } from './types';
+import { fixLatin1Encoding } from '@/lib/utils/encoding';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Page options per section type (used by addPage and document creation)
@@ -91,6 +92,7 @@ export function groupBySchool(students: StudentQueryRow[]): SchoolGroup[] {
         departamento: student.departamento,
         distrito: student.distrito,
         zona: student.zona,
+        transporte: student.transporte,
         students: [],
       });
     }
@@ -116,22 +118,27 @@ export function drawSchoolHeaderBlock(options: SchoolHeaderBlockOptions): number
   doc
     .fontSize(fontSize)
     .font('Helvetica-Bold')
-    .text(school.nombre_ce.toUpperCase(), { align: 'center' });
+    .text(fixLatin1Encoding(school.nombre_ce).toUpperCase(), { align: 'center' });
 
   doc
     .fontSize(fontSize)
     .font('Helvetica-Bold')
     .text(`CODIGO: ${school.codigo_ce.toUpperCase()}`, { align: 'center' });
 
-  const departamento = (school.departamento || 'N/A').toUpperCase();
-  const distrito = (school.distrito || 'N/A').toUpperCase();
+  const departamento = fixLatin1Encoding(school.departamento || 'N/A').toUpperCase();
+  const distrito = fixLatin1Encoding(school.distrito || 'N/A').toUpperCase();
   doc
     .fontSize(fontSize)
     .font('Helvetica-Bold')
     .text(`DEPARTAMENTO: ${departamento} - DISTRITO: ${distrito}`, { align: 'center' });
 
-  const zona = (school.zona || 'N/A').toUpperCase();
+  const zona = fixLatin1Encoding(school.zona || 'N/A').toUpperCase();
+  const transporte = fixLatin1Encoding(school.transporte || 'N/A').toUpperCase();
   doc.fontSize(fontSize).font('Helvetica-Bold').text(`ZONA: ${zona}`, { align: 'center' });
+  doc
+    .fontSize(fontSize)
+    .font('Helvetica-Bold')
+    .text(`TIPO DE VEHICULO: ${transporte}`, { align: 'center' });
 
   return doc.y + 8;
 }
@@ -154,9 +161,10 @@ export function renderCajasSection(ctx: SectionRenderContext): void {
   const formattedDate = formatDateForTitle(fechaInicio);
   const title = 'DETALLE DE PROGRAMACIÓN DE CAJAS';
   const subtitle = `Fecha: ${formattedDate}`;
-  const departamento = school.departamento || 'N/A';
-  const distrito = school.distrito || 'N/A';
-  const zona = school.zona || 'N/A';
+  const departamento = fixLatin1Encoding(school.departamento || 'N/A');
+  const distrito = fixLatin1Encoding(school.distrito || 'N/A');
+  const zona = fixLatin1Encoding(school.zona || 'N/A');
+  const transporte = fixLatin1Encoding(school.transporte || 'N/A');
 
   // Helper function to draw complete header (title, date, school info)
   const drawCompleteHeader = (): void => {
@@ -169,7 +177,7 @@ export function renderCajasSection(ctx: SectionRenderContext): void {
     doc
       .fontSize(12)
       .font('Helvetica-Bold')
-      .text(school.nombre_ce.toUpperCase(), { align: 'center' });
+      .text(fixLatin1Encoding(school.nombre_ce).toUpperCase(), { align: 'center' });
     doc
       .fontSize(12)
       .font('Helvetica-Bold')
@@ -184,6 +192,10 @@ export function renderCajasSection(ctx: SectionRenderContext): void {
       .fontSize(12)
       .font('Helvetica-Bold')
       .text(`ZONA: ${zona.toUpperCase()}`, { align: 'center' });
+    doc
+      .fontSize(12)
+      .font('Helvetica-Bold')
+      .text(`TIPO DE VEHICULO: ${transporte.toUpperCase()}`, { align: 'center' });
     doc.moveDown(1);
   };
 
@@ -344,14 +356,17 @@ export function renderFichaUniformesSection(ctx: SectionRenderContext): void {
   doc.moveDown(1);
 
   // School header
-  doc.fontSize(12).font('Helvetica-Bold').text(school.nombre_ce.toUpperCase(), { align: 'center' });
+  doc
+    .fontSize(12)
+    .font('Helvetica-Bold')
+    .text(fixLatin1Encoding(school.nombre_ce).toUpperCase(), { align: 'center' });
   doc
     .fontSize(12)
     .font('Helvetica-Bold')
     .text(`CODIGO: ${school.codigo_ce.toUpperCase()}`, { align: 'center' });
 
-  const departamento = school.departamento || 'N/A';
-  const distrito = school.distrito || 'N/A';
+  const departamento = fixLatin1Encoding(school.departamento || 'N/A');
+  const distrito = fixLatin1Encoding(school.distrito || 'N/A');
   doc
     .fontSize(12)
     .font('Helvetica-Bold')
@@ -359,8 +374,13 @@ export function renderFichaUniformesSection(ctx: SectionRenderContext): void {
       align: 'center',
     });
 
-  const zona = school.zona || 'N/A';
+  const zona = fixLatin1Encoding(school.zona || 'N/A');
+  const transporte = fixLatin1Encoding(school.transporte || 'N/A');
   doc.fontSize(12).font('Helvetica-Bold').text(`ZONA: ${zona.toUpperCase()}`, { align: 'center' });
+  doc
+    .fontSize(12)
+    .font('Helvetica-Bold')
+    .text(`TIPO DE VEHICULO: ${transporte.toUpperCase()}`, { align: 'center' });
 
   doc.moveDown(1);
 
@@ -538,7 +558,7 @@ export function renderFichaUniformesSection(ctx: SectionRenderContext): void {
       doc
         .fontSize(12)
         .font('Helvetica-Bold')
-        .text(school.nombre_ce.toUpperCase(), { align: 'center' });
+        .text(fixLatin1Encoding(school.nombre_ce).toUpperCase(), { align: 'center' });
       doc
         .fontSize(12)
         .font('Helvetica-Bold')
@@ -553,6 +573,10 @@ export function renderFichaUniformesSection(ctx: SectionRenderContext): void {
         .fontSize(12)
         .font('Helvetica-Bold')
         .text(`ZONA: ${zona.toUpperCase()}`, { align: 'center' });
+      doc
+        .fontSize(12)
+        .font('Helvetica-Bold')
+        .text(`TIPO DE VEHICULO: ${transporte.toUpperCase()}`, { align: 'center' });
       doc.moveDown(1);
       currentY = doc.y;
       doc.font('Helvetica').fontSize(10);
@@ -585,14 +609,17 @@ export function renderFichaZapatosSection(ctx: SectionRenderContext): void {
   doc.moveDown(1);
 
   // School header
-  doc.fontSize(12).font('Helvetica-Bold').text(school.nombre_ce.toUpperCase(), { align: 'center' });
+  doc
+    .fontSize(12)
+    .font('Helvetica-Bold')
+    .text(fixLatin1Encoding(school.nombre_ce).toUpperCase(), { align: 'center' });
   doc
     .fontSize(12)
     .font('Helvetica-Bold')
     .text(`CODIGO: ${school.codigo_ce.toUpperCase()}`, { align: 'center' });
 
-  const departamento = school.departamento || 'N/A';
-  const distrito = school.distrito || 'N/A';
+  const departamento = fixLatin1Encoding(school.departamento || 'N/A');
+  const distrito = fixLatin1Encoding(school.distrito || 'N/A');
   doc
     .fontSize(12)
     .font('Helvetica-Bold')
@@ -600,8 +627,13 @@ export function renderFichaZapatosSection(ctx: SectionRenderContext): void {
       align: 'center',
     });
 
-  const zona = school.zona || 'N/A';
+  const zona = fixLatin1Encoding(school.zona || 'N/A');
+  const transporte = fixLatin1Encoding(school.transporte || 'N/A');
   doc.fontSize(12).font('Helvetica-Bold').text(`ZONA: ${zona.toUpperCase()}`, { align: 'center' });
+  doc
+    .fontSize(12)
+    .font('Helvetica-Bold')
+    .text(`TIPO DE VEHICULO: ${transporte.toUpperCase()}`, { align: 'center' });
 
   doc.moveDown(1);
 
@@ -707,7 +739,7 @@ export function renderFichaZapatosSection(ctx: SectionRenderContext): void {
       doc
         .fontSize(12)
         .font('Helvetica-Bold')
-        .text(school.nombre_ce.toUpperCase(), { align: 'center' });
+        .text(fixLatin1Encoding(school.nombre_ce).toUpperCase(), { align: 'center' });
       doc
         .fontSize(12)
         .font('Helvetica-Bold')
@@ -722,6 +754,10 @@ export function renderFichaZapatosSection(ctx: SectionRenderContext): void {
         .fontSize(12)
         .font('Helvetica-Bold')
         .text(`ZONA: ${zona.toUpperCase()}`, { align: 'center' });
+      doc
+        .fontSize(12)
+        .font('Helvetica-Bold')
+        .text(`TIPO DE VEHICULO: ${transporte.toUpperCase()}`, { align: 'center' });
       doc.moveDown(1);
       currentY = doc.y;
       doc.font('Helvetica').fontSize(10);
