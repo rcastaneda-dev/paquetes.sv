@@ -2,7 +2,6 @@ import PDFDocument from 'pdfkit';
 import type { StudentReportRow } from '@/types/database';
 import fs from 'fs';
 import path from 'path';
-import { fixLatin1Encoding } from '@/lib/utils/encoding';
 
 // Export agreement report generators
 export {
@@ -75,7 +74,7 @@ export function generateStudentReportPDF(options: PDFGeneratorOptions): PDFDocum
 
   const drawDocumentHeader = () => {
     addLogoToPage(doc, doc.page.width);
-    doc.fontSize(18).text(`Escuela: ${fixLatin1Encoding(schoolName)}`, { align: 'left' });
+    doc.fontSize(18).text(`Escuela: ${schoolName}`, { align: 'left' });
     doc.fontSize(18).text(`Código: ${codigo_ce}`, { align: 'left' });
     doc.moveDown(2);
   };
@@ -341,7 +340,7 @@ export function generateStudentLabelsPDF(options: PDFGeneratorOptions): PDFDocum
 
   const drawDocumentHeader = () => {
     addLogoToPage(doc, doc.page.width);
-    doc.fontSize(18).text(`Escuela: ${fixLatin1Encoding(schoolName)}`, { align: 'left' });
+    doc.fontSize(18).text(`Escuela: ${schoolName}`, { align: 'left' });
     doc.fontSize(18).text(`Código: ${codigo_ce}`, { align: 'left' });
     doc.moveDown(2);
   };
@@ -439,8 +438,7 @@ export function generateStudentLabelsPDF(options: PDFGeneratorOptions): PDFDocum
   const drawStudentRow = (student: StudentReportRow, displayIndex: number) => {
     // Calculate required height for this row based on longest text
     doc.font('Helvetica').fontSize(10);
-    const fixedSchoolName = fixLatin1Encoding(schoolName);
-    const schoolNameHeight = calculateTextHeight(fixedSchoolName, columnWidths.escuela - 10, 10);
+    const schoolNameHeight = calculateTextHeight(schoolName, columnWidths.escuela - 10, 10);
     const studentNameHeight = calculateTextHeight(
       student.nombre_estudiante || '',
       columnWidths.nombre - 10,
@@ -471,7 +469,7 @@ export function generateStudentLabelsPDF(options: PDFGeneratorOptions): PDFDocum
 
     // Escuela
     doc.rect(x, currentY, columnWidths.escuela, dynamicRowHeight).stroke();
-    doc.text(fixedSchoolName, x + 5, currentY + 6, {
+    doc.text(schoolName, x + 5, currentY + 6, {
       width: columnWidths.escuela - 10,
     });
     x += columnWidths.escuela;
@@ -508,8 +506,7 @@ export function generateStudentLabelsPDF(options: PDFGeneratorOptions): PDFDocum
       // Pre-calculate row height to check if we have space
       const student = gradeStudents[i];
       doc.font('Helvetica').fontSize(10);
-      const fixedSchoolName = fixLatin1Encoding(schoolName);
-      const schoolNameHeight = doc.heightOfString(fixedSchoolName, {
+      const schoolNameHeight = doc.heightOfString(schoolName, {
         width: columnWidths.escuela - 10,
       });
       const studentNameHeight = doc.heightOfString(student.nombre_estudiante || '', {

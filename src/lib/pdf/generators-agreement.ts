@@ -22,7 +22,6 @@ import {
   drawSchoolHeaderBlock,
 } from './agreement/sections';
 import type { SchoolGroup } from './agreement/types';
-import { fixLatin1Encoding } from '@/lib/utils/encoding';
 
 // Re-export for backward compatibility and external consumers
 export type { PDFDocumentInstance, SchoolGroup } from './agreement/types';
@@ -769,7 +768,7 @@ export function generateDayZapatosPDF(options: AgreementReportOptions): PDFDocum
     doc
       .fontSize(12)
       .font('Helvetica-Bold')
-      .text(fixLatin1Encoding(school.nombre_ce).toUpperCase(), { align: 'center' });
+      .text(school.nombre_ce.toUpperCase(), { align: 'center' });
     doc
       .fontSize(12)
       .font('Helvetica-Bold')
@@ -872,7 +871,7 @@ export function generateDayZapatosPDF(options: AgreementReportOptions): PDFDocum
         doc
           .fontSize(12)
           .font('Helvetica-Bold')
-          .text(fixLatin1Encoding(school.nombre_ce).toUpperCase(), { align: 'center' });
+          .text(school.nombre_ce.toUpperCase(), { align: 'center' });
         doc
           .fontSize(12)
           .font('Helvetica-Bold')
@@ -1041,7 +1040,7 @@ export function generateDayUniformesPDF(options: AgreementReportOptions): PDFDoc
     doc
       .fontSize(12)
       .font('Helvetica-Bold')
-      .text(fixLatin1Encoding(school.nombre_ce).toUpperCase(), { align: 'center' });
+      .text(school.nombre_ce.toUpperCase(), { align: 'center' });
     doc
       .fontSize(12)
       .font('Helvetica-Bold')
@@ -1215,7 +1214,7 @@ export function generateDayUniformesPDF(options: AgreementReportOptions): PDFDoc
         doc
           .fontSize(12)
           .font('Helvetica-Bold')
-          .text(fixLatin1Encoding(school.nombre_ce).toUpperCase(), { align: 'center' });
+          .text(school.nombre_ce.toUpperCase(), { align: 'center' });
         doc
           .fontSize(12)
           .font('Helvetica-Bold')
