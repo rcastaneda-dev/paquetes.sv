@@ -17,21 +17,21 @@ Sistema para **consultar estudiantes** (por escuela/grado/fecha) y **generar PDF
 
 #### Reportes de estudiantes (formato tabla, landscape)
 
-| Tipo | Descripción |
-|------|-------------|
-| **Tallas** | Tabla con NO, NOMBRE, SEXO, EDAD, CAMISA, PANTALÓN, ZAPATO |
-| **Etiquetas** | Etiquetas para empaque: NO, CÓDIGO CE, ESCUELA, NOMBRE |
+| Tipo          | Descripción                                                |
+| ------------- | ---------------------------------------------------------- |
+| **Tallas**    | Tabla con NO, NOMBRE, SEXO, EDAD, CAMISA, PANTALÓN, ZAPATO |
+| **Etiquetas** | Etiquetas para empaque: NO, CÓDIGO CE, ESCUELA, NOMBRE     |
 
 #### Reportes de acuerdos (planificación de distribución, landscape/portrait)
 
-| Tipo | Categoría | Descripción |
-|------|-----------|-------------|
-| **Cajas** | `estudiantes` | Distribución de cajas por grado/género |
-| **Camisas** | `camisa` | Distribución por tipo y talla (T4-T2X) |
-| **Pantalones** | `prenda_inferior` | Distribución por tipo y talla (T4-T2X) |
-| **Zapatos** | `zapatos` | Distribución por género y talla (23-45) |
-| **Ficha Uniformes** | `ficha_uniformes` | Ficha por escuela (portrait) |
-| **Ficha Zapatos** | `ficha_zapatos` | Ficha por escuela (portrait) |
+| Tipo                | Categoría         | Descripción                             |
+| ------------------- | ----------------- | --------------------------------------- |
+| **Cajas**           | `estudiantes`     | Distribución de cajas por grado/género  |
+| **Camisas**         | `camisa`          | Distribución por tipo y talla (T4-T2X)  |
+| **Pantalones**      | `prenda_inferior` | Distribución por tipo y talla (T4-T2X)  |
+| **Zapatos**         | `zapatos`         | Distribución por género y talla (23-45) |
+| **Ficha Uniformes** | `ficha_uniformes` | Ficha por escuela (portrait)            |
+| **Ficha Zapatos**   | `ficha_zapatos`   | Ficha por escuela (portrait)            |
 
 Todos los PDFs de acuerdos incluyen una línea de registro manual: `HORA DE INICIO: ___ HORA DE FINALIZACION: ___`.
 
@@ -74,46 +74,46 @@ Todos los PDFs de acuerdos incluyen una línea de registro manual: `HORA DE INIC
 
 #### Bulk jobs (`/api/bulk/`)
 
-| Endpoint | Método | Descripción |
-|----------|--------|-------------|
-| `/api/bulk/jobs` | POST | Crear bulk job (por región) |
-| `/api/bulk/jobs` | GET | Listar jobs (paginado) |
-| `/api/bulk/jobs` | DELETE | Borrar jobs antiguos (`?scope=past`) |
-| `/api/bulk/jobs/category` | POST | Crear job de categorías (por `fecha_inicio`) |
-| `/api/bulk/jobs/[jobId]` | GET | Detalle + progreso del job |
-| `/api/bulk/jobs/[jobId]` | DELETE | Borrar job específico |
-| `/api/bulk/jobs/[jobId]/cancel` | POST | Cancelar job en ejecución |
-| `/api/bulk/jobs/[jobId]/retry-failed` | POST | Reintentar tareas fallidas |
-| `/api/bulk/jobs/[jobId]/download` | GET | Descargar bundle de región (signed URL) |
-| `/api/bulk/jobs/[jobId]/consolidated-pdf` | GET | PDF consolidado por sección (streaming) |
-| `/api/bulk/jobs/[jobId]/create-zip-job` | POST | Encolar ZIP de región |
-| `/api/bulk/jobs/[jobId]/zip-job-status` | GET | Estado del ZIP de región |
-| `/api/bulk/jobs/[jobId]/create-category-zip-job` | POST | Encolar ZIP de categoría |
-| `/api/bulk/jobs/[jobId]/category-zip-status` | GET | Estado del ZIP de categoría |
-| `/api/bulk/jobs/[jobId]/create-school-bundle-zip-job` | POST | Encolar ZIP de school bundle |
-| `/api/bulk/jobs/[jobId]/school-bundle-zip-status` | GET | Estado del ZIP de school bundle |
+| Endpoint                                              | Método | Descripción                                  |
+| ----------------------------------------------------- | ------ | -------------------------------------------- |
+| `/api/bulk/jobs`                                      | POST   | Crear bulk job (por región)                  |
+| `/api/bulk/jobs`                                      | GET    | Listar jobs (paginado)                       |
+| `/api/bulk/jobs`                                      | DELETE | Borrar jobs antiguos (`?scope=past`)         |
+| `/api/bulk/jobs/category`                             | POST   | Crear job de categorías (por `fecha_inicio`) |
+| `/api/bulk/jobs/[jobId]`                              | GET    | Detalle + progreso del job                   |
+| `/api/bulk/jobs/[jobId]`                              | DELETE | Borrar job específico                        |
+| `/api/bulk/jobs/[jobId]/cancel`                       | POST   | Cancelar job en ejecución                    |
+| `/api/bulk/jobs/[jobId]/retry-failed`                 | POST   | Reintentar tareas fallidas                   |
+| `/api/bulk/jobs/[jobId]/download`                     | GET    | Descargar bundle de región (signed URL)      |
+| `/api/bulk/jobs/[jobId]/consolidated-pdf`             | GET    | PDF consolidado por sección (streaming)      |
+| `/api/bulk/jobs/[jobId]/create-zip-job`               | POST   | Encolar ZIP de región                        |
+| `/api/bulk/jobs/[jobId]/zip-job-status`               | GET    | Estado del ZIP de región                     |
+| `/api/bulk/jobs/[jobId]/create-category-zip-job`      | POST   | Encolar ZIP de categoría                     |
+| `/api/bulk/jobs/[jobId]/category-zip-status`          | GET    | Estado del ZIP de categoría                  |
+| `/api/bulk/jobs/[jobId]/create-school-bundle-zip-job` | POST   | Encolar ZIP de school bundle                 |
+| `/api/bulk/jobs/[jobId]/school-bundle-zip-status`     | GET    | Estado del ZIP de school bundle              |
 
 #### Estudiantes y reportes
 
-| Endpoint | Método | Descripción |
-|----------|--------|-------------|
-| `/api/students/query` | GET | Consultar estudiantes (escuela/grado/depto/paginación) |
-| `/api/students/print` | GET | Generar PDF de tallas (on-demand) |
-| `/api/students/print-labels` | GET | Generar PDF de etiquetas (on-demand) |
-| `/api/reports/cajas` | GET | PDF de Cajas |
-| `/api/reports/camisas` | GET | PDF de Camisas |
-| `/api/reports/pantalones` | GET | PDF de Pantalones |
-| `/api/reports/zapatos` | GET | PDF de Zapatos |
-| `/api/schools/search` | GET | Autocompletado de escuelas |
-| `/api/grades` | GET | Grados disponibles |
+| Endpoint                     | Método | Descripción                                            |
+| ---------------------------- | ------ | ------------------------------------------------------ |
+| `/api/students/query`        | GET    | Consultar estudiantes (escuela/grado/depto/paginación) |
+| `/api/students/print`        | GET    | Generar PDF de tallas (on-demand)                      |
+| `/api/students/print-labels` | GET    | Generar PDF de etiquetas (on-demand)                   |
+| `/api/reports/cajas`         | GET    | PDF de Cajas                                           |
+| `/api/reports/camisas`       | GET    | PDF de Camisas                                         |
+| `/api/reports/pantalones`    | GET    | PDF de Pantalones                                      |
+| `/api/reports/zapatos`       | GET    | PDF de Zapatos                                         |
+| `/api/schools/search`        | GET    | Autocompletado de escuelas                             |
+| `/api/grades`                | GET    | Grados disponibles                                     |
 
 #### Worker endpoints (requieren Bearer auth)
 
-| Endpoint | Método | Descripción |
-|----------|--------|-------------|
-| `/api/worker/process-tasks` | POST | Reclamar y procesar tareas de región |
-| `/api/worker/process-category-tasks` | POST | Reclamar y procesar tareas de categoría |
-| `/api/worker/process-school-bundle-zip` | POST | Generar ZIPs de school bundle |
+| Endpoint                                | Método | Descripción                             |
+| --------------------------------------- | ------ | --------------------------------------- |
+| `/api/worker/process-tasks`             | POST   | Reclamar y procesar tareas de región    |
+| `/api/worker/process-category-tasks`    | POST   | Reclamar y procesar tareas de categoría |
+| `/api/worker/process-school-bundle-zip` | POST   | Generar ZIPs de school bundle           |
 
 ### Estructura
 
@@ -166,27 +166,27 @@ npm run dev
 
 #### Requeridas
 
-| Variable | Uso |
-|----------|-----|
-| `NEXT_PUBLIC_SUPABASE_URL` | URL del proyecto Supabase |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Solo UI (RLS enforced) |
-| `SUPABASE_SERVICE_ROLE_KEY` | Solo server/worker (bypassa RLS) |
+| Variable                                   | Uso                               |
+| ------------------------------------------ | --------------------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`                 | URL del proyecto Supabase         |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY`            | Solo UI (RLS enforced)            |
+| `SUPABASE_SERVICE_ROLE_KEY`                | Solo server/worker (bypassa RLS)  |
 | `SUPABASE_FUNCTION_SECRET` o `CRON_SECRET` | Auth de endpoints `/api/worker/*` |
 
 #### Workers (Next.js)
 
-| Variable | Default | Descripción |
-|----------|---------|-------------|
-| `WORKER_BATCH_SIZE` | 25 | Tareas por llamada RPC (1-100) |
-| `WORKER_CONCURRENCY` | 3 | PDFs generados en paralelo (1-10) |
-| `WORKER_MAX_RUNTIME` | 9000 | Tiempo máximo de ejecución en ms (1000-60000) |
-| `WORKER_STALE_TASK_SECONDS` | 900 | Umbral para tareas atascadas (15 min) |
-| `WORKER_STALE_TASK_LIMIT` | 5000 | Máximo de tareas a reencolar por ejecución |
+| Variable                    | Default | Descripción                                   |
+| --------------------------- | ------- | --------------------------------------------- |
+| `WORKER_BATCH_SIZE`         | 25      | Tareas por llamada RPC (1-100)                |
+| `WORKER_CONCURRENCY`        | 3       | PDFs generados en paralelo (1-10)             |
+| `WORKER_MAX_RUNTIME`        | 9000    | Tiempo máximo de ejecución en ms (1000-60000) |
+| `WORKER_STALE_TASK_SECONDS` | 900     | Umbral para tareas atascadas (15 min)         |
+| `WORKER_STALE_TASK_LIMIT`   | 5000    | Máximo de tareas a reencolar por ejecución    |
 
 #### ZIP Worker
 
-| Variable | Default | Descripción |
-|----------|---------|-------------|
-| `POLL_INTERVAL_MS` | 5000 | Frecuencia de polling |
-| `DOWNLOAD_BATCH_SIZE` | 50 | PDFs descargados en paralelo |
-| `COMPRESSION_LEVEL` | 6 | Nivel de compresión ZIP (0-9) |
+| Variable              | Default | Descripción                   |
+| --------------------- | ------- | ----------------------------- |
+| `POLL_INTERVAL_MS`    | 5000    | Frecuencia de polling         |
+| `DOWNLOAD_BATCH_SIZE` | 50      | PDFs descargados en paralelo  |
+| `COMPRESSION_LEVEL`   | 6       | Nivel de compresión ZIP (0-9) |

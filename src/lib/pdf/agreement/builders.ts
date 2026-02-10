@@ -39,9 +39,10 @@ const RENDERER_BY_SECTION: Record<AgreementSectionType, SectionRenderer> = {
 };
 
 /**
- * Calculate total CAJAS for a school (sum of hombres + mujeres boxes)
+ * Calculate total CAJAS for a school (sum of hombres + mujeres boxes).
+ * Exported for use by consolidado Excel export.
  */
-function calculateCajasTotales(school: SchoolGroup): number {
+export function calculateCajasTotales(school: SchoolGroup): number {
   const gradeMap = new Map<string, { hombres: number; mujeres: number }>();
 
   for (const student of school.students) {
@@ -70,9 +71,10 @@ function calculateCajasTotales(school: SchoolGroup): number {
 }
 
 /**
- * Calculate total PIEZAS for uniformes (camisas + pantalones/faldas)
+ * Calculate total PIEZAS for uniformes (camisas + pantalones/faldas).
+ * Exported for use by consolidado Excel export.
  */
-function calculateUniformesTotalPiezas(school: SchoolGroup): number {
+export function calculateUniformesTotalPiezas(school: SchoolGroup): number {
   let totalPiezas = 0;
   const camisaSizeOrder = [
     'T4',
@@ -163,9 +165,10 @@ function calculateUniformesTotalPiezas(school: SchoolGroup): number {
 }
 
 /**
- * Calculate total PIEZAS for zapatos
+ * Calculate total PIEZAS for zapatos.
+ * Exported for use by consolidado Excel export.
  */
-function calculateZapatosTotalPiezas(school: SchoolGroup): number {
+export function calculateZapatosTotalPiezas(school: SchoolGroup): number {
   let totalPiezas = 0;
   const shoeSizes: string[] = [];
   for (let i = 23; i <= 45; i++) {

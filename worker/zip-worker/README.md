@@ -37,11 +37,11 @@ Worker (Railway) ←── Polls claim_next_zip_job() RPC continuously
 
 ## Job Types
 
-| `job_kind` | Source | Output Path | Description |
-|------------|--------|-------------|-------------|
-| `region` | `report_tasks` (tallas + etiquetas PDFs) | `bundles/{jobId}-{region}.zip` | All school PDFs for a geographic region |
-| `category` | `report_category_tasks` | `bundles/{jobId}/{fecha}/{category}.zip` | All school PDFs for one category type |
-| `school_bundle` | Student data (generates PDFs internally) | `bundles/{jobId}/{fecha}/school_bundle.zip` | 3-section merged PDF per school |
+| `job_kind`      | Source                                   | Output Path                                 | Description                             |
+| --------------- | ---------------------------------------- | ------------------------------------------- | --------------------------------------- |
+| `region`        | `report_tasks` (tallas + etiquetas PDFs) | `bundles/{jobId}-{region}.zip`              | All school PDFs for a geographic region |
+| `category`      | `report_category_tasks`                  | `bundles/{jobId}/{fecha}/{category}.zip`    | All school PDFs for one category type   |
+| `school_bundle` | Student data (generates PDFs internally) | `bundles/{jobId}/{fecha}/school_bundle.zip` | 3-section merged PDF per school         |
 
 ### School Bundle (hybrid delegation)
 
@@ -55,11 +55,11 @@ This includes the "vacíos" buffer calculation (15% extra + gap-filling between 
 
 ## Source Files
 
-| File | Lines | Purpose |
-|------|-------|---------|
-| `index.ts` | ~479 | Main polling loop + region/category job handlers |
-| `school-bundle-processor.ts` | ~1,076 | Self-contained PDF generator for school bundles |
-| `assets/goes_logo_2.png` | - | GOES logo embedded in school bundle PDFs |
+| File                         | Lines  | Purpose                                          |
+| ---------------------------- | ------ | ------------------------------------------------ |
+| `index.ts`                   | ~479   | Main polling loop + region/category job handlers |
+| `school-bundle-processor.ts` | ~1,076 | Self-contained PDF generator for school bundles  |
+| `assets/goes_logo_2.png`     | -      | GOES logo embedded in school bundle PDFs         |
 
 ## Requirements
 
@@ -345,12 +345,12 @@ WHERE status = 'processing'
 
 ## Database RPCs Used
 
-| Function | Purpose |
-|----------|---------|
-| `claim_next_zip_job()` | Atomic claim with `SKIP LOCKED` (returns `job_id`, `report_job_id`, `job_kind`, `region`, `category`) |
-| `update_zip_job_status(p_job_id, p_status, ...)` | Update status, zip path, size, PDF count, error, progress |
-| `retry_zip_job(p_job_id)` | Requeue a failed job |
-| `cleanup_old_zip_jobs(p_days_old)` | Delete completed jobs older than N days |
+| Function                                         | Purpose                                                                                               |
+| ------------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
+| `claim_next_zip_job()`                           | Atomic claim with `SKIP LOCKED` (returns `job_id`, `report_job_id`, `job_kind`, `region`, `category`) |
+| `update_zip_job_status(p_job_id, p_status, ...)` | Update status, zip path, size, PDF count, error, progress                                             |
+| `retry_zip_job(p_job_id)`                        | Requeue a failed job                                                                                  |
+| `cleanup_old_zip_jobs(p_days_old)`               | Delete completed jobs older than N days                                                               |
 
 ## Notable Patterns
 
@@ -363,11 +363,11 @@ WHERE status = 'processing'
 
 ## Performance Benchmarks
 
-| Job Type | PDFs | ZIP Size | Time | Memory |
-|----------|------|----------|------|--------|
-| Region (~1,500 schools) | ~3,000 | ~500MB | 60-120s | ~1GB |
-| Category | varies | 200-400MB | 30-90s | 512MB-1GB |
-| School Bundle | 1/school | varies | varies | ~2GB |
+| Job Type                | PDFs     | ZIP Size  | Time    | Memory    |
+| ----------------------- | -------- | --------- | ------- | --------- |
+| Region (~1,500 schools) | ~3,000   | ~500MB    | 60-120s | ~1GB      |
+| Category                | varies   | 200-400MB | 30-90s  | 512MB-1GB |
+| School Bundle           | 1/school | varies    | varies  | ~2GB      |
 
 **Total for all regions:** 4-8 minutes (can run in parallel with multiple workers)
 

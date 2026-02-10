@@ -20,6 +20,7 @@ import {
   formatDateForTitle,
   groupBySchool,
   drawSchoolHeaderBlock,
+  drawFechaDespachoEntregaLine,
   AGREEMENT_FONT,
   AGREEMENT_HORA_LINE,
 } from './agreement/sections';
@@ -33,6 +34,7 @@ export {
   formatDateForTitle,
   groupBySchool,
   drawSchoolHeaderBlock,
+  drawFechaDespachoEntregaLine,
   AGREEMENT_FONT,
   AGREEMENT_HORA_LINE,
 } from './agreement/sections';
@@ -768,10 +770,7 @@ export function generateDayZapatosPDF(options: AgreementReportOptions): PDFDocum
       .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
       .font('Helvetica-Bold')
       .text(`CODIGO: ${school.codigo_ce.toUpperCase()}`, { align: 'center' });
-    doc
-      .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
-      .font('Helvetica-Bold')
-      .text(`FECHA: ${formattedDate}`, { align: 'center' });
+    drawFechaDespachoEntregaLine(doc, formattedDate);
     doc
       .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
       .font('Helvetica')
@@ -878,10 +877,7 @@ export function generateDayZapatosPDF(options: AgreementReportOptions): PDFDocum
           .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
           .font('Helvetica-Bold')
           .text(`CODIGO: ${school.codigo_ce.toUpperCase()}`, { align: 'center' });
-        doc
-          .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
-          .font('Helvetica-Bold')
-          .text(`FECHA: ${formattedDate}`, { align: 'center' });
+        drawFechaDespachoEntregaLine(doc, formattedDate);
         doc.moveDown(1);
         currentY = doc.y;
         doc.font('Helvetica').fontSize(AGREEMENT_FONT.BODY);
@@ -1047,10 +1043,7 @@ export function generateDayUniformesPDF(options: AgreementReportOptions): PDFDoc
       .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
       .font('Helvetica-Bold')
       .text(`CODIGO: ${school.codigo_ce.toUpperCase()}`, { align: 'center' });
-    doc
-      .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
-      .font('Helvetica-Bold')
-      .text(`FECHA: ${formattedDate}`, { align: 'center' });
+    drawFechaDespachoEntregaLine(doc, formattedDate);
     doc
       .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
       .font('Helvetica')
@@ -1228,10 +1221,7 @@ export function generateDayUniformesPDF(options: AgreementReportOptions): PDFDoc
           .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
           .font('Helvetica-Bold')
           .text(`CODIGO: ${school.codigo_ce.toUpperCase()}`, { align: 'center' });
-        doc
-          .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
-          .font('Helvetica-Bold')
-          .text(`FECHA: ${formattedDate}`, { align: 'center' });
+        drawFechaDespachoEntregaLine(doc, formattedDate);
         doc.moveDown(1);
         currentY = doc.y;
         doc.font('Helvetica').fontSize(AGREEMENT_FONT.BODY);

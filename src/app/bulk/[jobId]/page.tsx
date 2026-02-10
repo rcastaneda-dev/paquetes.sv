@@ -54,6 +54,7 @@ export default function JobDetailPage() {
   const [downloadingConsolidated, setDownloadingConsolidated] = useState<Record<string, boolean>>(
     {}
   );
+  const [downloadingConsolidadoExcel, setDownloadingConsolidadoExcel] = useState(false);
   const [schoolBundleLoading, setSchoolBundleLoading] = useState(false);
   const [schoolBundleStatus, setSchoolBundleStatus] = useState<{
     status: 'queued' | 'processing' | 'complete' | 'failed';
@@ -255,6 +256,35 @@ export default function JobDetailPage() {
       alert(`Error al descargar PDF consolidado de ${section}`);
     } finally {
       setDownloadingConsolidated(prev => ({ ...prev, [section]: false }));
+    }
+  };
+
+  const handleDownloadConsolidadoExcel = async () => {
+    try {
+      setDownloadingConsolidadoExcel(true);
+
+      const response = await fetch(`/api/bulk/jobs/${jobId}/consolidado-excel`);
+
+      if (!response.ok) {
+        const data = await response.json();
+        alert(`Error: ${data.error || 'Error al generar Consolidado Excel'}`);
+        return;
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'Consolidado_Portafolio.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Error downloading Consolidado Excel:', error);
+      alert('Error al descargar Consolidado Excel');
+    } finally {
+      setDownloadingConsolidadoExcel(false);
     }
   };
 
@@ -613,7 +643,7 @@ export default function JobDetailPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 {[
                   { key: 'cajas', label: 'Consolidado Cajas' },
                   { key: 'ficha_uniformes', label: 'Consolidado Uniformes' },
@@ -635,9 +665,20 @@ export default function JobDetailPage() {
                     </Button>
                   );
                 })}
+                <Button
+                  onClick={handleDownloadConsolidadoExcel}
+                  disabled={downloadingConsolidadoExcel}
+                  variant="outline"
+                  className="h-auto flex-col items-start p-4"
+                >
+                  <span className="text-lg font-semibold">Consolidado Excel</span>
+                  <span className="text-xs text-muted-foreground">
+                    {downloadingConsolidadoExcel ? 'Generando Excel...' : 'Descargar .xlsx'}
+                  </span>
+                </Button>
               </div>
               <p className="text-xs text-muted-foreground">
-                💡 El PDF se generará al momento y se descargará automáticamente.
+                💡 El PDF o Excel se generará al momento y se descargará automáticamente.
               </p>
             </CardContent>
           </Card>
