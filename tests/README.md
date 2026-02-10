@@ -42,12 +42,12 @@ Factories in `fixtures/` centralize test data and API helpers. `SchoolSearchFact
 
 ### File Naming
 
-| Type       | Pattern                | Example                        |
-| ---------- | ---------------------- | ------------------------------ |
-| Test suite | `*.spec.ts`            | `buscar-students.spec.ts`      |
-| Page object| `*.page.ts`            | `home.page.ts`                 |
-| Factory    | `*.factory.ts`         | `school-search.factory.ts`     |
-| Fixtures   | `index.ts` in fixtures | `fixtures/index.ts`            |
+| Type        | Pattern                | Example                    |
+| ----------- | ---------------------- | -------------------------- |
+| Test suite  | `*.spec.ts`            | `buscar-students.spec.ts`  |
+| Page object | `*.page.ts`            | `home.page.ts`             |
+| Factory     | `*.factory.ts`         | `school-search.factory.ts` |
+| Fixtures    | `index.ts` in fixtures | `fixtures/index.ts`        |
 
 ### Locator Strategy
 
@@ -62,15 +62,15 @@ Use accessibility-first selectors in this order of preference:
 
 Tests are tagged for flexible filtering. A test can have multiple tags.
 
-| Tag            | Purpose                     |
-| -------------- | --------------------------- |
-| `@e2e`         | Full end-to-end user flows  |
-| `@smoke`       | Critical happy-path checks  |
-| `@ui`          | UI state validation         |
-| `@integration` | API contract verification   |
-| `@pagination`  | Pagination behavior         |
-| `@filters`     | Filter/clear functionality  |
-| `@search`      | Suite-level search tag       |
+| Tag            | Purpose                    |
+| -------------- | -------------------------- |
+| `@e2e`         | Full end-to-end user flows |
+| `@smoke`       | Critical happy-path checks |
+| `@ui`          | UI state validation        |
+| `@integration` | API contract verification  |
+| `@pagination`  | Pagination behavior        |
+| `@filters`     | Filter/clear functionality |
+| `@search`      | Suite-level search tag     |
 
 ### Wait Strategy
 
@@ -111,10 +111,10 @@ npm run test:headed
 
 ### Environment Variables
 
-| Variable   | Default                              | Description       |
-| ---------- | ------------------------------------ | ----------------- |
-| `BASE_URL` | `https://paquetes-sv.vercel.app`     | Application URL   |
-| `CI`       | —                                    | Enables CI mode (retries, single worker, forbidOnly) |
+| Variable   | Default                          | Description                                          |
+| ---------- | -------------------------------- | ---------------------------------------------------- |
+| `BASE_URL` | `https://paquetes-sv.vercel.app` | Application URL                                      |
+| `CI`       | —                                | Enables CI mode (retries, single worker, forbidOnly) |
 
 ## Cross-Browser Support
 

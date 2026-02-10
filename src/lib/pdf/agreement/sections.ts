@@ -36,6 +36,34 @@ export const AGREEMENT_FONT = {
 export const AGREEMENT_HORA_LINE =
   'HORA DE INICIO:  ___________________ HORA DE FINALIZACION: ___________________';
 
+/** Label for the date line (non-bold); value is drawn bold+underlined after it. */
+const FECHA_DESPACHO_ENTREGA_LABEL = 'Fecha de despacho: ___________________  Fecha entrega C.E.: ';
+
+/**
+ * Draw the "Fecha de despacho / Fecha entrega C.E." line with correct spacing.
+ * Labels are regular weight; the date value is bold and underlined.
+ * Uses measured widths and explicit x so the date does not overlap the label.
+ */
+export function drawFechaDespachoEntregaLine(
+  doc: PDFDocumentInstance,
+  formattedDate: string
+): void {
+  const fontSize = AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER;
+  doc.fontSize(fontSize).font('Helvetica');
+  const labelWidth = doc.widthOfString(FECHA_DESPACHO_ENTREGA_LABEL);
+  doc.font('Helvetica-Bold');
+  const valueText = ` ${formattedDate}`;
+  const valueWidth = doc.widthOfString(valueText);
+  const totalWidth = labelWidth + valueWidth;
+  const startX = (doc.page.width - totalWidth) / 2;
+  doc.x = startX;
+  doc.fontSize(fontSize).font('Helvetica').text(FECHA_DESPACHO_ENTREGA_LABEL, {
+    continued: true,
+  });
+  doc.font('Helvetica-Bold').text(valueText, { underline: true });
+  doc.x = doc.page.margins?.left ?? 72;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Page options per section type (used by addPage and document creation)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -179,7 +207,6 @@ export function renderCajasSection(ctx: SectionRenderContext): void {
 
   const formattedDate = formatDateForTitle(fechaInicio);
   const title = 'DETALLE DE PROGRAMACIÓN DE CAJAS';
-  const subtitle = `Fecha: ${formattedDate}`;
   const departamento = school.departamento || 'N/A';
   const distrito = school.distrito || 'N/A';
   const zona = school.zona || 'N/A';
@@ -189,7 +216,7 @@ export function renderCajasSection(ctx: SectionRenderContext): void {
   const drawCompleteHeader = (includeHoraLine = true): void => {
     addLogoToPage(doc, doc.page.width);
     doc.fontSize(AGREEMENT_FONT.TITLE).font('Helvetica-Bold').text(title, { align: 'center' });
-    doc.fontSize(AGREEMENT_FONT.TITLE).font('Helvetica-Bold').text(subtitle, { align: 'center' });
+    drawFechaDespachoEntregaLine(doc, formattedDate);
     doc.moveDown(2);
 
     // School header
@@ -375,10 +402,7 @@ export function renderFichaUniformesSection(ctx: SectionRenderContext): void {
 
   addLogoToPage(doc, doc.page.width);
   doc.fontSize(AGREEMENT_FONT.TITLE).font('Helvetica-Bold').text(title, { align: 'center' });
-  doc
-    .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
-    .font('Helvetica-Bold')
-    .text(`Fecha: ${formattedDate}`, { align: 'center' });
+  drawFechaDespachoEntregaLine(doc, formattedDate);
   doc.moveDown(1);
 
   // School header
@@ -584,10 +608,7 @@ export function renderFichaUniformesSection(ctx: SectionRenderContext): void {
       doc.addPage(FICHA_UNIFORMES_PAGE_OPTIONS);
       addLogoToPage(doc, doc.page.width);
       doc.fontSize(AGREEMENT_FONT.TITLE).font('Helvetica-Bold').text(title, { align: 'center' });
-      doc
-        .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
-        .font('Helvetica-Bold')
-        .text(`Fecha: ${formattedDate}`, { align: 'center' });
+      drawFechaDespachoEntregaLine(doc, formattedDate);
       doc.moveDown(1);
       doc
         .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
@@ -637,10 +658,7 @@ export function renderFichaZapatosSection(ctx: SectionRenderContext): void {
 
   addLogoToPage(doc, doc.page.width);
   doc.fontSize(AGREEMENT_FONT.TITLE).font('Helvetica-Bold').text(title, { align: 'center' });
-  doc
-    .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
-    .font('Helvetica-Bold')
-    .text(`Fecha: ${formattedDate}`, { align: 'center' });
+  drawFechaDespachoEntregaLine(doc, formattedDate);
   doc.moveDown(1);
 
   // School header
@@ -776,10 +794,7 @@ export function renderFichaZapatosSection(ctx: SectionRenderContext): void {
       doc.addPage(FICHA_ZAPATOS_PAGE_OPTIONS);
       addLogoToPage(doc, doc.page.width);
       doc.fontSize(AGREEMENT_FONT.TITLE).font('Helvetica-Bold').text(title, { align: 'center' });
-      doc
-        .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
-        .font('Helvetica-Bold')
-        .text(`Fecha: ${formattedDate}`, { align: 'center' });
+      drawFechaDespachoEntregaLine(doc, formattedDate);
       doc.moveDown(1);
       doc
         .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
