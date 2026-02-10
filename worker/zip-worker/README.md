@@ -6,31 +6,60 @@ A standalone Node.js worker that processes ZIP generation jobs in the background
 
 This worker:
 
-- Polls the `zip_jobs` table for queued jobs
-- Downloads PDFs from Supabase Storage in batches
-- Creates ZIP archives with streaming compression
+- Polls the `zip_jobs` table for queued jobs via `claim_next_zip_job()` RPC (`FOR UPDATE SKIP LOCKED`)
+- Handles **3 job types** via `job_kind` discriminator: `region`, `category`, `school_bundle`
+- Downloads PDFs from Supabase Storage in configurable batches
+- Creates ZIP archives with streaming compression (in-memory, no temp files)
 - Uploads ZIPs using TUS protocol (automatic for files >6MB)
-- Updates job status for frontend polling
+- Updates job status + progress for frontend polling
+- Graceful shutdown on `SIGINT`/`SIGTERM`
 
 ## Architecture
 
 ```
 Frontend (Vercel)
     ↓
-    Creates ZIP job in database
+    Creates ZIP job in database (job_kind: region|category|school_bundle)
     ↓
     Polls job status
     ↓
-Worker (Railway) ←── Polls database for queued jobs
+Worker (Railway) ←── Polls claim_next_zip_job() RPC continuously
     ↓
-    Downloads PDFs from Supabase
+    Routes to handler by job_kind
     ↓
-    Creates ZIP with archiver
+    region/category: Downloads PDFs from Supabase Storage → Streams into ZIP
+    school_bundle:   Generates 3-section PDFs per school (Cajas + Ficha Uniformes + Ficha Zapatos)
     ↓
-    Uploads to Supabase Storage (TUS)
+    Uploads to Supabase Storage (TUS for >6MB)
     ↓
-    Updates job status → Frontend downloads
+    Updates job status → Frontend downloads via signed URL
 ```
+
+## Job Types
+
+| `job_kind` | Source | Output Path | Description |
+|------------|--------|-------------|-------------|
+| `region` | `report_tasks` (tallas + etiquetas PDFs) | `bundles/{jobId}-{region}.zip` | All school PDFs for a geographic region |
+| `category` | `report_category_tasks` | `bundles/{jobId}/{fecha}/{category}.zip` | All school PDFs for one category type |
+| `school_bundle` | Student data (generates PDFs internally) | `bundles/{jobId}/{fecha}/school_bundle.zip` | 3-section merged PDF per school |
+
+### School Bundle (hybrid delegation)
+
+The school bundle is unique because the ZIP worker **generates its own PDFs** instead of downloading pre-built ones. It contains a self-contained PDF generator (`school-bundle-processor.ts`, ~1,076 lines) that produces a 3-section PDF per school:
+
+1. **Cajas** (landscape) - Box distribution by grade/gender
+2. **Ficha Uniformes** (portrait) - School uniform card
+3. **Ficha Zapatos** (portrait) - School shoe card
+
+This includes the "vacíos" buffer calculation (15% extra + gap-filling between sizes) and garment-type size restrictions.
+
+## Source Files
+
+| File | Lines | Purpose |
+|------|-------|---------|
+| `index.ts` | ~479 | Main polling loop + region/category job handlers |
+| `school-bundle-processor.ts` | ~1,076 | Self-contained PDF generator for school bundles |
+| `assets/goes_logo_2.png` | - | GOES logo embedded in school bundle PDFs |
 
 ## Requirements
 
@@ -314,18 +343,33 @@ WHERE status = 'processing'
   AND started_at < NOW() - INTERVAL '30 minutes';
 ```
 
+## Database RPCs Used
+
+| Function | Purpose |
+|----------|---------|
+| `claim_next_zip_job()` | Atomic claim with `SKIP LOCKED` (returns `job_id`, `report_job_id`, `job_kind`, `region`, `category`) |
+| `update_zip_job_status(p_job_id, p_status, ...)` | Update status, zip path, size, PDF count, error, progress |
+| `retry_zip_job(p_job_id)` | Requeue a failed job |
+| `cleanup_old_zip_jobs(p_days_old)` | Delete completed jobs older than N days |
+
+## Notable Patterns
+
+- **Atomic job claiming**: `FOR UPDATE SKIP LOCKED` prevents race conditions between multiple worker instances
+- **Dual PDF download**: Region jobs download both `-tallas.pdf` and `-etiquetas.pdf` per school in parallel, with graceful failure if one is missing
+- **In-memory streaming**: ZIP built entirely in memory using Archiver (no intermediate temp files)
+- **PostgREST pagination**: Student data fetched in 1,000-row batches with a 200,000-row safety limit
+- **Safe filenames**: School codes sanitized (`/[^a-zA-Z0-9_-]/g` → `_`) for ZIP entries
+- **Logo fallback**: Searches `/app/assets/`, `{cwd}/assets/`, `{cwd}/public/` for `goes_logo_2.png`, silently skips if missing
+
 ## Performance Benchmarks
 
-### Regional ZIP Generation Times
+| Job Type | PDFs | ZIP Size | Time | Memory |
+|----------|------|----------|------|--------|
+| Region (~1,500 schools) | ~3,000 | ~500MB | 60-120s | ~1GB |
+| Category | varies | 200-400MB | 30-90s | 512MB-1GB |
+| School Bundle | 1/school | varies | varies | ~2GB |
 
-| Region      | PDFs   | ZIP Size | Time    | Memory |
-| ----------- | ------ | -------- | ------- | ------ |
-| Oriental    | ~1,500 | ~500MB   | 60-120s | ~1GB   |
-| Occidental  | ~1,500 | ~500MB   | 60-120s | ~1GB   |
-| Paracentral | ~1,500 | ~500MB   | 60-120s | ~1GB   |
-| Central     | ~1,500 | ~500MB   | 60-120s | ~1GB   |
-
-**Total:** 4-8 minutes for all regions (can run in parallel with multiple workers)
+**Total for all regions:** 4-8 minutes (can run in parallel with multiple workers)
 
 ## Scaling
 
@@ -414,4 +458,4 @@ For issues:
 
 **Built for:** paquetes.sv
 **Version:** 1.0.0
-**Last Updated:** 2026-01-27
+**Last Updated:** 2026-02-10
