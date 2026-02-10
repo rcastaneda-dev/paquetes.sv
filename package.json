@@ -6,6 +6,13 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "test": "playwright test --trace=on",
+    "test:ui": "playwright test --ui",
+    "test:debug": "playwright test --debug",
+    "test:headed": "playwright test --headed",
+    "test:headed:ui": "playwright test --headed --ui",
+    "test:headed:debug": "playwright test --headed --debug",
+    "test:headed:ui:debug": "playwright test --headed --ui --debug",
     "lint": "next lint",
     "lint:fix": "next lint --fix",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,md}\"",
@@ -23,6 +30,7 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@types/archiver": "^6.0.2",
     "@types/node": "^20",
     "@types/pdfkit": "^0.13.3",
