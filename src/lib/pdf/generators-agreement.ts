@@ -21,6 +21,7 @@ import {
   groupBySchool,
   drawSchoolHeaderBlock,
   AGREEMENT_FONT,
+  AGREEMENT_HORA_LINE,
 } from './agreement/sections';
 import type { SchoolGroup } from './agreement/types';
 
@@ -33,6 +34,7 @@ export {
   groupBySchool,
   drawSchoolHeaderBlock,
   AGREEMENT_FONT,
+  AGREEMENT_HORA_LINE,
 } from './agreement/sections';
 
 type PDFDocumentInstance = InstanceType<typeof PDFDocument>;
@@ -770,6 +772,10 @@ export function generateDayZapatosPDF(options: AgreementReportOptions): PDFDocum
       .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
       .font('Helvetica-Bold')
       .text(`FECHA: ${formattedDate}`, { align: 'center' });
+    doc
+      .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+      .font('Helvetica')
+      .text(AGREEMENT_HORA_LINE, { align: 'center' });
     doc.moveDown(1);
 
     let currentY = doc.y;
@@ -1045,6 +1051,10 @@ export function generateDayUniformesPDF(options: AgreementReportOptions): PDFDoc
       .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
       .font('Helvetica-Bold')
       .text(`FECHA: ${formattedDate}`, { align: 'center' });
+    doc
+      .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+      .font('Helvetica')
+      .text(AGREEMENT_HORA_LINE, { align: 'center' });
     doc.moveDown(1);
 
     let currentY = doc.y;

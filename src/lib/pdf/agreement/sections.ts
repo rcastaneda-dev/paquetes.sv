@@ -32,6 +32,10 @@ export const AGREEMENT_FONT = {
   BODY: 9,
 } as const;
 
+/** Line below school header for manual fill-in of start/end time when printed */
+export const AGREEMENT_HORA_LINE =
+  'HORA DE INICIO:  ___________________ HORA DE FINALIZACION: ___________________';
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Page options per section type (used by addPage and document creation)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -153,6 +157,8 @@ export function drawSchoolHeaderBlock(options: SchoolHeaderBlockOptions): number
     .font('Helvetica-Bold')
     .text(`ZONA: ${zona} - TIPO DE VEHICULO: ${transporte}`, { align: 'center' });
 
+  doc.fontSize(fontSize).font('Helvetica').text(AGREEMENT_HORA_LINE, { align: 'center' });
+
   return doc.y + 8;
 }
 
@@ -179,8 +185,8 @@ export function renderCajasSection(ctx: SectionRenderContext): void {
   const zona = school.zona || 'N/A';
   const transporte = school.transporte || 'N/A';
 
-  // Helper function to draw complete header (title, date, school info)
-  const drawCompleteHeader = (): void => {
+  // Helper function to draw complete header (title, date, school info). Hora line only on first page.
+  const drawCompleteHeader = (includeHoraLine = true): void => {
     addLogoToPage(doc, doc.page.width);
     doc.fontSize(AGREEMENT_FONT.TITLE).font('Helvetica-Bold').text(title, { align: 'center' });
     doc.fontSize(AGREEMENT_FONT.TITLE).font('Helvetica-Bold').text(subtitle, { align: 'center' });
@@ -207,6 +213,12 @@ export function renderCajasSection(ctx: SectionRenderContext): void {
       .text(`ZONA: ${zona.toUpperCase()} - TIPO DE VEHICULO: ${transporte.toUpperCase()}`, {
         align: 'center',
       });
+    if (includeHoraLine) {
+      doc
+        .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+        .font('Helvetica')
+        .text(AGREEMENT_HORA_LINE, { align: 'center' });
+    }
     doc.moveDown(1);
   };
 
@@ -257,9 +269,9 @@ export function renderCajasSection(ctx: SectionRenderContext): void {
   const checkPageBreak = (requiredHeight: number): number => {
     const pageHeight = doc.page.height;
     if (currentY + requiredHeight > pageHeight - pageBottomMargin) {
-      // Add new page and redraw complete header
+      // Add new page and redraw header (no hora line on continuation pages)
       doc.addPage(CAJAS_PAGE_OPTIONS);
-      drawCompleteHeader();
+      drawCompleteHeader(false);
       currentY = doc.y;
       currentY = drawTableHeader(currentY);
     }
@@ -396,6 +408,10 @@ export function renderFichaUniformesSection(ctx: SectionRenderContext): void {
     .text(`ZONA: ${zona.toUpperCase()} - TIPO DE VEHICULO: ${transporte.toUpperCase()}`, {
       align: 'center',
     });
+  doc
+    .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+    .font('Helvetica')
+    .text(AGREEMENT_HORA_LINE, { align: 'center' });
 
   doc.moveDown(1);
 
@@ -656,6 +672,10 @@ export function renderFichaZapatosSection(ctx: SectionRenderContext): void {
     .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
     .font('Helvetica-Bold')
     .text(`TIPO DE VEHICULO: ${transporte.toUpperCase()}`, { align: 'center' });
+  doc
+    .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+    .font('Helvetica')
+    .text(AGREEMENT_HORA_LINE, { align: 'center' });
 
   doc.moveDown(1);
 

@@ -151,6 +151,10 @@ const AGREEMENT_FONT = {
   BODY: 9,
 } as const;
 
+// Line below school header for manual fill-in of start/end time (match sections.ts)
+const AGREEMENT_HORA_LINE =
+  'HORA DE INICIO:  ___________________ HORA DE FINALIZACION: ___________________';
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Shared helpers (mirrored from src/lib/pdf/agreement/sections.ts)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -238,8 +242,8 @@ function renderCajasSection(ctx: SectionRenderContext): void {
   const zona = school.zona || 'N/A';
   const transporte = school.transporte || 'N/A';
 
-  // Helper function to draw complete header (title, date, school info)
-  const drawCompleteHeader = (): void => {
+  // Helper function to draw complete header (title, date, school info). Hora line only on first page.
+  const drawCompleteHeader = (includeHoraLine = true): void => {
     addLogoToPage(doc, doc.page.width);
     doc.fontSize(AGREEMENT_FONT.TITLE).font('Helvetica-Bold').text(title, { align: 'center' });
     doc.fontSize(AGREEMENT_FONT.TITLE).font('Helvetica-Bold').text(subtitle, { align: 'center' });
@@ -266,6 +270,12 @@ function renderCajasSection(ctx: SectionRenderContext): void {
       .text(`ZONA: ${zona.toUpperCase()} - TIPO DE VEHICULO: ${transporte.toUpperCase()}`, {
         align: 'center',
       });
+    if (includeHoraLine) {
+      doc
+        .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+        .font('Helvetica')
+        .text(AGREEMENT_HORA_LINE, { align: 'center' });
+    }
     doc.moveDown(1);
   };
 
@@ -311,9 +321,8 @@ function renderCajasSection(ctx: SectionRenderContext): void {
   const checkPageBreak = (requiredHeight: number): number => {
     const pageHeight = doc.page.height;
     if (currentY + requiredHeight > pageHeight - pageBottomMargin) {
-      // Add new page and redraw complete header
       doc.addPage(CAJAS_PAGE_OPTIONS);
-      drawCompleteHeader();
+      drawCompleteHeader(false);
       currentY = doc.y;
       currentY = drawTableHeader(currentY);
     }
@@ -444,6 +453,10 @@ function renderFichaUniformesSection(ctx: SectionRenderContext): void {
     .text(`ZONA: ${zona.toUpperCase()} - TIPO DE VEHICULO: ${transporte.toUpperCase()}`, {
       align: 'center',
     });
+  doc
+    .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+    .font('Helvetica')
+    .text(AGREEMENT_HORA_LINE, { align: 'center' });
   doc.moveDown(1);
 
   let currentY = doc.y;
@@ -683,6 +696,10 @@ function renderFichaZapatosSection(ctx: SectionRenderContext): void {
     .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
     .font('Helvetica-Bold')
     .text(`TIPO DE VEHICULO: ${transporte.toUpperCase()}`, { align: 'center' });
+  doc
+    .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+    .font('Helvetica')
+    .text(AGREEMENT_HORA_LINE, { align: 'center' });
   doc.moveDown(1);
 
   let currentY = doc.y;
