@@ -330,7 +330,10 @@ export function renderCajasSection(ctx: SectionRenderContext): void {
     // Store for subtotal calculation
     gradeLevelBoxes.push({ hombres: cajasHombres, mujeres: cajasMujeres });
 
-    const rowHeight = 30;
+    // Calculate row height dynamically based on GRADO text length
+    const textPadding = 8;
+    const gradeTextHeight = doc.heightOfString(grade, { width: colWidths[1] - 8 });
+    const rowHeight = Math.max(30, gradeTextHeight + textPadding * 2);
 
     // Check if we need a new page before drawing this row
     currentY = checkPageBreak(rowHeight);
@@ -346,7 +349,10 @@ export function renderCajasSection(ctx: SectionRenderContext): void {
 
     for (let i = 0; i < rowData.length; i++) {
       doc.rect(x, currentY, colWidths[i], rowHeight).stroke();
-      doc.text(rowData[i], x + 4, currentY + 8, {
+      // Vertically center text within the cell
+      const cellTextHeight = doc.heightOfString(rowData[i], { width: colWidths[i] - 8 });
+      const textY = currentY + (rowHeight - cellTextHeight) / 2;
+      doc.text(rowData[i], x + 4, textY, {
         width: colWidths[i] - 8,
         align: 'center',
       });
