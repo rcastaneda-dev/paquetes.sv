@@ -224,9 +224,14 @@ export default function HomePage() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold">Paquetes.sv</h1>
-            <Link href="/bulk">
-              <Button variant="outline">Reportes Masivos</Button>
-            </Link>
+            <div className="flex gap-2">
+              <Link href="/staging">
+                <Button variant="outline">Cargar Datos</Button>
+              </Link>
+              <Link href="/bulk">
+                <Button variant="outline">Reportes Masivos</Button>
+              </Link>
+            </div>
           </div>
         </div>
       </header>
