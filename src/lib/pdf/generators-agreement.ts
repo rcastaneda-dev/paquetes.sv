@@ -86,6 +86,18 @@ export function generateFichaZapatosPDF(options: AgreementReportOptions): PDFDoc
   });
 }
 
+/**
+ * PDF: Acta de Recepción (Zapatos)
+ * "ACTA DE RECEPCIÓN (ZAPATOS)" – shoe delivery receipt with transport/signature fields
+ */
+export function generateActaRecepcionZapatosPDF(options: AgreementReportOptions): PDFDocumentInstance {
+  return buildConsolidatedPdf({
+    fechaInicio: options.fechaInicio,
+    students: options.students,
+    section: 'acta_recepcion_zapatos',
+  });
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Non-consolidated generators (original implementations using shared helpers)
 // ─────────────────────────────────────────────────────────────────────────────

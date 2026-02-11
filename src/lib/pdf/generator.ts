@@ -14,6 +14,7 @@ export {
   generateFichaZapatosPDF,
   generateDayZapatosPDF,
   generateDayUniformesPDF,
+  generateActaRecepcionZapatosPDF,
 } from './generators-agreement';
 
 /**
