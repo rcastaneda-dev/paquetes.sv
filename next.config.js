@@ -14,7 +14,7 @@ const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: ['pdfkit'],
     serverActions: {
-      bodySizeLimit: '2mb',
+      bodySizeLimit: '4mb',
     },
   },
 };

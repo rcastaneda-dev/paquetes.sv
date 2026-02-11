@@ -6,30 +6,155 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 
-import { uploadStagingCSV } from './actions';
+const REQUIRED_COLUMNS = [
+  'CODIGO_CE',
+  'NOMBRE_CE',
+  'DEPARTAMENTO',
+  'MUNICIPIO',
+  'DISTRITO',
+  'DIRECCION',
+  'ZONA',
+  'NIE',
+  'GRADO',
+  'GRADO OK',
+  'SEXO',
+  'EDAD',
+  'CAMISA',
+  'TIPO_DE_CAMISA',
+  'PANTALON/FALDA',
+  'T_PANTALON_FALDA_SHORT',
+  'ZAPATO',
+  'NOMBRE_ESTUDIANTE',
+  'FECHA_INICIO',
+  'DIFICIL_ACCESO',
+  'TRANSPORTE',
+];
+
+const CHUNK_SIZE = 1000; // rows per chunk
+
+interface UploadResult {
+  success: boolean;
+  data?: { schools: number; students: number; sizes: number; stagingRows: number };
+  error?: string;
+}
 
 export default function StagingPage() {
   const [isUploading, setIsUploading] = useState(false);
-  const [result, setResult] = useState<{
-    success: boolean;
-    data?: { schools: number; students: number; sizes: number; stagingRows: number };
-    error?: string;
-  } | null>(null);
+  const [progress, setProgress] = useState('');
+  const [result, setResult] = useState<UploadResult | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setResult(null);
+
+    const fileInput = e.currentTarget.querySelector<HTMLInputElement>('input[type="file"]');
+    const file = fileInput?.files?.[0];
+    if (!file) {
+      setResult({ success: false, error: 'No se seleccionó un archivo.' });
+      return;
+    }
+
     setIsUploading(true);
+    setProgress('Leyendo archivo...');
 
     try {
-      const formData = new FormData(e.currentTarget);
-      const response = await uploadStagingCSV(formData);
-      setResult(response);
+      const text = await file.text();
+      const lines = text.split(/\r?\n/).filter(line => line.trim() !== '');
+
+      if (lines.length < 2) {
+        setResult({ success: false, error: 'El archivo CSV no contiene registros.' });
+        setIsUploading(false);
+        return;
+      }
+
+      const header = lines[0];
+
+      // Validate columns from header
+      const delimiter = header.includes(';') ? ';' : ',';
+      const columns = header.split(delimiter).map(c => c.replace(/^"|"$/g, '').trim());
+      const missing = REQUIRED_COLUMNS.filter(col => !columns.includes(col));
+      if (missing.length > 0) {
+        setResult({
+          success: false,
+          error: `Columnas faltantes: ${missing.join(', ')}`,
+        });
+        setIsUploading(false);
+        return;
+      }
+
+      const dataLines = lines.slice(1);
+      const totalRows = dataLines.length;
+      const totalChunks = Math.ceil(totalRows / CHUNK_SIZE);
+
+      // Step 1: Truncate staging table
+      setProgress('Limpiando tabla staging...');
+      const truncateRes = await fetch('/api/staging', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'truncate' }),
+      });
+      const truncateData = await truncateRes.json();
+      if (truncateData.error) {
+        setResult({ success: false, error: truncateData.error });
+        setIsUploading(false);
+        return;
+      }
+
+      // Step 2: Send chunks
+      let insertedTotal = 0;
+      for (let i = 0; i < totalChunks; i++) {
+        const start = i * CHUNK_SIZE;
+        const chunkLines = dataLines.slice(start, start + CHUNK_SIZE);
+        const csvChunk = chunkLines.join('\n');
+
+        setProgress(
+          `Insertando lote ${i + 1} de ${totalChunks} (${insertedTotal.toLocaleString()} / ${totalRows.toLocaleString()} filas)...`
+        );
+
+        const insertRes = await fetch('/api/staging', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'insert', csvChunk, header, delimiter }),
+        });
+        const insertData = await insertRes.json();
+        if (insertData.error) {
+          setResult({
+            success: false,
+            error: `Error en lote ${i + 1}: ${insertData.error}`,
+          });
+          setIsUploading(false);
+          return;
+        }
+        insertedTotal += insertData.inserted || chunkLines.length;
+      }
+
+      // Step 3: Run migration
+      setProgress('Ejecutando migración de datos...');
+      const migrateRes = await fetch('/api/staging', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'migrate' }),
+      });
+      const migrateData = await migrateRes.json();
+      if (migrateData.error) {
+        setResult({ success: false, error: migrateData.error });
+        setIsUploading(false);
+        return;
+      }
+
+      setResult({
+        success: true,
+        data: { ...migrateData.data, stagingRows: insertedTotal },
+      });
     } catch {
-      setResult({ success: false, error: 'Error de conexión. Intenta de nuevo.' });
+      setResult({
+        success: false,
+        error: 'Error de conexión. Verifica tu conexión e intenta de nuevo.',
+      });
     } finally {
       setIsUploading(false);
+      setProgress('');
     }
   }
 
@@ -89,12 +214,7 @@ export default function StagingPage() {
           {isUploading && (
             <div className="mt-4 flex flex-col items-center gap-3 rounded-md border border-blue-200 bg-blue-50 p-6 dark:border-blue-800 dark:bg-blue-950">
               <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-200 border-t-blue-600 dark:border-blue-800 dark:border-t-blue-400" />
-              <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
-                Procesando archivo CSV...
-              </p>
-              <p className="text-xs text-blue-600 dark:text-blue-400">
-                Esto puede tomar varios segundos dependiendo del tamaño del archivo.
-              </p>
+              <p className="text-sm font-medium text-blue-800 dark:text-blue-200">{progress}</p>
             </div>
           )}
 
