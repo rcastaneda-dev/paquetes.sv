@@ -160,8 +160,10 @@ export const FiltersPanel = memo(function FiltersPanel({
 
         {/* Action buttons */}
         <div className="flex items-end gap-2">
-          <Button onClick={onSearch}>Buscar</Button>
-          <Button variant="outline" onClick={handleClear}>
+          <Button onClick={onSearch} disabled={!selectedSchool}>
+            Buscar
+          </Button>
+          <Button variant="outline" onClick={handleClear} disabled={!selectedSchool}>
             Limpiar
           </Button>
         </div>
