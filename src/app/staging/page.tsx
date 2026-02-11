@@ -86,6 +86,18 @@ export default function StagingPage() {
             </Button>
           </form>
 
+          {isUploading && (
+            <div className="mt-4 flex flex-col items-center gap-3 rounded-md border border-blue-200 bg-blue-50 p-6 dark:border-blue-800 dark:bg-blue-950">
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-200 border-t-blue-600 dark:border-blue-800 dark:border-t-blue-400" />
+              <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                Procesando archivo CSV...
+              </p>
+              <p className="text-xs text-blue-600 dark:text-blue-400">
+                Esto puede tomar varios segundos dependiendo del tamaño del archivo.
+              </p>
+            </div>
+          )}
+
           {result && !result.success && (
             <div className="mt-4 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200">
               <p className="font-medium">Error</p>
@@ -100,13 +112,21 @@ export default function StagingPage() {
               </p>
               <dl className="grid grid-cols-2 gap-2 text-sm">
                 <dt className="text-gray-500 dark:text-gray-400">Filas CSV procesadas:</dt>
-                <dd className="font-mono font-medium text-gray-900 dark:text-gray-100">{result.data.stagingRows.toLocaleString()}</dd>
+                <dd className="font-mono font-medium text-gray-900 dark:text-gray-100">
+                  {result.data.stagingRows.toLocaleString()}
+                </dd>
                 <dt className="text-gray-500 dark:text-gray-400">Escuelas cargadas:</dt>
-                <dd className="font-mono font-medium text-gray-900 dark:text-gray-100">{result.data.schools.toLocaleString()}</dd>
+                <dd className="font-mono font-medium text-gray-900 dark:text-gray-100">
+                  {result.data.schools.toLocaleString()}
+                </dd>
                 <dt className="text-gray-500 dark:text-gray-400">Estudiantes cargados:</dt>
-                <dd className="font-mono font-medium text-gray-900 dark:text-gray-100">{result.data.students.toLocaleString()}</dd>
+                <dd className="font-mono font-medium text-gray-900 dark:text-gray-100">
+                  {result.data.students.toLocaleString()}
+                </dd>
                 <dt className="text-gray-500 dark:text-gray-400">Tallas registradas:</dt>
-                <dd className="font-mono font-medium text-gray-900 dark:text-gray-100">{result.data.sizes.toLocaleString()}</dd>
+                <dd className="font-mono font-medium text-gray-900 dark:text-gray-100">
+                  {result.data.sizes.toLocaleString()}
+                </dd>
               </dl>
             </div>
           )}
