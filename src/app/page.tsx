@@ -29,6 +29,7 @@ export default function HomePage() {
   const [isGeneratingCamisas, setIsGeneratingCamisas] = useState(false);
   const [isGeneratingPantalones, setIsGeneratingPantalones] = useState(false);
   const [isGeneratingZapatos, setIsGeneratingZapatos] = useState(false);
+  const [isGeneratingActaRecepcion, setIsGeneratingActaRecepcion] = useState(false);
   const pageSize = 50;
 
   const fetchStudents = async (page: number = 1) => {
@@ -158,6 +159,23 @@ export default function HomePage() {
     }
   };
 
+  const handleGenerateActaRecepcion = async () => {
+    if (!lastSearchFilters?.school_codigo_ce) return;
+
+    setIsGeneratingActaRecepcion(true);
+    try {
+      const params = new URLSearchParams();
+      params.set('school_codigo_ce', lastSearchFilters.school_codigo_ce);
+      if (lastSearchFilters.grado) {
+        params.set('grado', lastSearchFilters.grado);
+      }
+
+      window.open(`/api/reports/acta-recepcion-zapatos?${params.toString()}`, '_blank', 'noopener,noreferrer');
+    } finally {
+      setIsGeneratingActaRecepcion(false);
+    }
+  };
+
   // Debug handlers for random 10-school PDFs
   const handleDebugCajas = () => {
     window.open('/api/reports/debug-random?type=cajas&limit=10', '_blank', 'noopener,noreferrer');
@@ -247,7 +265,7 @@ export default function HomePage() {
             {canGenerateReports && (
               <div className="flex flex-col gap-3">
                 <div className="text-sm font-medium text-muted-foreground">Generar Reportes:</div>
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
                   <Button
                     variant="outline"
                     onClick={handleGenerateCajas}
@@ -290,6 +308,17 @@ export default function HomePage() {
                     <span className="text-base font-semibold">Zapatos</span>
                     <span className="text-xs text-muted-foreground">
                       {isGeneratingZapatos ? 'Generando...' : 'PDF'}
+                    </span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleGenerateActaRecepcion}
+                    disabled={isGeneratingActaRecepcion}
+                    className="h-auto flex-col py-3"
+                  >
+                    <span className="text-sm font-semibold">Actas Recepción</span>
+                    <span className="text-xs text-muted-foreground">
+                      {isGeneratingActaRecepcion ? 'Generando...' : 'Zapatos'}
                     </span>
                   </Button>
                 </div>

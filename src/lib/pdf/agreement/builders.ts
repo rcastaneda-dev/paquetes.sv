@@ -12,11 +12,19 @@ import {
   renderCajasSection,
   renderFichaUniformesSection,
   renderFichaZapatosSection,
+  renderActaRecepcionZapatosSection,
   CAJAS_PAGE_OPTIONS,
   FICHA_UNIFORMES_PAGE_OPTIONS,
   FICHA_ZAPATOS_PAGE_OPTIONS,
+  ACTA_RECEPCION_ZAPATOS_PAGE_OPTIONS,
 } from './sections';
-import { computeFinalCount, fillSizeGaps, getRestrictedSizeOrder } from '@/lib/reports/vacios';
+import {
+  ceilToEven,
+  computeFinalCount,
+  fillBaseGaps,
+  fillSizeGaps,
+  getRestrictedSizeOrder,
+} from '@/lib/reports/vacios';
 
 interface PageOptions {
   size: 'LETTER';
@@ -28,6 +36,7 @@ const PAGE_OPTIONS_BY_SECTION: Record<AgreementSectionType, PageOptions> = {
   cajas: CAJAS_PAGE_OPTIONS,
   ficha_uniformes: FICHA_UNIFORMES_PAGE_OPTIONS,
   ficha_zapatos: FICHA_ZAPATOS_PAGE_OPTIONS,
+  acta_recepcion_zapatos: ACTA_RECEPCION_ZAPATOS_PAGE_OPTIONS,
 };
 
 type SectionRenderer = typeof renderCajasSection;
@@ -36,6 +45,7 @@ const RENDERER_BY_SECTION: Record<AgreementSectionType, SectionRenderer> = {
   cajas: renderCajasSection,
   ficha_uniformes: renderFichaUniformesSection,
   ficha_zapatos: renderFichaZapatosSection,
+  acta_recepcion_zapatos: renderActaRecepcionZapatosSection,
 };
 
 /**
@@ -111,16 +121,18 @@ export function calculateUniformesTotalPiezas(school: SchoolGroup): number {
     const restrictedSizes = getRestrictedSizeOrder('tipo_de_camisa', tipoKey, camisaSizeOrder);
     const allowedSet = new Set(restrictedSizes);
     const rowBases: Record<string, number> = {};
-    const rowFinals: Record<string, number> = {};
     for (const size of camisaSizeOrder) {
       const orig = sizeMap.get(size) || 0;
-      const computed = computeFinalCount(orig, 2);
-      rowBases[size] = allowedSet.has(size) ? computed.base : 0;
-      rowFinals[size] = allowedSet.has(size) ? computed.final : orig;
+      const base = orig * 2;
+      rowBases[size] = allowedSet.has(size) ? base : 0;
     }
-    const filled = fillSizeGaps(restrictedSizes, rowBases, rowFinals);
-    for (const finalCount of Object.values(filled)) {
-      totalPiezas += finalCount;
+    const filledBases = fillBaseGaps(restrictedSizes, rowBases);
+    for (const size of camisaSizeOrder) {
+      const base = filledBases[size] || 0;
+      if (base > 0) {
+        const extra = ceilToEven(base * 0.15);
+        totalPiezas += base + extra;
+      }
     }
   }
 
@@ -148,16 +160,18 @@ export function calculateUniformesTotalPiezas(school: SchoolGroup): number {
     );
     const allowedSet = new Set(restrictedSizes);
     const rowBases: Record<string, number> = {};
-    const rowFinals: Record<string, number> = {};
     for (const size of camisaSizeOrder) {
       const orig = sizeMap.get(size) || 0;
-      const computed = computeFinalCount(orig, 2);
-      rowBases[size] = allowedSet.has(size) ? computed.base : 0;
-      rowFinals[size] = allowedSet.has(size) ? computed.final : orig;
+      const base = orig * 2;
+      rowBases[size] = allowedSet.has(size) ? base : 0;
     }
-    const filled = fillSizeGaps(restrictedSizes, rowBases, rowFinals);
-    for (const finalCount of Object.values(filled)) {
-      totalPiezas += finalCount;
+    const filledBases = fillBaseGaps(restrictedSizes, rowBases);
+    for (const size of camisaSizeOrder) {
+      const base = filledBases[size] || 0;
+      if (base > 0) {
+        const extra = ceilToEven(base * 0.15);
+        totalPiezas += base + extra;
+      }
     }
   }
 
@@ -213,7 +227,7 @@ function sortSchoolsByTotal(schools: SchoolGroup[], section: AgreementSectionTyp
     } else if (section === 'ficha_uniformes') {
       totalA = calculateUniformesTotalPiezas(a);
       totalB = calculateUniformesTotalPiezas(b);
-    } else if (section === 'ficha_zapatos') {
+    } else if (section === 'ficha_zapatos' || section === 'acta_recepcion_zapatos') {
       totalA = calculateZapatosTotalPiezas(a);
       totalB = calculateZapatosTotalPiezas(b);
     }

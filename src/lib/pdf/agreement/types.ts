@@ -7,7 +7,11 @@ import type { StudentQueryRow } from '@/types/database';
 export type PDFDocumentInstance = InstanceType<typeof PDFDocument>;
 
 /** Section types available for consolidated agreement reports */
-export type AgreementSectionType = 'cajas' | 'ficha_uniformes' | 'ficha_zapatos';
+export type AgreementSectionType =
+  | 'cajas'
+  | 'ficha_uniformes'
+  | 'ficha_zapatos'
+  | 'acta_recepcion_zapatos';
 
 /** School group produced by grouping students by codigo_ce */
 export interface SchoolGroup {

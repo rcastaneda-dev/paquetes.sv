@@ -86,6 +86,12 @@ export const FICHA_ZAPATOS_PAGE_OPTIONS = {
   margins: { top: 40, bottom: 40, left: 40, right: 40 },
 };
 
+export const ACTA_RECEPCION_ZAPATOS_PAGE_OPTIONS = {
+  size: 'LETTER' as const,
+  layout: 'portrait' as const,
+  margins: { top: 40, bottom: 40, left: 30, right: 30 },
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Shared helpers (relocated from generators-agreement.ts)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -832,4 +838,192 @@ export function renderFichaZapatosSection(ctx: SectionRenderContext): void {
   currentY += 10;
   doc.font('Helvetica-Bold').fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER);
   doc.text(`TOTAL PIEZAS: ${totalPiezas}`, xStart, currentY, { align: 'left' });
+}
+
+/**
+ * Render the "ACTA DE RECEPCIÓN (ZAPATOS)" section for a single school.
+ * Layout: LETTER portrait, single table with compact rows, two-column footer.
+ *
+ * Structure:
+ *   1. Title: ACTA DE RECEPCIÓN (ZAPATOS)
+ *   2. Pre-table fields: DATOS DE LOS PRODUCTOS (Fecha, Hora, Bodega)
+ *   3. Data table: TALLA | CANTIDAD | COMENTARIOS/OBSERVACIONES with Total row
+ *   4. Footer: Transport & signature fields
+ */
+export function renderActaRecepcionZapatosSection(ctx: SectionRenderContext): void {
+  const { doc, school, addPage: shouldAddPage } = ctx;
+
+  if (shouldAddPage) {
+    doc.addPage(ACTA_RECEPCION_ZAPATOS_PAGE_OPTIONS);
+  }
+
+  const title = 'ACTA DE RECEPCIÓN (ZAPATOS)';
+
+  addLogoToPage(doc, doc.page.width);
+
+  // 1. Title
+  doc.fontSize(AGREEMENT_FONT.TITLE).font('Helvetica-Bold').text(title, { align: 'center' });
+  doc.moveDown(1);
+
+  // School header
+  doc
+    .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+    .font('Helvetica-Bold')
+    .text(school.nombre_ce.toUpperCase(), { align: 'center' });
+  doc
+    .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+    .font('Helvetica-Bold')
+    .text(`CODIGO: ${school.codigo_ce.toUpperCase()}`, { align: 'center' });
+
+  doc.moveDown(1);
+
+  // 2. Pre-table: DATOS DE LOS PRODUCTOS
+  const xStart = 40;
+  doc.fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER).font('Helvetica-Bold');
+  doc.text('DATOS DE LOS PRODUCTOS', xStart, doc.y, { align: 'left' });
+  doc.moveDown(0.5);
+
+  doc.fontSize(AGREEMENT_FONT.BODY).font('Helvetica');
+  doc.text('Fecha: ________________________________', xStart);
+  doc.moveDown(0.3);
+  doc.text('Hora: ________________________________', xStart);
+  doc.moveDown(0.3);
+  doc.text('Bodega: ________________________________', xStart);
+  doc.moveDown(1);
+
+  // 3. Data table — aggregate shoe data by talla
+  const shoeSizes: string[] = [];
+  for (let i = 23; i <= 45; i++) {
+    shoeSizes.push(i.toString());
+  }
+
+  const zapatoTallaMap = new Map<string, number>();
+  for (const student of school.students) {
+    const size = student.zapato;
+    if (size && shoeSizes.includes(size)) {
+      zapatoTallaMap.set(size, (zapatoTallaMap.get(size) || 0) + 1);
+    }
+  }
+
+  // Apply gap-filling and size calculations (same logic as ficha_zapatos)
+  const actaRowBases: Record<string, number> = {};
+  const actaRowFinals: Record<string, number> = {};
+  for (const size of shoeSizes) {
+    const orig = zapatoTallaMap.get(size) || 0;
+    const computed = computeFinalCount(orig, 1);
+    actaRowBases[size] = computed.base;
+    actaRowFinals[size] = computed.final;
+  }
+  const actaFilled = fillSizeGaps(shoeSizes, actaRowBases, actaRowFinals);
+
+  interface ActaTallaRow {
+    talla: string;
+    cantidad: number;
+  }
+
+  const tallaRows: ActaTallaRow[] = [];
+  for (const size of shoeSizes) {
+    const finalCount = actaFilled[size] || 0;
+    if (finalCount > 0) {
+      tallaRows.push({ talla: size, cantidad: finalCount });
+    }
+  }
+
+  // Single table layout with minimal padding to fit on one landscape page
+  let currentY = doc.y;
+  const tallaColWidth = 60;
+  const cantidadColWidth = 80;
+  const comentariosColWidth = doc.page.width - 60 - tallaColWidth - cantidadColWidth;
+  const actaHeaderHeight = 20;
+  const actaRowHeight = 14;
+
+  const totalCantidad = tallaRows.reduce((sum, r) => sum + r.cantidad, 0);
+
+  // Draw table header
+  doc.fontSize(AGREEMENT_FONT.COLUMN_HEADER).font('Helvetica-Bold');
+  let x = xStart;
+
+  doc.rect(x, currentY, tallaColWidth, actaHeaderHeight).stroke();
+  doc.text('TALLA', x + 2, currentY + 5, { width: tallaColWidth - 4, align: 'center' });
+  x += tallaColWidth;
+
+  doc.rect(x, currentY, cantidadColWidth, actaHeaderHeight).stroke();
+  doc.text('CANTIDAD', x + 2, currentY + 5, { width: cantidadColWidth - 4, align: 'center' });
+  x += cantidadColWidth;
+
+  doc.rect(x, currentY, comentariosColWidth, actaHeaderHeight).stroke();
+  doc.text('COMENTARIOS/OBSERVACIONES', x + 2, currentY + 5, {
+    width: comentariosColWidth - 4,
+    align: 'center',
+  });
+
+  currentY += actaHeaderHeight;
+
+  // Draw data rows
+  doc.font('Helvetica').fontSize(AGREEMENT_FONT.BODY);
+
+  for (const row of tallaRows) {
+    x = xStart;
+
+    doc.rect(x, currentY, tallaColWidth, actaRowHeight).stroke();
+    doc.text(row.talla, x + 2, currentY + 2, { width: tallaColWidth - 4, align: 'center' });
+    x += tallaColWidth;
+
+    doc.rect(x, currentY, cantidadColWidth, actaRowHeight).stroke();
+    doc.text(row.cantidad.toString(), x + 2, currentY + 2, {
+      width: cantidadColWidth - 4,
+      align: 'center',
+    });
+    x += cantidadColWidth;
+
+    doc.rect(x, currentY, comentariosColWidth, actaRowHeight).stroke();
+
+    currentY += actaRowHeight;
+  }
+
+  // Total row
+  doc.font('Helvetica-Bold').fontSize(AGREEMENT_FONT.BODY);
+  x = xStart;
+
+  doc.rect(x, currentY, tallaColWidth, actaRowHeight).stroke();
+  doc.text('TOTAL', x + 2, currentY + 2, { width: tallaColWidth - 4, align: 'center' });
+  x += tallaColWidth;
+
+  doc.rect(x, currentY, cantidadColWidth, actaRowHeight).stroke();
+  doc.text(totalCantidad.toString(), x + 2, currentY + 2, {
+    width: cantidadColWidth - 4,
+    align: 'center',
+  });
+  x += cantidadColWidth;
+
+  doc.rect(x, currentY, comentariosColWidth, actaRowHeight).stroke();
+
+  currentY += actaRowHeight;
+  doc.y = currentY;
+  doc.moveDown(2);
+  currentY = doc.y;
+
+  // 4. Footer: two-column layout
+  const footerLeftX = xStart;
+
+  // Left column: DATOS DEL TRANSPORTE
+  doc.fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER).font('Helvetica-Bold');
+  doc.text('DATOS DEL TRANSPORTE', footerLeftX, currentY, { align: 'left' });
+  const footerStartY = doc.y + 6;
+
+  doc.fontSize(AGREEMENT_FONT.BODY).font('Helvetica');
+  doc.text('Nombre del conductor: ________________________________', footerLeftX, footerStartY);
+  doc.text('Número de placa: ________________________________', footerLeftX, doc.y + 5);
+  doc.text('Número de contacto: ________________________________', footerLeftX, doc.y + 5);
+  doc.text('Firma del conductor: ________________________________', footerLeftX, doc.y + 5);
+  doc.text(
+    'Firma y Nombre del Encargado del Despacho: ________________________________',
+    footerLeftX,
+    doc.y + 5
+  );
+  doc.text(
+    'Firma y Nombre del Encargado del Centro Educativo: ________________________________',
+    footerLeftX,
+    doc.y + 5
+  );
 }
