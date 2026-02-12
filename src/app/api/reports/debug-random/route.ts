@@ -6,7 +6,6 @@ import {
   generateCamisasPDF,
   generatePantalonesPDF,
   generateZapatosPDF,
-  generateFichaPDF,
   generateFichaUniformesPDF,
   generateFichaZapatosPDF,
   generateDayZapatosPDF,
@@ -175,7 +174,7 @@ export async function GET(request: NextRequest) {
         fileName = `debug-zapatos-${schools.length}-escuelas.pdf`;
         break;
       case 'ficha':
-        pdfStream = generateFichaPDF({
+        pdfStream = generateFichaUniformesPDF({
           fechaInicio,
           students: allStudents,
         });

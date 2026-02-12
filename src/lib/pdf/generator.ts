@@ -9,7 +9,6 @@ export {
   generateCamisasPDF,
   generatePantalonesPDF,
   generateZapatosPDF,
-  generateFichaPDF,
   generateFichaUniformesPDF,
   generateFichaZapatosPDF,
   generateDayZapatosPDF,

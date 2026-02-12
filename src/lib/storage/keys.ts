@@ -109,7 +109,6 @@ export function buildReportEtiquetasStorageKey(args: {
  * - zapatos (Zapatos)
  * - ficha_uniformes (Ficha Uniformes)
  * - ficha_zapatos (Ficha Zapatos)
- * - distribucion_por_escuela (Ficha - legacy)
  *
  * @example
  * buildAgreementReportStorageKey({
@@ -129,8 +128,7 @@ export function buildAgreementReportStorageKey(args: {
     | 'prenda_inferior'
     | 'zapatos'
     | 'ficha_uniformes'
-    | 'ficha_zapatos'
-    | 'distribucion_por_escuela';
+    | 'ficha_zapatos';
   fileName: string;
 }): string {
   const { jobId, fechaInicio, categoryFolder, fileName } = args;

@@ -242,9 +242,7 @@ export function fillBaseGaps(
 }
 
 /**
- * Fill gaps in a size distribution (LEGACY - kept for backward compatibility).
- *
- * @deprecated Use fillBaseGaps instead - gap filling should happen BEFORE vacíos calculation
+ * Fill gaps in a size distribution after vacíos calculation.
  *
  * After computing final counts (base + vacíos), scan left→right.
  * If the current size has a final count of 0 and the NEXT size has a

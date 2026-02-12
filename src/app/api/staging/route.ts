@@ -13,7 +13,10 @@ export async function POST(request: NextRequest) {
     if (action === 'truncate') {
       const { error } = await supabaseServer.rpc('truncate_staging_cajas_raw');
       if (error) {
-        return NextResponse.json({ error: `Error al limpiar staging: ${error.message}` }, { status: 500 });
+        return NextResponse.json(
+          { error: `Error al limpiar staging: ${error.message}` },
+          { status: 500 }
+        );
       }
       return NextResponse.json({ success: true });
     }
@@ -35,7 +38,10 @@ export async function POST(request: NextRequest) {
         const batch = records.slice(i, i + BATCH_SIZE);
         const { error } = await supabaseServer.from('staging_cajas_raw').insert(batch);
         if (error) {
-          return NextResponse.json({ error: `Error al insertar: ${error.message}` }, { status: 500 });
+          return NextResponse.json(
+            { error: `Error al insertar: ${error.message}` },
+            { status: 500 }
+          );
         }
       }
 
@@ -48,7 +54,10 @@ export async function POST(request: NextRequest) {
         const batch = rows.slice(i, i + BATCH_SIZE);
         const { error } = await supabaseServer.from('staging_cajas_raw').insert(batch);
         if (error) {
-          return NextResponse.json({ error: `Error al insertar: ${error.message}` }, { status: 500 });
+          return NextResponse.json(
+            { error: `Error al insertar: ${error.message}` },
+            { status: 500 }
+          );
         }
       }
       return NextResponse.json({ success: true, inserted: rows.length });
@@ -58,7 +67,10 @@ export async function POST(request: NextRequest) {
     if (action === 'migrate') {
       const { data, error } = await supabaseServer.rpc('migrate_staging_data');
       if (error) {
-        return NextResponse.json({ error: `Error en migración: ${error.message}` }, { status: 500 });
+        return NextResponse.json(
+          { error: `Error en migración: ${error.message}` },
+          { status: 500 }
+        );
       }
       return NextResponse.json({ success: true, data });
     }

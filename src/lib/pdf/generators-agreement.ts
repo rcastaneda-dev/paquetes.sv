@@ -90,7 +90,9 @@ export function generateFichaZapatosPDF(options: AgreementReportOptions): PDFDoc
  * PDF: Acta de Recepción (Zapatos)
  * "ACTA DE RECEPCIÓN (ZAPATOS)" – shoe delivery receipt with transport/signature fields
  */
-export function generateActaRecepcionZapatosPDF(options: AgreementReportOptions): PDFDocumentInstance {
+export function generateActaRecepcionZapatosPDF(
+  options: AgreementReportOptions
+): PDFDocumentInstance {
   return buildConsolidatedPdf({
     fechaInicio: options.fechaInicio,
     students: options.students,
@@ -1247,12 +1249,4 @@ export function generateDayUniformesPDF(options: AgreementReportOptions): PDFDoc
 
   doc.end();
   return doc;
-}
-
-/**
- * Legacy function – kept for backwards compatibility
- * @deprecated Use generateFichaUniformesPDF or generateFichaZapatosPDF instead
- */
-export function generateFichaPDF(options: AgreementReportOptions): PDFDocumentInstance {
-  return generateFichaUniformesPDF(options);
 }
