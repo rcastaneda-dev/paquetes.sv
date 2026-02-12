@@ -170,7 +170,11 @@ export default function HomePage() {
         params.set('grado', lastSearchFilters.grado);
       }
 
-      window.open(`/api/reports/acta-recepcion-zapatos?${params.toString()}`, '_blank', 'noopener,noreferrer');
+      window.open(
+        `/api/reports/acta-recepcion-zapatos?${params.toString()}`,
+        '_blank',
+        'noopener,noreferrer'
+      );
     } finally {
       setIsGeneratingActaRecepcion(false);
     }

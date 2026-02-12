@@ -5,7 +5,6 @@ import {
   generateCamisasPDF,
   generatePantalonesPDF,
   generateZapatosPDF,
-  generateFichaPDF,
   generateFichaUniformesPDF,
   generateFichaZapatosPDF,
 } from '@/lib/pdf/generator';
@@ -249,10 +248,6 @@ async function processCategoryTask(task: {
       case 'ficha_zapatos':
         pdfStream = generateFichaZapatosPDF({ fechaInicio: fecha_inicio, students });
         fileName = 'ficha_zapatos.pdf';
-        break;
-      case 'distribucion_por_escuela':
-        pdfStream = generateFichaPDF({ fechaInicio: fecha_inicio, students });
-        fileName = 'ficha_distribucion.pdf';
         break;
       default:
         throw new Error(`Unknown category: ${category}`);

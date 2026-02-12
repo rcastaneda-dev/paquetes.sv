@@ -55,6 +55,8 @@ export default function JobDetailPage() {
     {}
   );
   const [downloadingConsolidadoExcel, setDownloadingConsolidadoExcel] = useState(false);
+  const [downloadingPivotExcel, setDownloadingPivotExcel] = useState(false);
+  const [downloadingZapatosPivotExcel, setDownloadingZapatosPivotExcel] = useState(false);
   const [schoolBundleLoading, setSchoolBundleLoading] = useState(false);
   const [schoolBundleStatus, setSchoolBundleStatus] = useState<{
     status: 'queued' | 'processing' | 'complete' | 'failed';
@@ -286,6 +288,64 @@ export default function JobDetailPage() {
       alert('Error al descargar Consolidado Excel');
     } finally {
       setDownloadingConsolidadoExcel(false);
+    }
+  };
+
+  const handleDownloadPivotExcel = async () => {
+    try {
+      setDownloadingPivotExcel(true);
+
+      const response = await fetch(`/api/bulk/jobs/${jobId}/consolidado-pivot-excel`);
+
+      if (!response.ok) {
+        const data = await response.json();
+        alert(`Error: ${data.error || 'Error al generar Uniformes Acumulado Editable'}`);
+        return;
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'Uniformes_Acumulado_Editable.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Error downloading Uniformes Acumulado Editable:', error);
+      alert('Error al descargar Uniformes Acumulado Editable Excel');
+    } finally {
+      setDownloadingPivotExcel(false);
+    }
+  };
+
+  const handleDownloadZapatosPivotExcel = async () => {
+    try {
+      setDownloadingZapatosPivotExcel(true);
+
+      const response = await fetch(`/api/bulk/jobs/${jobId}/zapatos-pivot-excel`);
+
+      if (!response.ok) {
+        const data = await response.json();
+        alert(`Error: ${data.error || 'Error al generar Zapatos Acumulado Editable'}`);
+        return;
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'Zapatos_Acumulado_Editable.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Error downloading Zapatos Acumulado Editable:', error);
+      alert('Error al descargar Zapatos Acumulado Editable');
+    } finally {
+      setDownloadingZapatosPivotExcel(false);
     }
   };
 
@@ -628,7 +688,7 @@ export default function JobDetailPage() {
                 })}
               </div>
               <p className="text-xs text-muted-foreground">
-                💡 La descarga comenzará automáticamente cuando esté listo.
+                La descarga comenzará automáticamente cuando esté listo.
               </p>
             </CardContent>
           </Card>
@@ -670,6 +730,25 @@ export default function JobDetailPage() {
                     </Button>
                   );
                 })}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                El PDF se generará al momento y se descargará automáticamente.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Consolidated Excel files (for category jobs) */}
+        {isCategoryJob && (job.status === 'complete' || job.status === 'failed') && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Excel Consolidados</CardTitle>
+              <CardDescription>
+                Descarga archivos Excel con datos consolidados de todas las escuelas.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 <Button
                   onClick={handleDownloadConsolidadoExcel}
                   disabled={downloadingConsolidadoExcel}
@@ -681,9 +760,31 @@ export default function JobDetailPage() {
                     {downloadingConsolidadoExcel ? 'Generando Excel...' : 'Descargar .xlsx'}
                   </span>
                 </Button>
+                <Button
+                  onClick={handleDownloadPivotExcel}
+                  disabled={downloadingPivotExcel}
+                  variant="outline"
+                  className="h-auto flex-col items-start p-4"
+                >
+                  <span className="text-lg font-semibold">Uniformes Acumulado Editable</span>
+                  <span className="text-xs text-muted-foreground">
+                    {downloadingPivotExcel ? 'Generando Excel...' : 'Descargar .xlsx'}
+                  </span>
+                </Button>
+                <Button
+                  onClick={handleDownloadZapatosPivotExcel}
+                  disabled={downloadingZapatosPivotExcel}
+                  variant="outline"
+                  className="h-auto flex-col items-start p-4"
+                >
+                  <span className="text-lg font-semibold">Zapatos Acumulado Editable</span>
+                  <span className="text-xs text-muted-foreground">
+                    {downloadingZapatosPivotExcel ? 'Generando Excel...' : 'Descargar .xlsx'}
+                  </span>
+                </Button>
               </div>
               <p className="text-xs text-muted-foreground">
-                💡 El PDF o Excel se generará al momento y se descargará automáticamente.
+                El archivo Excel se generará al momento y se descargará automáticamente.
               </p>
             </CardContent>
           </Card>
@@ -732,7 +833,7 @@ export default function JobDetailPage() {
                 </div>
               )}
               <p className="text-xs text-muted-foreground">
-                💡 La descarga comenzará automáticamente cuando esté listo.
+                La descarga comenzará automáticamente cuando esté listo.
               </p>
             </CardContent>
           </Card>
