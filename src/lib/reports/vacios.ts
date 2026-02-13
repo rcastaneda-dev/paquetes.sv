@@ -5,7 +5,7 @@
  * The transformation follows these rules:
  * 1. Base count = original × multiplier (2 for clothing, 1 for shoes)
  * 2. Gap filling on base: If size has 0 base but next size has base > 0, fill with ceilToEven(nextBase / 2)
- * 3. Extra (vacíos) = ceilToEven(base × 0.15)
+ * 3. Extra (vacíos) = ceilToEven(base × 0.06)
  * 4. Final count = base + extra
  *
  * All calculations are non-destructive and deterministic.
@@ -139,7 +139,7 @@ export function computeFinalCount(
   multiplier: 1 | 2
 ): { base: number; extra: number; final: number } {
   const base = original * multiplier;
-  const extra = ceilToEven(base * 0.15);
+  const extra = ceilToEven(base * 0.06);
   const final = base + extra;
 
   return { base, extra, final };
@@ -200,7 +200,7 @@ export function transformSizeCounts(
  * of 0 and the NEXT size has a positive base count, assign ceilToEven(nextBase / 2).
  *
  * This ensures buffer inventory exists for sizes adjacent to populated sizes,
- * and those buffers will then receive their own 15% vacíos in the next step.
+ * and those buffers will then receive their own 6% vacíos in the next step.
  *
  * @param orderedSizes - Array of size strings in display order (e.g. ['T4', 'T6', ..., 'T2X'])
  * @param baseCounts - Map from size to base count (original × multiplier)
