@@ -73,7 +73,7 @@ function computeFinalCount(
   multiplier: 1 | 2
 ): { base: number; extra: number; final: number } {
   const base = original * multiplier;
-  const extra = ceilToEven(base * 0.15);
+  const extra = ceilToEven(base * 0.06);
   const final = base + extra;
   return { base, extra, final };
 }
@@ -344,8 +344,8 @@ function renderCajasSection(ctx: SectionRenderContext): void {
 
     // Apply conditional increment based on student count per gender
     // If zero students, no boxes needed
-    const incrementH = counts.hombres > 15 ? 1.1 : 1.15;
-    const incrementM = counts.mujeres > 15 ? 1.1 : 1.15;
+    const incrementH = counts.hombres > 15 ? 1.06 : 1.15;
+    const incrementM = counts.mujeres > 15 ? 1.06 : 1.15;
 
     const cajasHombres = counts.hombres === 0 ? 0 : Math.ceil(counts.hombres * incrementH);
     const cajasMujeres = counts.mujeres === 0 ? 0 : Math.ceil(counts.mujeres * incrementM);
@@ -515,7 +515,7 @@ function renderFichaUniformesSection(ctx: SectionRenderContext): void {
     for (const size of camisaSizeOrder) {
       const base = filledBases[size] || 0;
       if (base > 0) {
-        const extra = ceilToEven(base * 0.15);
+        const extra = ceilToEven(base * 0.06);
         const finalCount = base + extra;
         itemCounts.push({ tipo_talla: `${tipoKey} - ${size}`, cantidad: finalCount });
       }
@@ -553,7 +553,7 @@ function renderFichaUniformesSection(ctx: SectionRenderContext): void {
     for (const size of camisaSizeOrder) {
       const base = filledBases[size] || 0;
       if (base > 0) {
-        const extra = ceilToEven(base * 0.15);
+        const extra = ceilToEven(base * 0.06);
         const finalCount = base + extra;
         itemCounts.push({ tipo_talla: `${tipoKey} - ${size}`, cantidad: finalCount });
       }

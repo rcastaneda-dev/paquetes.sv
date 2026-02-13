@@ -223,7 +223,7 @@ export function generateCamisasPDF(options: AgreementReportOptions): PDFDocument
       for (const size of sizes) {
         const base = filledBases[size] || 0;
         if (base > 0) {
-          const extra = ceilToEven(base * 0.15);
+          const extra = ceilToEven(base * 0.06);
           rowFinals[size] = base + extra;
         } else {
           rowFinals[size] = 0;
@@ -431,7 +431,7 @@ export function generatePantalonesPDF(options: AgreementReportOptions): PDFDocum
       for (const size of sizes) {
         const base = filledBases[size] || 0;
         if (base > 0) {
-          const extra = ceilToEven(base * 0.15);
+          const extra = ceilToEven(base * 0.06);
           rowFinals[size] = base + extra;
         } else {
           rowFinals[size] = 0;
@@ -979,7 +979,7 @@ export function generateDayUniformesPDF(options: AgreementReportOptions): PDFDoc
         for (const size of camisaSizeOrder) {
           const base = filledBases[size] || 0;
           if (base > 0) {
-            const extra = ceilToEven(base * 0.15);
+            const extra = ceilToEven(base * 0.06);
             const finalCount = base + extra;
             totalPiezas += finalCount;
           }
@@ -1025,7 +1025,7 @@ export function generateDayUniformesPDF(options: AgreementReportOptions): PDFDoc
         for (const size of camisaSizeOrder) {
           const base = filledBases[size] || 0;
           if (base > 0) {
-            const extra = ceilToEven(base * 0.15);
+            const extra = ceilToEven(base * 0.06);
             const finalCount = base + extra;
             totalPiezas += finalCount;
           }
@@ -1123,7 +1123,7 @@ export function generateDayUniformesPDF(options: AgreementReportOptions): PDFDoc
       for (const size of camisaSizeOrder) {
         const base = filledBases[size] || 0;
         if (base > 0) {
-          const extra = ceilToEven(base * 0.15);
+          const extra = ceilToEven(base * 0.06);
           const finalCount = base + extra;
           itemCounts.push({ tipo_talla: `${tipoKey} - ${size}`, cantidad: finalCount });
         }
@@ -1169,7 +1169,7 @@ export function generateDayUniformesPDF(options: AgreementReportOptions): PDFDoc
       for (const size of camisaSizeOrder) {
         const base = filledBases[size] || 0;
         if (base > 0) {
-          const extra = ceilToEven(base * 0.15);
+          const extra = ceilToEven(base * 0.06);
           const finalCount = base + extra;
           itemCounts.push({ tipo_talla: `${tipoKey} - ${size}`, cantidad: finalCount });
         }
