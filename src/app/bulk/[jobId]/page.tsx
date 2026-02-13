@@ -248,6 +248,7 @@ export default function JobDetailPage() {
         ficha_uniformes: 'consolidado_uniformes.pdf',
         ficha_zapatos: 'consolidado_zapatos.pdf',
         acta_recepcion_zapatos: 'consolidado_acta_recepcion_zapatos.pdf',
+        acta_recepcion_uniformes: 'consolidado_acta_recepcion_uniformes.pdf',
       };
       a.download = fileNames[section] || `consolidado_${section}.pdf`;
       document.body.appendChild(a);
@@ -704,7 +705,7 @@ export default function JobDetailPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {[
                   { key: 'cajas', label: 'Consolidado Cajas' },
                   { key: 'ficha_uniformes', label: 'Consolidado Uniformes' },
@@ -712,6 +713,10 @@ export default function JobDetailPage() {
                   {
                     key: 'acta_recepcion_zapatos',
                     label: 'Consolidado Actas de Recepcion (Zapatos)',
+                  },
+                  {
+                    key: 'acta_recepcion_uniformes',
+                    label: 'Consolidado Actas de Recepcion (Uniformes)',
                   },
                 ].map(({ key, label }) => {
                   const isDownloading = downloadingConsolidated[key];

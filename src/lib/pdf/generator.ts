@@ -2,6 +2,7 @@ import PDFDocument from 'pdfkit';
 import type { StudentReportRow } from '@/types/database';
 import fs from 'fs';
 import path from 'path';
+import { addPageNumbers } from './page-numbers';
 
 // Export agreement report generators
 export {
@@ -14,6 +15,7 @@ export {
   generateDayZapatosPDF,
   generateDayUniformesPDF,
   generateActaRecepcionZapatosPDF,
+  generateActaRecepcionUniformesPDF,
 } from './generators-agreement';
 
 /**
@@ -68,6 +70,7 @@ export function generateStudentReportPDF(options: PDFGeneratorOptions): PDFDocum
     size: 'LETTER',
     layout: 'landscape',
     margins: { top: 50, bottom: 50, left: 50, right: 50 },
+    bufferPages: true,
   });
 
   const generatedAtLabel = new Date().toLocaleString('es-SV');
@@ -318,6 +321,7 @@ export function generateStudentReportPDF(options: PDFGeneratorOptions): PDFDocum
   doc.text(`Generado: ${generatedAtLabel}`, 50, currentY, { align: 'left' });
 
   // Finalize PDF
+  addPageNumbers(doc);
   doc.end();
 
   return doc;
@@ -334,6 +338,7 @@ export function generateStudentLabelsPDF(options: PDFGeneratorOptions): PDFDocum
     size: 'LETTER',
     layout: 'landscape',
     margins: { top: 50, bottom: 50, left: 50, right: 50 },
+    bufferPages: true,
   });
 
   const generatedAtLabel = new Date().toLocaleString('es-SV');
@@ -548,6 +553,7 @@ export function generateStudentLabelsPDF(options: PDFGeneratorOptions): PDFDocum
   doc.text(`Generado: ${generatedAtLabel}`, 50, currentY, { align: 'left' });
 
   // Finalize PDF
+  addPageNumbers(doc);
   doc.end();
 
   return doc;

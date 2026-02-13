@@ -7,6 +7,7 @@
  */
 import PDFDocument from 'pdfkit';
 import type { StudentQueryRow } from '@/types/database';
+import { addPageNumbers } from './page-numbers';
 import {
   computeFinalCount,
   fillSizeGaps,
@@ -100,6 +101,20 @@ export function generateActaRecepcionZapatosPDF(
   });
 }
 
+/**
+ * PDF: Acta de Recepción (Uniformes)
+ * "ACTA DE RECEPCIÓN (UNIFORMES)" – uniform delivery receipt with transport/signature fields
+ */
+export function generateActaRecepcionUniformesPDF(
+  options: AgreementReportOptions
+): PDFDocumentInstance {
+  return buildConsolidatedPdf({
+    fechaInicio: options.fechaInicio,
+    students: options.students,
+    section: 'acta_recepcion_uniformes',
+  });
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Non-consolidated generators (original implementations using shared helpers)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -116,6 +131,7 @@ export function generateCamisasPDF(options: AgreementReportOptions): PDFDocument
     size: 'LETTER',
     layout: 'landscape',
     margins: { top: 40, bottom: 40, left: 20, right: 20 },
+    bufferPages: true,
   });
 
   const formattedDate = formatDateForTitle(fechaInicio);
@@ -308,6 +324,7 @@ export function generateCamisasPDF(options: AgreementReportOptions): PDFDocument
     currentY += summaryRowHeight;
   }
 
+  addPageNumbers(doc);
   doc.end();
   return doc;
 }
@@ -324,6 +341,7 @@ export function generatePantalonesPDF(options: AgreementReportOptions): PDFDocum
     size: 'LETTER',
     layout: 'landscape',
     margins: { top: 40, bottom: 40, left: 20, right: 20 },
+    bufferPages: true,
   });
 
   const formattedDate = formatDateForTitle(fechaInicio);
@@ -516,6 +534,7 @@ export function generatePantalonesPDF(options: AgreementReportOptions): PDFDocum
     currentY += summaryRowHeight;
   }
 
+  addPageNumbers(doc);
   doc.end();
   return doc;
 }
@@ -532,6 +551,7 @@ export function generateZapatosPDF(options: AgreementReportOptions): PDFDocument
     size: 'LETTER',
     layout: 'landscape',
     margins: { top: 40, bottom: 40, left: 15, right: 15 },
+    bufferPages: true,
   });
 
   const formattedDate = formatDateForTitle(fechaInicio);
@@ -712,6 +732,7 @@ export function generateZapatosPDF(options: AgreementReportOptions): PDFDocument
     currentY += summaryRowHeight;
   }
 
+  addPageNumbers(doc);
   doc.end();
   return doc;
 }
@@ -727,6 +748,7 @@ export function generateDayZapatosPDF(options: AgreementReportOptions): PDFDocum
     size: 'LETTER',
     layout: 'portrait',
     margins: { top: 40, bottom: 40, left: 40, right: 40 },
+    bufferPages: true,
   });
 
   const title = `FICHA DE DISTRIBUCION POR ESCUELA (ZAPATOS)`;
@@ -903,6 +925,7 @@ export function generateDayZapatosPDF(options: AgreementReportOptions): PDFDocum
     doc.text(`TOTAL PIEZAS: ${totalPiezas}`, xStart, currentY, { align: 'left' });
   }
 
+  addPageNumbers(doc);
   doc.end();
   return doc;
 }
@@ -918,6 +941,7 @@ export function generateDayUniformesPDF(options: AgreementReportOptions): PDFDoc
     size: 'LETTER',
     layout: 'portrait',
     margins: { top: 40, bottom: 40, left: 40, right: 40 },
+    bufferPages: true,
   });
 
   const title = `FICHA DE DISTRIBUCION POR ESCUELA (UNIFORMES)`;
@@ -1247,6 +1271,7 @@ export function generateDayUniformesPDF(options: AgreementReportOptions): PDFDoc
     doc.text(`TOTAL PIEZAS: ${totalPiezas}`, xStart, currentY, { align: 'left' });
   }
 
+  addPageNumbers(doc);
   doc.end();
   return doc;
 }

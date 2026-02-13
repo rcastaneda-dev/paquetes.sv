@@ -11,7 +11,8 @@ export type AgreementSectionType =
   | 'cajas'
   | 'ficha_uniformes'
   | 'ficha_zapatos'
-  | 'acta_recepcion_zapatos';
+  | 'acta_recepcion_zapatos'
+  | 'acta_recepcion_uniformes';
 
 /** School group produced by grouping students by codigo_ce */
 export interface SchoolGroup {

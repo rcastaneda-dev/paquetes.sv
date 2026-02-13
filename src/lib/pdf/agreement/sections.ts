@@ -92,6 +92,12 @@ export const ACTA_RECEPCION_ZAPATOS_PAGE_OPTIONS = {
   margins: { top: 40, bottom: 40, left: 30, right: 30 },
 };
 
+export const ACTA_RECEPCION_UNIFORMES_PAGE_OPTIONS = {
+  size: 'LETTER' as const,
+  layout: 'portrait' as const,
+  margins: { top: 40, bottom: 40, left: 30, right: 30 },
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Shared helpers (relocated from generators-agreement.ts)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1007,6 +1013,287 @@ export function renderActaRecepcionZapatosSection(ctx: SectionRenderContext): vo
   const footerLeftX = xStart;
 
   // Left column: DATOS DEL TRANSPORTE
+  doc.fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER).font('Helvetica-Bold');
+  doc.text('DATOS DEL TRANSPORTE', footerLeftX, currentY, { align: 'left' });
+  const footerStartY = doc.y + 6;
+
+  doc.fontSize(AGREEMENT_FONT.BODY).font('Helvetica');
+  doc.text('Nombre del conductor: ________________________________', footerLeftX, footerStartY);
+  doc.text('Número de placa: ________________________________', footerLeftX, doc.y + 5);
+  doc.text('Número de contacto: ________________________________', footerLeftX, doc.y + 5);
+  doc.text('Firma del conductor: ________________________________', footerLeftX, doc.y + 5);
+  doc.text(
+    'Firma y Nombre del Encargado del Despacho: ________________________________',
+    footerLeftX,
+    doc.y + 5
+  );
+  doc.text(
+    'Firma y Nombre del Encargado del Centro Educativo: ________________________________',
+    footerLeftX,
+    doc.y + 5
+  );
+}
+
+/**
+ * Render the "ACTA DE RECEPCIÓN (UNIFORMES)" section for a single school.
+ * Layout: LETTER portrait, single table with compact rows, two-column footer.
+ *
+ * Structure:
+ *   1. Title: ACTA DE RECEPCIÓN (UNIFORMES)
+ *   2. Pre-table fields: DATOS DE LOS PRODUCTOS (Fecha, Hora, Bodega)
+ *   3. Data table: TIPO/TALLA | CANTIDAD | COMENTARIOS/OBSERVACIONES with Total row
+ *   4. Footer: Transport & signature fields
+ */
+export function renderActaRecepcionUniformesSection(ctx: SectionRenderContext): void {
+  const { doc, school, addPage: shouldAddPage } = ctx;
+
+  if (shouldAddPage) {
+    doc.addPage(ACTA_RECEPCION_UNIFORMES_PAGE_OPTIONS);
+  }
+
+  const title = 'ACTA DE RECEPCIÓN (UNIFORMES)';
+
+  addLogoToPage(doc, doc.page.width);
+
+  // 1. Title
+  doc.fontSize(AGREEMENT_FONT.TITLE).font('Helvetica-Bold').text(title, { align: 'center' });
+  doc.moveDown(1);
+
+  // School header
+  doc
+    .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+    .font('Helvetica-Bold')
+    .text(school.nombre_ce.toUpperCase(), { align: 'center' });
+  doc
+    .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+    .font('Helvetica-Bold')
+    .text(`CODIGO: ${school.codigo_ce.toUpperCase()}`, { align: 'center' });
+
+  doc.moveDown(1);
+
+  // 2. Pre-table: DATOS DE LOS PRODUCTOS
+  const xStart = 30;
+  doc.fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER).font('Helvetica-Bold');
+  doc.text('DATOS DE LOS PRODUCTOS', xStart, doc.y, { align: 'left' });
+  doc.moveDown(0.5);
+
+  doc.fontSize(AGREEMENT_FONT.BODY).font('Helvetica');
+  doc.text('Fecha: ________________________________', xStart);
+  doc.moveDown(0.3);
+  doc.text('Hora: ________________________________', xStart);
+  doc.moveDown(0.3);
+  doc.text('Bodega: ________________________________', xStart);
+  doc.moveDown(1);
+
+  // 3. Data table — aggregate uniform data by tipo/talla
+  interface ActaUniformeRow {
+    tipo_talla: string;
+    cantidad: number;
+  }
+
+  const itemCounts: ActaUniformeRow[] = [];
+
+  const camisaSizeOrder = [
+    'T4', 'T6', 'T8', 'T10', 'T12', 'T14', 'T16', 'T18', 'T20', 'T22', 'T1X', 'T2X',
+  ];
+
+  // Source 1: Camisas (tipo_camisa + camisa)
+  const camisaTipoMap = new Map<string, Map<string, number>>();
+  for (const student of school.students) {
+    const tipo = student.tipo_de_camisa;
+    const size = student.camisa;
+    if (tipo && size) {
+      const tipoKey = `CAMISA ${tipo.toUpperCase()}`;
+      if (!camisaTipoMap.has(tipoKey)) {
+        camisaTipoMap.set(tipoKey, new Map());
+      }
+      const sizeMap = camisaTipoMap.get(tipoKey)!;
+      sizeMap.set(size, (sizeMap.get(size) || 0) + 1);
+    }
+  }
+
+  const camisaTypes = Array.from(camisaTipoMap.keys()).sort();
+  for (const tipoKey of camisaTypes) {
+    const sizeMap = camisaTipoMap.get(tipoKey)!;
+    const restrictedSizes = getRestrictedSizeOrder('tipo_de_camisa', tipoKey, camisaSizeOrder);
+    const allowedSet = new Set(restrictedSizes);
+
+    const rowBases: Record<string, number> = {};
+    for (const size of camisaSizeOrder) {
+      const orig = sizeMap.get(size) || 0;
+      const base = orig * 2;
+      rowBases[size] = allowedSet.has(size) ? base : 0;
+    }
+
+    const filledBases = fillBaseGaps(restrictedSizes, rowBases);
+
+    for (const size of camisaSizeOrder) {
+      const base = filledBases[size] || 0;
+      if (base > 0) {
+        const extra = ceilToEven(base * 0.06);
+        const finalCount = base + extra;
+        itemCounts.push({ tipo_talla: `${tipoKey} - ${size}`, cantidad: finalCount });
+      }
+    }
+  }
+
+  // Source 2: Pantalones/Faldas (t_pantalon_falda_short + pantalon_falda)
+  const pantalonTipoMap = new Map<string, Map<string, number>>();
+  for (const student of school.students) {
+    const tipo = student.t_pantalon_falda_short;
+    const size = student.pantalon_falda;
+    if (tipo && size) {
+      const tipoKey = tipo.toUpperCase();
+      if (!pantalonTipoMap.has(tipoKey)) {
+        pantalonTipoMap.set(tipoKey, new Map());
+      }
+      const sizeMap = pantalonTipoMap.get(tipoKey)!;
+      sizeMap.set(size, (sizeMap.get(size) || 0) + 1);
+    }
+  }
+
+  const pantalonTypes = Array.from(pantalonTipoMap.keys()).sort();
+  for (const tipoKey of pantalonTypes) {
+    const sizeMap = pantalonTipoMap.get(tipoKey)!;
+    const restrictedSizes = getRestrictedSizeOrder(
+      't_pantalon_falda_short',
+      tipoKey,
+      camisaSizeOrder
+    );
+    const allowedSet = new Set(restrictedSizes);
+
+    const rowBases: Record<string, number> = {};
+    for (const size of camisaSizeOrder) {
+      const orig = sizeMap.get(size) || 0;
+      const base = orig * 2;
+      rowBases[size] = allowedSet.has(size) ? base : 0;
+    }
+
+    const filledBases = fillBaseGaps(restrictedSizes, rowBases);
+
+    for (const size of camisaSizeOrder) {
+      const base = filledBases[size] || 0;
+      if (base > 0) {
+        const extra = ceilToEven(base * 0.06);
+        const finalCount = base + extra;
+        itemCounts.push({ tipo_talla: `${tipoKey} - ${size}`, cantidad: finalCount });
+      }
+    }
+  }
+
+  // Table layout — 3 columns for acta format
+  let currentY = doc.y;
+  const tipoTallaColWidth = 200;
+  const cantidadColWidth = 80;
+  const comentariosColWidth = doc.page.width - 60 - tipoTallaColWidth - cantidadColWidth;
+  const actaHeaderHeight = 20;
+  const actaRowHeight = 14;
+
+  const totalCantidad = itemCounts.reduce((sum, r) => sum + r.cantidad, 0);
+
+  // Draw table header
+  doc.fontSize(AGREEMENT_FONT.COLUMN_HEADER).font('Helvetica-Bold');
+  let x = xStart;
+
+  doc.rect(x, currentY, tipoTallaColWidth, actaHeaderHeight).stroke();
+  doc.text('TIPO/TALLA', x + 2, currentY + 5, { width: tipoTallaColWidth - 4, align: 'center' });
+  x += tipoTallaColWidth;
+
+  doc.rect(x, currentY, cantidadColWidth, actaHeaderHeight).stroke();
+  doc.text('CANTIDAD', x + 2, currentY + 5, { width: cantidadColWidth - 4, align: 'center' });
+  x += cantidadColWidth;
+
+  doc.rect(x, currentY, comentariosColWidth, actaHeaderHeight).stroke();
+  doc.text('COMENTARIOS/OBSERVACIONES', x + 2, currentY + 5, {
+    width: comentariosColWidth - 4,
+    align: 'center',
+  });
+
+  currentY += actaHeaderHeight;
+
+  // Draw data rows
+  doc.font('Helvetica').fontSize(AGREEMENT_FONT.BODY);
+
+  for (const row of itemCounts) {
+    // Handle page overflow
+    if (currentY > doc.page.height - 120) {
+      doc.addPage(ACTA_RECEPCION_UNIFORMES_PAGE_OPTIONS);
+      addLogoToPage(doc, doc.page.width);
+      doc.fontSize(AGREEMENT_FONT.TITLE).font('Helvetica-Bold').text(title, { align: 'center' });
+      doc.moveDown(0.5);
+      doc
+        .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+        .font('Helvetica-Bold')
+        .text(school.nombre_ce.toUpperCase(), { align: 'center' });
+      doc
+        .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+        .font('Helvetica-Bold')
+        .text(`CODIGO: ${school.codigo_ce.toUpperCase()}`, { align: 'center' });
+      doc.moveDown(1);
+      currentY = doc.y;
+
+      // Redraw table header on new page
+      doc.fontSize(AGREEMENT_FONT.COLUMN_HEADER).font('Helvetica-Bold');
+      x = xStart;
+      doc.rect(x, currentY, tipoTallaColWidth, actaHeaderHeight).stroke();
+      doc.text('TIPO/TALLA', x + 2, currentY + 5, { width: tipoTallaColWidth - 4, align: 'center' });
+      x += tipoTallaColWidth;
+      doc.rect(x, currentY, cantidadColWidth, actaHeaderHeight).stroke();
+      doc.text('CANTIDAD', x + 2, currentY + 5, { width: cantidadColWidth - 4, align: 'center' });
+      x += cantidadColWidth;
+      doc.rect(x, currentY, comentariosColWidth, actaHeaderHeight).stroke();
+      doc.text('COMENTARIOS/OBSERVACIONES', x + 2, currentY + 5, {
+        width: comentariosColWidth - 4,
+        align: 'center',
+      });
+      currentY += actaHeaderHeight;
+
+      doc.font('Helvetica').fontSize(AGREEMENT_FONT.BODY);
+    }
+
+    x = xStart;
+
+    doc.rect(x, currentY, tipoTallaColWidth, actaRowHeight).stroke();
+    doc.text(row.tipo_talla, x + 2, currentY + 2, { width: tipoTallaColWidth - 4, align: 'center' });
+    x += tipoTallaColWidth;
+
+    doc.rect(x, currentY, cantidadColWidth, actaRowHeight).stroke();
+    doc.text(row.cantidad.toString(), x + 2, currentY + 2, {
+      width: cantidadColWidth - 4,
+      align: 'center',
+    });
+    x += cantidadColWidth;
+
+    doc.rect(x, currentY, comentariosColWidth, actaRowHeight).stroke();
+
+    currentY += actaRowHeight;
+  }
+
+  // Total row
+  doc.font('Helvetica-Bold').fontSize(AGREEMENT_FONT.BODY);
+  x = xStart;
+
+  doc.rect(x, currentY, tipoTallaColWidth, actaRowHeight).stroke();
+  doc.text('TOTAL', x + 2, currentY + 2, { width: tipoTallaColWidth - 4, align: 'center' });
+  x += tipoTallaColWidth;
+
+  doc.rect(x, currentY, cantidadColWidth, actaRowHeight).stroke();
+  doc.text(totalCantidad.toString(), x + 2, currentY + 2, {
+    width: cantidadColWidth - 4,
+    align: 'center',
+  });
+  x += cantidadColWidth;
+
+  doc.rect(x, currentY, comentariosColWidth, actaRowHeight).stroke();
+
+  currentY += actaRowHeight;
+  doc.y = currentY;
+  doc.moveDown(2);
+  currentY = doc.y;
+
+  // 4. Footer: DATOS DEL TRANSPORTE + signature fields
+  const footerLeftX = xStart;
+
   doc.fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER).font('Helvetica-Bold');
   doc.text('DATOS DEL TRANSPORTE', footerLeftX, currentY, { align: 'left' });
   const footerStartY = doc.y + 6;

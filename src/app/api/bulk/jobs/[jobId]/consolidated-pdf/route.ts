@@ -10,7 +10,7 @@ import type { AgreementSectionType } from '@/lib/pdf/agreement/types';
 import type { StudentQueryRow } from '@/types/database';
 
 const sectionSchema = z.object({
-  type: z.enum(['cajas', 'ficha_uniformes', 'ficha_zapatos', 'acta_recepcion_zapatos']),
+  type: z.enum(['cajas', 'ficha_uniformes', 'ficha_zapatos', 'acta_recepcion_zapatos', 'acta_recepcion_uniformes']),
 });
 
 const SECTION_FILENAMES: Record<AgreementSectionType, string> = {
@@ -18,6 +18,7 @@ const SECTION_FILENAMES: Record<AgreementSectionType, string> = {
   ficha_uniformes: 'consolidado_uniformes.pdf',
   ficha_zapatos: 'consolidado_zapatos.pdf',
   acta_recepcion_zapatos: 'consolidado_acta_recepcion_zapatos.pdf',
+  acta_recepcion_uniformes: 'consolidado_acta_recepcion_uniformes.pdf',
 };
 
 /**

@@ -7,16 +7,19 @@
 import PDFDocument from 'pdfkit';
 import type { StudentQueryRow } from '@/types/database';
 import type { AgreementSectionType, PDFDocumentInstance, SchoolGroup } from './types';
+import { addPageNumbers } from '../page-numbers';
 import {
   groupBySchool,
   renderCajasSection,
   renderFichaUniformesSection,
   renderFichaZapatosSection,
   renderActaRecepcionZapatosSection,
+  renderActaRecepcionUniformesSection,
   CAJAS_PAGE_OPTIONS,
   FICHA_UNIFORMES_PAGE_OPTIONS,
   FICHA_ZAPATOS_PAGE_OPTIONS,
   ACTA_RECEPCION_ZAPATOS_PAGE_OPTIONS,
+  ACTA_RECEPCION_UNIFORMES_PAGE_OPTIONS,
 } from './sections';
 import {
   ceilToEven,
@@ -37,6 +40,7 @@ const PAGE_OPTIONS_BY_SECTION: Record<AgreementSectionType, PageOptions> = {
   ficha_uniformes: FICHA_UNIFORMES_PAGE_OPTIONS,
   ficha_zapatos: FICHA_ZAPATOS_PAGE_OPTIONS,
   acta_recepcion_zapatos: ACTA_RECEPCION_ZAPATOS_PAGE_OPTIONS,
+  acta_recepcion_uniformes: ACTA_RECEPCION_UNIFORMES_PAGE_OPTIONS,
 };
 
 type SectionRenderer = typeof renderCajasSection;
@@ -46,6 +50,7 @@ const RENDERER_BY_SECTION: Record<AgreementSectionType, SectionRenderer> = {
   ficha_uniformes: renderFichaUniformesSection,
   ficha_zapatos: renderFichaZapatosSection,
   acta_recepcion_zapatos: renderActaRecepcionZapatosSection,
+  acta_recepcion_uniformes: renderActaRecepcionUniformesSection,
 };
 
 /**
@@ -224,7 +229,7 @@ function sortSchoolsByTotal(schools: SchoolGroup[], section: AgreementSectionTyp
     if (section === 'cajas') {
       totalA = calculateCajasTotales(a);
       totalB = calculateCajasTotales(b);
-    } else if (section === 'ficha_uniformes') {
+    } else if (section === 'ficha_uniformes' || section === 'acta_recepcion_uniformes') {
       totalA = calculateUniformesTotalPiezas(a);
       totalB = calculateUniformesTotalPiezas(b);
     } else if (section === 'ficha_zapatos' || section === 'acta_recepcion_zapatos') {
@@ -255,7 +260,7 @@ export function buildConsolidatedPdf(options: {
   const pageOptions = PAGE_OPTIONS_BY_SECTION[section];
   const renderer = RENDERER_BY_SECTION[section];
 
-  const doc = new PDFDocument(pageOptions) as PDFDocumentInstance;
+  const doc = new PDFDocument({ ...pageOptions, bufferPages: true }) as PDFDocumentInstance;
 
   for (let i = 0; i < sortedSchools.length; i++) {
     renderer({
@@ -266,6 +271,7 @@ export function buildConsolidatedPdf(options: {
     });
   }
 
+  addPageNumbers(doc);
   doc.end();
   return doc;
 }
@@ -285,7 +291,7 @@ export function buildSchoolBundlePdf(options: {
   const { fechaInicio, school } = options;
 
   // Start with Cajas layout (landscape)
-  const doc = new PDFDocument(CAJAS_PAGE_OPTIONS) as PDFDocumentInstance;
+  const doc = new PDFDocument({ ...CAJAS_PAGE_OPTIONS, bufferPages: true }) as PDFDocumentInstance;
 
   // Section 1: Cajas – uses the initial page
   renderCajasSection({ doc, school, fechaInicio, addPage: false });
@@ -296,6 +302,7 @@ export function buildSchoolBundlePdf(options: {
   // Section 3: Ficha Zapatos – adds another portrait page
   renderFichaZapatosSection({ doc, school, fechaInicio, addPage: true });
 
+  addPageNumbers(doc);
   doc.end();
   return doc;
 }

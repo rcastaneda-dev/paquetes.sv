@@ -318,3 +318,63 @@ describe('Edge cases and real-world scenarios', () => {
     expect(result1).toEqual(result2);
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Acta Recepción Uniformes calculation pattern
+// Uses the same multiplier=2 as ficha_uniformes (camisas + pantalones)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('Acta Recepcion Uniformes calculation pattern', () => {
+  describe('computeFinalCount with multiplier=2 for uniform items', () => {
+    it('should compute for small group (5 students same camisa size)', () => {
+      // orig=5, base=5*2=10, extra=ceilToEven(10*0.06)=ceilToEven(0.6)=2, final=12
+      const result = computeFinalCount(5, 2);
+      expect(result).toEqual({ base: 10, extra: 2, final: 12 });
+    });
+
+    it('should compute for medium group (15 students same pantalon size)', () => {
+      // orig=15, base=15*2=30, extra=ceilToEven(30*0.06)=ceilToEven(1.8)=2, final=32
+      const result = computeFinalCount(15, 2);
+      expect(result).toEqual({ base: 30, extra: 2, final: 32 });
+    });
+
+    it('should compute for larger group (25 students)', () => {
+      // orig=25, base=25*2=50, extra=ceilToEven(50*0.06)=ceilToEven(3)=4, final=54
+      const result = computeFinalCount(25, 2);
+      expect(result).toEqual({ base: 50, extra: 4, final: 54 });
+    });
+
+    it('should compute for large group (50 students)', () => {
+      // orig=50, base=50*2=100, extra=ceilToEven(100*0.06)=ceilToEven(6)=6, final=106
+      const result = computeFinalCount(50, 2);
+      expect(result).toEqual({ base: 100, extra: 6, final: 106 });
+    });
+
+    it('should return zeros for empty count', () => {
+      const result = computeFinalCount(0, 2);
+      expect(result).toEqual({ base: 0, extra: 0, final: 0 });
+    });
+  });
+
+  describe('inline ceilToEven(base * 0.06) for uniform-specific bases', () => {
+    it('should compute extra for base=10 (5 students × 2)', () => {
+      // 10*0.06=0.6 → ceilToEven(0.6)=2
+      expect(ceilToEven(10 * 0.06)).toBe(2);
+    });
+
+    it('should compute extra for base=50 (25 students × 2)', () => {
+      // 50*0.06=3 → ceilToEven(3)=4
+      expect(ceilToEven(50 * 0.06)).toBe(4);
+    });
+
+    it('should compute extra for base=100 (50 students × 2)', () => {
+      // 100*0.06=6 → ceilToEven(6)=6
+      expect(ceilToEven(100 * 0.06)).toBe(6);
+    });
+
+    it('should compute extra for base=4 (2 students × 2)', () => {
+      // 4*0.06=0.24 → ceilToEven(0.24)=2
+      expect(ceilToEven(4 * 0.06)).toBe(2);
+    });
+  });
+});
