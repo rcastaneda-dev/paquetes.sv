@@ -8,7 +8,7 @@
 import { describe, it, expect } from 'vitest';
 import type { StudentQueryRow } from '@/types/database';
 import type { SchoolGroup } from '@/lib/pdf/agreement/types';
-import { buildUniformesFlatRows, buildZapatosFlatRows } from '@/lib/reports/editable-v2';
+import { buildUniformesFlatRows, buildZapatosFlatRows, buildConsolidadoFlatRows } from '@/lib/reports/editable-v2';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Test helpers
@@ -246,7 +246,7 @@ describe('buildZapatosFlatRows', () => {
       correlativo: 1,
       codigo_ce: '10740',
       nombre_ce: 'Escuela A',
-      tipo_prenda: 'ZAPATO',
+      tipo_prenda: 'ZAPATOS',
       talla: '25',
       cantidad: 3,
     });
@@ -254,13 +254,13 @@ describe('buildZapatosFlatRows', () => {
       correlativo: 2,
       codigo_ce: '10740',
       nombre_ce: 'Escuela A',
-      tipo_prenda: 'ZAPATO',
+      tipo_prenda: 'ZAPATOS',
       talla: '27',
       cantidad: 2,
     });
   });
 
-  it('should always use ZAPATO as TIPO_PRENDA', () => {
+  it('should always use ZAPATOS as TIPO_PRENDA', () => {
     const students = [
       makeStudent({ zapato: '30' }),
       makeStudent({ zapato: '35' }),
@@ -269,7 +269,7 @@ describe('buildZapatosFlatRows', () => {
     const rows = buildZapatosFlatRows([school]);
 
     for (const row of rows) {
-      expect(row.tipo_prenda).toBe('ZAPATO');
+      expect(row.tipo_prenda).toBe('ZAPATOS');
     }
   });
 
@@ -323,6 +323,87 @@ describe('buildZapatosFlatRows', () => {
     const school = makeSchool('10740', 'Escuela A', students);
     const rows = buildZapatosFlatRows([school]);
 
+    expect(rows[0].correlativo).toBe(1);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Consolidado (combined uniforms + zapatos)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('buildConsolidadoFlatRows', () => {
+  it('should return empty array for empty schools', () => {
+    const rows = buildConsolidadoFlatRows([]);
+    expect(rows).toEqual([]);
+  });
+
+  it('should place uniforms before zapatos', () => {
+    const students = [
+      makeStudent({ camisa: 'T4', tipo_de_camisa: 'CELESTE', zapato: '25' }),
+    ];
+    const school = makeSchool('10740', 'Escuela A', students);
+    const rows = buildConsolidadoFlatRows([school]);
+
+    // First row should be uniform, last row should be zapatos
+    const uniformRows = rows.filter(r => r.tipo_prenda !== 'ZAPATOS');
+    const zapatoRows = rows.filter(r => r.tipo_prenda === 'ZAPATOS');
+
+    expect(uniformRows.length).toBeGreaterThan(0);
+    expect(zapatoRows.length).toBeGreaterThan(0);
+
+    // All uniform rows should come before all zapato rows
+    const lastUniformCorrelativo = Math.max(...uniformRows.map(r => r.correlativo));
+    const firstZapatoCorrelativo = Math.min(...zapatoRows.map(r => r.correlativo));
+    expect(lastUniformCorrelativo).toBeLessThan(firstZapatoCorrelativo);
+  });
+
+  it('should have continuous CORRELATIVO across uniforms and zapatos', () => {
+    const students = [
+      makeStudent({ camisa: 'T4', tipo_de_camisa: 'CELESTE', zapato: '25' }),
+      makeStudent({ camisa: 'T6', tipo_de_camisa: 'CELESTE', zapato: '27' }),
+    ];
+    const school = makeSchool('10740', 'Escuela A', students);
+    const rows = buildConsolidadoFlatRows([school]);
+
+    // CORRELATIVO should be 1, 2, 3, ... with no gaps
+    for (let i = 0; i < rows.length; i++) {
+      expect(rows[i].correlativo).toBe(i + 1);
+    }
+  });
+
+  it('should populate NOMBRE_CE on every row', () => {
+    const students = [
+      makeStudent({ camisa: 'T4', tipo_de_camisa: 'CELESTE', zapato: '30' }),
+    ];
+    const school = makeSchool('10740', 'Mi Escuela', students);
+    const rows = buildConsolidadoFlatRows([school]);
+
+    for (const row of rows) {
+      expect(row.nombre_ce).toBe('Mi Escuela');
+    }
+  });
+
+  it('should handle schools with only uniforms (no zapatos)', () => {
+    const students = [
+      makeStudent({ camisa: 'T4', tipo_de_camisa: 'CELESTE' }),
+    ];
+    const school = makeSchool('10740', 'Escuela A', students);
+    const rows = buildConsolidadoFlatRows([school]);
+
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows.every(r => r.tipo_prenda !== 'ZAPATOS')).toBe(true);
+    expect(rows[0].correlativo).toBe(1);
+  });
+
+  it('should handle schools with only zapatos (no uniforms)', () => {
+    const students = [
+      makeStudent({ zapato: '28' }),
+    ];
+    const school = makeSchool('10740', 'Escuela A', students);
+    const rows = buildConsolidadoFlatRows([school]);
+
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows.every(r => r.tipo_prenda === 'ZAPATOS')).toBe(true);
     expect(rows[0].correlativo).toBe(1);
   });
 });

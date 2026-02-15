@@ -162,7 +162,7 @@ export function buildZapatosFlatRows(schools: SchoolGroup[]): FlatRow[] {
           correlativo: correlativo++,
           codigo_ce: school.codigo_ce,
           nombre_ce: school.nombre_ce,
-          tipo_prenda: 'ZAPATO',
+          tipo_prenda: 'ZAPATOS',
           talla: size,
           cantidad: val,
         });
@@ -171,4 +171,21 @@ export function buildZapatosFlatRows(schools: SchoolGroup[]): FlatRow[] {
   }
 
   return rows;
+}
+
+/**
+ * Build combined flat rows: uniforms first, then zapatos.
+ * CORRELATIVO is continuous across both sections.
+ */
+export function buildConsolidadoFlatRows(schools: SchoolGroup[]): FlatRow[] {
+  const uniformRows = buildUniformesFlatRows(schools);
+  const zapatoRows = buildZapatosFlatRows(schools);
+  const combined = [...uniformRows, ...zapatoRows];
+
+  // Re-number CORRELATIVO sequentially
+  for (let i = 0; i < combined.length; i++) {
+    combined[i].correlativo = i + 1;
+  }
+
+  return combined;
 }

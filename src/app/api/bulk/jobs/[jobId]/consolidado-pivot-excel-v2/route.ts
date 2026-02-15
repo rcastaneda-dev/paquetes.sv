@@ -4,9 +4,9 @@ import { supabaseServer } from '@/lib/supabase/server';
 import type { StudentQueryRow } from '@/types/database';
 import { groupBySchool } from '@/lib/pdf/agreement/sections';
 import { calculateUniformesTotalPiezas } from '@/lib/pdf/agreement/builders';
-import { buildUniformesFlatRows } from '@/lib/reports/editable-v2';
+import { buildConsolidadoFlatRows } from '@/lib/reports/editable-v2';
 
-const FILENAME = 'Uniformes_Acumulado_Editable_V2.xlsx';
+const FILENAME = 'Consolidado_Prendas_Final.xlsx';
 const PAGE_SIZE = 1000;
 const MAX_ROWS = 200000;
 
@@ -80,11 +80,11 @@ export async function GET(_request: Request, { params }: { params: { jobId: stri
       (a, b) => calculateUniformesTotalPiezas(b) - calculateUniformesTotalPiezas(a)
     );
 
-    const flatRows = buildUniformesFlatRows(schools);
+    const flatRows = buildConsolidadoFlatRows(schools);
 
     // Build workbook
     const workbook = new ExcelJS.Workbook();
-    const sheet = workbook.addWorksheet('Consolidado', {
+    const sheet = workbook.addWorksheet('Consolidado_Prendas', {
       views: [{ state: 'frozen', ySplit: 1 }],
     });
 

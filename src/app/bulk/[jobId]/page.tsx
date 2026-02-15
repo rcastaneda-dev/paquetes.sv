@@ -58,7 +58,6 @@ export default function JobDetailPage() {
   const [downloadingPivotExcel, setDownloadingPivotExcel] = useState(false);
   const [downloadingZapatosPivotExcel, setDownloadingZapatosPivotExcel] = useState(false);
   const [downloadingPivotExcelV2, setDownloadingPivotExcelV2] = useState(false);
-  const [downloadingZapatosPivotExcelV2, setDownloadingZapatosPivotExcelV2] = useState(false);
   const [schoolBundleLoading, setSchoolBundleLoading] = useState(false);
   const [schoolBundleStatus, setSchoolBundleStatus] = useState<{
     status: 'queued' | 'processing' | 'complete' | 'failed';
@@ -360,7 +359,7 @@ export default function JobDetailPage() {
 
       if (!response.ok) {
         const data = await response.json();
-        alert(`Error: ${data.error || 'Error al generar Uniformes Acumulado Editable V2'}`);
+        alert(`Error: ${data.error || 'Error al generar Prendas Acumulado Editable V2'}`);
         return;
       }
 
@@ -368,45 +367,16 @@ export default function JobDetailPage() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'Uniformes_Acumulado_Editable_V2.xlsx';
+      a.download = 'Consolidado_Prendas_Final.xlsx';
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
     } catch (error) {
-      console.error('Error downloading Uniformes Acumulado Editable V2:', error);
-      alert('Error al descargar Uniformes Acumulado Editable V2');
+      console.error('Error downloading Prendas Acumulado Editable V2:', error);
+      alert('Error al descargar Prendas Acumulado Editable V2');
     } finally {
       setDownloadingPivotExcelV2(false);
-    }
-  };
-
-  const handleDownloadZapatosPivotExcelV2 = async () => {
-    try {
-      setDownloadingZapatosPivotExcelV2(true);
-
-      const response = await fetch(`/api/bulk/jobs/${jobId}/zapatos-pivot-excel-v2`);
-
-      if (!response.ok) {
-        const data = await response.json();
-        alert(`Error: ${data.error || 'Error al generar Zapatos Acumulado Editable V2'}`);
-        return;
-      }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'Zapatos_Acumulado_Editable_V2.xlsx';
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-    } catch (error) {
-      console.error('Error downloading Zapatos Acumulado Editable V2:', error);
-      alert('Error al descargar Zapatos Acumulado Editable V2');
-    } finally {
-      setDownloadingZapatosPivotExcelV2(false);
     }
   };
 
@@ -853,20 +823,9 @@ export default function JobDetailPage() {
                   variant="outline"
                   className="h-auto flex-col items-start p-4"
                 >
-                  <span className="text-lg font-semibold">Uniformes Acumulado Editable (version 2)</span>
+                  <span className="text-lg font-semibold">Prendas Acumulado Editable (V2)</span>
                   <span className="text-xs text-muted-foreground">
                     {downloadingPivotExcelV2 ? 'Generando Excel...' : 'Descargar .xlsx'}
-                  </span>
-                </Button>
-                <Button
-                  onClick={handleDownloadZapatosPivotExcelV2}
-                  disabled={downloadingZapatosPivotExcelV2}
-                  variant="outline"
-                  className="h-auto flex-col items-start p-4"
-                >
-                  <span className="text-lg font-semibold">Zapatos Acumulado Editable (version 2)</span>
-                  <span className="text-xs text-muted-foreground">
-                    {downloadingZapatosPivotExcelV2 ? 'Generando Excel...' : 'Descargar .xlsx'}
                   </span>
                 </Button>
               </div>
