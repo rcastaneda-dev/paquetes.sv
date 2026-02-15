@@ -21,11 +21,7 @@ import {
   ACTA_RECEPCION_ZAPATOS_PAGE_OPTIONS,
   ACTA_RECEPCION_UNIFORMES_PAGE_OPTIONS,
 } from './sections';
-import {
-  ceilToEven,
-  computeFinalCount,
-  getRestrictedSizeOrder,
-} from '@/lib/reports/vacios';
+import { ceilToEven, computeFinalCount, getRestrictedSizeOrder } from '@/lib/reports/vacios';
 
 interface PageOptions {
   size: 'LETTER';
@@ -63,7 +59,8 @@ export function calculateCajasTotales(school: SchoolGroup): number {
     if (!gradeMap.has(grade)) {
       gradeMap.set(grade, { hombres: 0, mujeres: 0 });
     }
-    const counts = gradeMap.get(grade)!;
+    const existing = gradeMap.get(grade);
+    const counts = existing ?? { hombres: 0, mujeres: 0 };
     if (student.sexo === 'Hombre') {
       counts.hombres++;
     } else if (student.sexo === 'Mujer') {
@@ -114,13 +111,13 @@ export function calculateUniformesTotalPiezas(school: SchoolGroup): number {
       if (!camisaTipoMap.has(tipoKey)) {
         camisaTipoMap.set(tipoKey, new Map());
       }
-      const sizeMap = camisaTipoMap.get(tipoKey)!;
+      const sizeMap = camisaTipoMap.get(tipoKey) ?? new Map<string, number>();
       sizeMap.set(size, (sizeMap.get(size) || 0) + 1);
     }
   }
 
   for (const tipoKey of camisaTipoMap.keys()) {
-    const sizeMap = camisaTipoMap.get(tipoKey)!;
+    const sizeMap = camisaTipoMap.get(tipoKey) ?? new Map<string, number>();
     const restrictedSizes = getRestrictedSizeOrder('tipo_de_camisa', tipoKey, camisaSizeOrder);
     const allowedSet = new Set(restrictedSizes);
     const rowBases: Record<string, number> = {};
@@ -149,13 +146,13 @@ export function calculateUniformesTotalPiezas(school: SchoolGroup): number {
       if (!pantalonTipoMap.has(tipoKey)) {
         pantalonTipoMap.set(tipoKey, new Map());
       }
-      const sizeMap = pantalonTipoMap.get(tipoKey)!;
+      const sizeMap = pantalonTipoMap.get(tipoKey) ?? new Map<string, number>();
       sizeMap.set(size, (sizeMap.get(size) || 0) + 1);
     }
   }
 
   for (const tipoKey of pantalonTipoMap.keys()) {
-    const sizeMap = pantalonTipoMap.get(tipoKey)!;
+    const sizeMap = pantalonTipoMap.get(tipoKey) ?? new Map<string, number>();
     const restrictedSizes = getRestrictedSizeOrder(
       't_pantalon_falda_short',
       tipoKey,

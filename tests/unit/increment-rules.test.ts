@@ -3,7 +3,8 @@
  *
  * Two categories:
  * 1. Cajas (Boxes): 15% if count ≤ 15, 6% if count > 15 (per gender) — sections.ts, builders.ts, school-bundle-processor.ts
- * 2. Non-boxes (Garments, shoes): Always 6% on base via ceilToEven(base * 0.06) — vacios.ts → computeFinalCount
+ * 2. Garments (clothing): 6% on base via ceilToEven(base * 0.06), multiplier=2 — vacios.ts → computeFinalCount
+ * 3. Shoes: 6% on base via Math.ceil(base * 0.06), multiplier=1, no gap filling — vacios.ts → computeFinalCount
  */
 
 import { describe, it, expect } from 'vitest';
