@@ -239,8 +239,8 @@ describe('buildZapatosFlatRows', () => {
     const school = makeSchool('10740', 'Escuela A', students);
     const rows = buildZapatosFlatRows([school]);
 
-    // 25: 2 students → base=2, extra=ceil(0.1)=1, final=3
-    // 27: 1 student → base=1, extra=ceil(0.05)=1, final=2
+    // 25: 2 students → base=2, 2*0.05=0.1 → round=0, extra=0, final=2
+    // 27: 1 student → base=1, 1*0.05=0.05 → round=0, extra=0, final=1
     expect(rows).toHaveLength(2);
     expect(rows[0]).toEqual({
       correlativo: 1,
@@ -248,7 +248,7 @@ describe('buildZapatosFlatRows', () => {
       nombre_ce: 'Escuela A',
       tipo_prenda: 'ZAPATOS',
       talla: '25',
-      cantidad: 3,
+      cantidad: 2,
     });
     expect(rows[1]).toEqual({
       correlativo: 2,
@@ -256,7 +256,7 @@ describe('buildZapatosFlatRows', () => {
       nombre_ce: 'Escuela A',
       tipo_prenda: 'ZAPATOS',
       talla: '27',
-      cantidad: 2,
+      cantidad: 1,
     });
   });
 

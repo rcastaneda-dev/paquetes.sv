@@ -70,8 +70,8 @@ export function calculateCajasTotales(school: SchoolGroup): number {
 
   let totalBoxes = 0;
   for (const counts of gradeMap.values()) {
-    const cajasHombres = counts.hombres === 0 ? 0 : Math.ceil(counts.hombres * 1.05);
-    const cajasMujeres = counts.mujeres === 0 ? 0 : Math.ceil(counts.mujeres * 1.05);
+    const cajasHombres = counts.hombres === 0 ? 0 : Math.round(counts.hombres * 1.05);
+    const cajasMujeres = counts.mujeres === 0 ? 0 : Math.round(counts.mujeres * 1.05);
     totalBoxes += cajasHombres + cajasMujeres;
   }
 

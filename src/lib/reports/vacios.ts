@@ -4,7 +4,7 @@
  * This module computes the final size frequencies for agreement reports.
  * The transformation follows these rules:
  * 1. Base count = original × multiplier (2 for clothing, 1 for shoes)
- * 2. Extra (vacíos): clothing = ceilToEven(base × 0.05), shoes = Math.ceil(base × 0.05)
+ * 2. Extra (vacíos): clothing = ceilToEven(base × 0.05) when original≥10, shoes = Math.round(base × 0.05)
  * 3. Final count = base + extra
  * 4. Zero demand stays zero — no gap filling
  *
@@ -145,10 +145,10 @@ export function computeFinalCount(
   multiplier: 1 | 2
 ): { base: number; extra: number; final: number } {
   const base = original * multiplier;
-  // Shoes (multiplier=1): round up to nearest integer
+  // Shoes (multiplier=1): round to nearest integer (only rounds up if fractional >= 0.5)
   // Clothing (multiplier=2): round up to nearest even number, only if original >= 10
   const extra = multiplier === 1
-    ? (base > 0 ? Math.ceil(base * 0.05) : 0)
+    ? (base > 0 ? Math.round(base * 0.05) : 0)
     : computeClothingExtra(base);
   const final = base + extra;
 

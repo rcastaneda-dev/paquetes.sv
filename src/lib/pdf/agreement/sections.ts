@@ -329,8 +329,8 @@ export function renderCajasSection(ctx: SectionRenderContext): void {
     const counts = gradeMap.get(grade)!;
 
     // Apply flat 5% increment per gender. If zero students, no boxes needed.
-    const cajasHombres = counts.hombres === 0 ? 0 : Math.ceil(counts.hombres * 1.05);
-    const cajasMujeres = counts.mujeres === 0 ? 0 : Math.ceil(counts.mujeres * 1.05);
+    const cajasHombres = counts.hombres === 0 ? 0 : Math.round(counts.hombres * 1.05);
+    const cajasMujeres = counts.mujeres === 0 ? 0 : Math.round(counts.mujeres * 1.05);
     const cajasTotales = cajasHombres + cajasMujeres;
 
     // Store for subtotal calculation
