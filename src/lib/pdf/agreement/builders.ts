@@ -21,7 +21,7 @@ import {
   ACTA_RECEPCION_ZAPATOS_PAGE_OPTIONS,
   ACTA_RECEPCION_UNIFORMES_PAGE_OPTIONS,
 } from './sections';
-import { ceilToEven, computeFinalCount, getRestrictedSizeOrder } from '@/lib/reports/vacios';
+import { computeClothingExtra, computeFinalCount, getRestrictedSizeOrder } from '@/lib/reports/vacios';
 
 interface PageOptions {
   size: 'LETTER';
@@ -128,7 +128,7 @@ export function calculateUniformesTotalPiezas(school: SchoolGroup): number {
     for (const size of camisaSizeOrder) {
       const base = rowBases[size] || 0;
       if (base > 0) {
-        const extra = ceilToEven(base * 0.05);
+        const extra = computeClothingExtra(base);
         totalPiezas += base + extra;
       }
     }
@@ -167,7 +167,7 @@ export function calculateUniformesTotalPiezas(school: SchoolGroup): number {
     for (const size of camisaSizeOrder) {
       const base = rowBases[size] || 0;
       if (base > 0) {
-        const extra = ceilToEven(base * 0.05);
+        const extra = computeClothingExtra(base);
         totalPiezas += base + extra;
       }
     }

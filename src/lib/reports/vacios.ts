@@ -118,21 +118,27 @@ export function ceilToEven(n: number): number {
 }
 
 /**
+ * Compute the 5% clothing extra (vacíos) for a given base count.
+ * Only applies when the original student count is >= 10 (i.e. base >= 20).
+ * Below that threshold, no extra is added.
+ *
+ * @param base - The base count (original × 2 for clothing)
+ * @returns The extra count to add, or 0 if below threshold
+ */
+export function computeClothingExtra(base: number): number {
+  if (base < 20) return 0;
+  return ceilToEven(base * 0.05);
+}
+
+/**
  * Compute the final count for a size cell using the vacíos formula.
+ *
+ * For clothing (multiplier=2): extra is only applied when original >= 10.
+ * For shoes (multiplier=1): extra is always applied when base > 0.
  *
  * @param original - The raw count from the database (number of students with this size)
  * @param multiplier - 2 for clothing (camisas, prenda_inferior), 1 for shoes
  * @returns Object with base, extra (vacíos), and final counts
- *
- * @example
- * // Clothing: original=12
- * computeFinalCount(12, 2)
- * // => { base: 24, extra: 4, final: 28 }
- *
- * @example
- * // Shoes: original=8
- * computeFinalCount(8, 1)
- * // => { base: 8, extra: 2, final: 10 }
  */
 export function computeFinalCount(
   original: number,
@@ -140,10 +146,10 @@ export function computeFinalCount(
 ): { base: number; extra: number; final: number } {
   const base = original * multiplier;
   // Shoes (multiplier=1): round up to nearest integer
-  // Clothing (multiplier=2): round up to nearest even number
+  // Clothing (multiplier=2): round up to nearest even number, only if original >= 10
   const extra = multiplier === 1
     ? (base > 0 ? Math.ceil(base * 0.05) : 0)
-    : ceilToEven(base * 0.05);
+    : computeClothingExtra(base);
   const final = base + extra;
 
   return { base, extra, final };

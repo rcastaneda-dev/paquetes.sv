@@ -80,8 +80,8 @@ describe('buildUniformesFlatRows', () => {
     const school = makeSchool('10740', 'Escuela A', students);
     const rows = buildUniformesFlatRows([school]);
 
-    // T4: 2 students → base=4, extra=ceilToEven(0.2)=2, final=6
-    // T6: 1 student → base=2, extra=ceilToEven(0.1)=2, final=4
+    // T4: 2 students → base=4, below threshold (base<20) → extra=0, final=4
+    // T6: 1 student → base=2, below threshold (base<20) → extra=0, final=2
     expect(rows).toHaveLength(2);
     expect(rows[0]).toEqual({
       correlativo: 1,
@@ -89,7 +89,7 @@ describe('buildUniformesFlatRows', () => {
       nombre_ce: 'Escuela A',
       tipo_prenda: 'CAMISA CELESTE',
       talla: 'T4',
-      cantidad: 6,
+      cantidad: 4,
     });
     expect(rows[1]).toEqual({
       correlativo: 2,
@@ -97,7 +97,7 @@ describe('buildUniformesFlatRows', () => {
       nombre_ce: 'Escuela A',
       tipo_prenda: 'CAMISA CELESTE',
       talla: 'T6',
-      cantidad: 4,
+      cantidad: 2,
     });
   });
 

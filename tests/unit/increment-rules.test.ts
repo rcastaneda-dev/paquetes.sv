@@ -133,16 +133,16 @@ describe('computeFinalCount', () => {
       expect(result).toEqual({ base: 20, extra: 2, final: 22 });
     });
 
-    it('should handle original=2', () => {
-      // original=2 → base=4 → extra=ceilToEven(4*0.05)=ceilToEven(0.2)=2 → final=6
+    it('should handle original=2 (below threshold, no extra)', () => {
+      // original=2 → base=4 → below threshold (base<20) → extra=0 → final=4
       const result = computeFinalCount(2, 2);
-      expect(result).toEqual({ base: 4, extra: 2, final: 6 });
+      expect(result).toEqual({ base: 4, extra: 0, final: 4 });
     });
 
-    it('should handle original=3', () => {
-      // original=3 → base=6 → extra=ceilToEven(6*0.05)=ceilToEven(0.3)=2 → final=8
+    it('should handle original=3 (below threshold, no extra)', () => {
+      // original=3 → base=6 → below threshold (base<20) → extra=0 → final=6
       const result = computeFinalCount(3, 2);
-      expect(result).toEqual({ base: 6, extra: 2, final: 8 });
+      expect(result).toEqual({ base: 6, extra: 0, final: 6 });
     });
 
     it('should handle original=25', () => {
@@ -217,11 +217,11 @@ describe('transformSizeCounts', () => {
 
     // T12: 10 → base=20 → extra=ceilToEven(1)=2 → final=22
     // T14: 15 → base=30 → extra=ceilToEven(1.5)=2 → final=32
-    // T16: 5 → base=10 → extra=ceilToEven(0.5)=2 → final=12
+    // T16: 5 → base=10 → below threshold (base<20) → extra=0 → final=10
     expect(result).toEqual({
       T12: 22,
       T14: 32,
-      T16: 12,
+      T16: 10,
     });
   });
 
@@ -304,10 +304,10 @@ describe('Edge cases and real-world scenarios', () => {
   });
 
   it('should handle single-digit counts', () => {
-    // Clothing: original=1
+    // Clothing: original=1 (below threshold, no extra)
     const clothing1 = computeFinalCount(1, 2);
-    // base=2, extra=ceilToEven(2*0.05)=ceilToEven(0.1)=2, final=4
-    expect(clothing1).toEqual({ base: 2, extra: 2, final: 4 });
+    // base=2, below threshold (base<20) → extra=0, final=2
+    expect(clothing1).toEqual({ base: 2, extra: 0, final: 2 });
 
     // Shoes: original=1
     const shoe1 = computeFinalCount(1, 1);
@@ -329,10 +329,10 @@ describe('Edge cases and real-world scenarios', () => {
 
 describe('Acta Recepcion Uniformes calculation pattern', () => {
   describe('computeFinalCount with multiplier=2 for uniform items', () => {
-    it('should compute for small group (5 students same camisa size)', () => {
-      // orig=5, base=10, extra=ceilToEven(10*0.05)=ceilToEven(0.5)=2, final=12
+    it('should compute for small group (5 students same camisa size, below threshold)', () => {
+      // orig=5, base=10, below threshold (base<20) → extra=0, final=10
       const result = computeFinalCount(5, 2);
-      expect(result).toEqual({ base: 10, extra: 2, final: 12 });
+      expect(result).toEqual({ base: 10, extra: 0, final: 10 });
     });
 
     it('should compute for medium group (15 students same pantalon size)', () => {

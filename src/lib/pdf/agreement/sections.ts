@@ -10,7 +10,7 @@ import path from 'path';
 import {
   computeFinalCount,
   getRestrictedSizeOrder,
-  ceilToEven,
+  computeClothingExtra,
 } from '@/lib/reports/vacios';
 import type { StudentQueryRow } from '@/types/database';
 import type { PDFDocumentInstance, SchoolGroup, SectionRenderContext } from './types';
@@ -512,7 +512,7 @@ export function renderFichaUniformesSection(ctx: SectionRenderContext): void {
     for (const size of camisaSizeOrder) {
       const base = rowBases[size] || 0;
       if (base > 0) {
-        const extra = ceilToEven(base * 0.05);
+        const extra = computeClothingExtra(base);
         const finalCount = base + extra;
         itemCounts.push({ tipo_talla: `${tipoKey} - ${size}`, cantidad: finalCount });
       }
@@ -559,7 +559,7 @@ export function renderFichaUniformesSection(ctx: SectionRenderContext): void {
     for (const size of camisaSizeOrder) {
       const base = rowBases[size] || 0;
       if (base > 0) {
-        const extra = ceilToEven(base * 0.05);
+        const extra = computeClothingExtra(base);
         const finalCount = base + extra;
         itemCounts.push({ tipo_talla: `${tipoKey} - ${size}`, cantidad: finalCount });
       }
@@ -1124,7 +1124,7 @@ export function renderActaRecepcionUniformesSection(ctx: SectionRenderContext): 
     for (const size of camisaSizeOrder) {
       const base = rowBases[size] || 0;
       if (base > 0) {
-        const extra = ceilToEven(base * 0.05);
+        const extra = computeClothingExtra(base);
         const finalCount = base + extra;
         itemCounts.push({ tipo_talla: `${tipoKey} - ${size}`, cantidad: finalCount });
       }
@@ -1168,7 +1168,7 @@ export function renderActaRecepcionUniformesSection(ctx: SectionRenderContext): 
     for (const size of camisaSizeOrder) {
       const base = rowBases[size] || 0;
       if (base > 0) {
-        const extra = ceilToEven(base * 0.05);
+        const extra = computeClothingExtra(base);
         const finalCount = base + extra;
         itemCounts.push({ tipo_talla: `${tipoKey} - ${size}`, cantidad: finalCount });
       }
