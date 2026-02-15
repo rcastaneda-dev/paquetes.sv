@@ -7,7 +7,6 @@ import { calculateUniformesTotalPiezas } from '@/lib/pdf/agreement/builders';
 import {
   CLOTHING_SIZE_ORDER,
   ceilToEven,
-  fillBaseGaps,
   getRestrictedSizeOrder,
 } from '@/lib/reports/vacios';
 
@@ -59,13 +58,12 @@ function computeRowFinals(
     rowBases[size] = allowedSet.has(size) ? base : 0;
   }
 
-  // Fill gaps in base
-  const filledBases = fillBaseGaps(restrictedSizes, rowBases);
+  // No gap filling — if real demand is zero, it stays zero
 
   // Final = base + vacios
   const finals: Record<string, number> = {};
   for (const size of sizeOrder) {
-    const base = filledBases[size] || 0;
+    const base = rowBases[size] || 0;
     if (base > 0) {
       finals[size] = base + ceilToEven(base * 0.06);
     } else {

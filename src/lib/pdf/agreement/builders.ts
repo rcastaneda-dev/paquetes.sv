@@ -24,8 +24,6 @@ import {
 import {
   ceilToEven,
   computeFinalCount,
-  fillBaseGaps,
-  fillSizeGaps,
   getRestrictedSizeOrder,
 } from '@/lib/reports/vacios';
 
@@ -131,9 +129,9 @@ export function calculateUniformesTotalPiezas(school: SchoolGroup): number {
       const base = orig * 2;
       rowBases[size] = allowedSet.has(size) ? base : 0;
     }
-    const filledBases = fillBaseGaps(restrictedSizes, rowBases);
+    // No gap filling — if real demand is zero, it stays zero
     for (const size of camisaSizeOrder) {
-      const base = filledBases[size] || 0;
+      const base = rowBases[size] || 0;
       if (base > 0) {
         const extra = ceilToEven(base * 0.06);
         totalPiezas += base + extra;
@@ -170,9 +168,9 @@ export function calculateUniformesTotalPiezas(school: SchoolGroup): number {
       const base = orig * 2;
       rowBases[size] = allowedSet.has(size) ? base : 0;
     }
-    const filledBases = fillBaseGaps(restrictedSizes, rowBases);
+    // No gap filling — if real demand is zero, it stays zero
     for (const size of camisaSizeOrder) {
-      const base = filledBases[size] || 0;
+      const base = rowBases[size] || 0;
       if (base > 0) {
         const extra = ceilToEven(base * 0.06);
         totalPiezas += base + extra;
@@ -210,8 +208,8 @@ export function calculateZapatosTotalPiezas(school: SchoolGroup): number {
     rowBases[size] = computed.base;
     rowFinals[size] = computed.final;
   }
-  const filled = fillSizeGaps(shoeSizes, rowBases, rowFinals);
-  for (const finalCount of Object.values(filled)) {
+  // No gap filling for shoes — only produce units for sizes with real demand
+  for (const finalCount of Object.values(rowFinals)) {
     totalPiezas += finalCount;
   }
 

@@ -10,8 +10,6 @@ import type { StudentQueryRow } from '@/types/database';
 import { addPageNumbers } from './page-numbers';
 import {
   computeFinalCount,
-  fillSizeGaps,
-  fillBaseGaps,
   getRestrictedSizeOrder,
   ceilToEven,
 } from '@/lib/reports/vacios';
@@ -231,13 +229,12 @@ export function generateCamisasPDF(options: AgreementReportOptions): PDFDocument
         rowBases[size] = allowedSet.has(size) ? base : 0;
       }
 
-      // Step 3: Fill gaps in base counts
-      const filledBases = fillBaseGaps(restrictedSizes, rowBases);
+      // No gap filling — if real demand is zero, it stays zero
 
       // Step 4 & 5: Compute extra and final counts
       const rowFinals: Record<string, number> = {};
       for (const size of sizes) {
-        const base = filledBases[size] || 0;
+        const base = rowBases[size] || 0;
         if (base > 0) {
           const extra = ceilToEven(base * 0.06);
           rowFinals[size] = base + extra;
@@ -441,13 +438,12 @@ export function generatePantalonesPDF(options: AgreementReportOptions): PDFDocum
         rowBases[size] = allowedSet.has(size) ? base : 0;
       }
 
-      // Step 3: Fill gaps in base counts
-      const filledBases = fillBaseGaps(restrictedSizes, rowBases);
+      // No gap filling — if real demand is zero, it stays zero
 
       // Step 4 & 5: Compute extra and final counts
       const rowFinals: Record<string, number> = {};
       for (const size of sizes) {
-        const base = filledBases[size] || 0;
+        const base = rowBases[size] || 0;
         if (base > 0) {
           const extra = ceilToEven(base * 0.06);
           rowFinals[size] = base + extra;
@@ -653,8 +649,8 @@ export function generateZapatosPDF(options: AgreementReportOptions): PDFDocument
         rowBases[size] = computed.base;
         rowFinals[size] = computed.final;
       }
-      const filled = fillSizeGaps(sizes, rowBases, rowFinals);
-      sexoFinalCounts.set(sexo, filled);
+      // No gap filling for shoes — only produce units for sizes with real demand
+      sexoFinalCounts.set(sexo, rowFinals);
     }
 
     for (const sexo of sexos) {
@@ -780,8 +776,8 @@ export function generateDayZapatosPDF(options: AgreementReportOptions): PDFDocum
         rowBases[size] = computed.base;
         rowFinals[size] = computed.final;
       }
-      const filled = fillSizeGaps(shoeSizes, rowBases, rowFinals);
-      return Object.values(filled).reduce((sum, count) => sum + count, 0);
+      // No gap filling for shoes — only produce units for sizes with real demand
+      return Object.values(rowFinals).reduce((sum, count) => sum + count, 0);
     };
 
     return calculateTotal(b) - calculateTotal(a);
@@ -846,9 +842,9 @@ export function generateDayZapatosPDF(options: AgreementReportOptions): PDFDocum
       rowBases[size] = computed.base;
       rowFinals[size] = computed.final;
     }
-    const filled = fillSizeGaps(shoeSizes, rowBases, rowFinals);
+    // No gap filling for shoes — only produce units for sizes with real demand
     for (const size of shoeSizes) {
-      const finalCount = filled[size] || 0;
+      const finalCount = rowFinals[size] || 0;
       if (finalCount > 0) {
         itemCounts.push({ talla: size, cantidad: finalCount });
       }
@@ -996,12 +992,11 @@ export function generateDayUniformesPDF(options: AgreementReportOptions): PDFDoc
           rowBases[size] = allowedSet.has(size) ? base : 0;
         }
 
-        // Step 3: Fill gaps in base counts
-        const filledBases = fillBaseGaps(restrictedSizes, rowBases);
+        // No gap filling — if real demand is zero, it stays zero
 
         // Step 4 & 5: Compute extra and final counts
         for (const size of camisaSizeOrder) {
-          const base = filledBases[size] || 0;
+          const base = rowBases[size] || 0;
           if (base > 0) {
             const extra = ceilToEven(base * 0.06);
             const finalCount = base + extra;
@@ -1042,12 +1037,11 @@ export function generateDayUniformesPDF(options: AgreementReportOptions): PDFDoc
           rowBases[size] = allowedSet.has(size) ? base : 0;
         }
 
-        // Step 3: Fill gaps in base counts
-        const filledBases = fillBaseGaps(restrictedSizes, rowBases);
+        // No gap filling — if real demand is zero, it stays zero
 
         // Step 4 & 5: Compute extra and final counts
         for (const size of camisaSizeOrder) {
-          const base = filledBases[size] || 0;
+          const base = rowBases[size] || 0;
           if (base > 0) {
             const extra = ceilToEven(base * 0.06);
             const finalCount = base + extra;
@@ -1140,12 +1134,11 @@ export function generateDayUniformesPDF(options: AgreementReportOptions): PDFDoc
         rowBases[size] = allowedSet.has(size) ? base : 0;
       }
 
-      // Step 3: Fill gaps in base counts
-      const filledBases = fillBaseGaps(restrictedSizes, rowBases);
+      // No gap filling — if real demand is zero, it stays zero
 
       // Step 4 & 5: Compute extra and final counts
       for (const size of camisaSizeOrder) {
-        const base = filledBases[size] || 0;
+        const base = rowBases[size] || 0;
         if (base > 0) {
           const extra = ceilToEven(base * 0.06);
           const finalCount = base + extra;
@@ -1186,12 +1179,11 @@ export function generateDayUniformesPDF(options: AgreementReportOptions): PDFDoc
         rowBases[size] = allowedSet.has(size) ? base : 0;
       }
 
-      // Step 3: Fill gaps in base counts
-      const filledBases = fillBaseGaps(restrictedSizes, rowBases);
+      // No gap filling — if real demand is zero, it stays zero
 
       // Step 4 & 5: Compute extra and final counts
       for (const size of camisaSizeOrder) {
-        const base = filledBases[size] || 0;
+        const base = rowBases[size] || 0;
         if (base > 0) {
           const extra = ceilToEven(base * 0.06);
           const finalCount = base + extra;

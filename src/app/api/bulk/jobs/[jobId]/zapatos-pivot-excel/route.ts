@@ -4,7 +4,7 @@ import { supabaseServer } from '@/lib/supabase/server';
 import type { StudentQueryRow } from '@/types/database';
 import { groupBySchool } from '@/lib/pdf/agreement/sections';
 import { calculateZapatosTotalPiezas } from '@/lib/pdf/agreement/builders';
-import { computeFinalCount, fillSizeGaps } from '@/lib/reports/vacios';
+import { computeFinalCount } from '@/lib/reports/vacios';
 
 const FILENAME = 'Zapatos_Acumulado_Editable.xlsx';
 const PAGE_SIZE = 1000;
@@ -20,8 +20,8 @@ for (let i = 23; i <= 45; i++) {
  * Compute per-size final counts for zapatos for a school.
  * Same logic as calculateZapatosTotalPiezas in builders.ts:
  *   1. Count originals per shoe size
- *   2. computeFinalCount(original, 1) → base + ceilToEven(base × 0.06)
- *   3. fillSizeGaps on final counts
+ *   2. computeFinalCount(original, 1) → base + ceil(base × 0.06)
+ *   No gap filling — sizes with zero demand stay zero
  */
 function computeZapatosRowFinals(students: StudentQueryRow[]): Record<string, number> {
   const zapatoTallaMap = new Map<string, number>();
@@ -41,7 +41,8 @@ function computeZapatosRowFinals(students: StudentQueryRow[]): Record<string, nu
     rowFinals[size] = computed.final;
   }
 
-  return fillSizeGaps(SHOE_SIZES, rowBases, rowFinals);
+  // No gap filling for shoes — only produce units for sizes with real demand
+  return rowFinals;
 }
 
 /**

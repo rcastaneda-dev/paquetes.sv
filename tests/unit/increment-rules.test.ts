@@ -173,29 +173,29 @@ describe('computeFinalCount', () => {
     });
   });
 
-  describe('Shoes (multiplier=1)', () => {
+  describe('Shoes (multiplier=1) — uses Math.ceil (not ceilToEven)', () => {
     it('should handle original=8', () => {
-      // original=8 → base=8 → extra=ceilToEven(8*0.06)=ceilToEven(0.48)=2 → final=10
+      // original=8 → base=8 → extra=ceil(8*0.06)=ceil(0.48)=1 → final=9
       const result = computeFinalCount(8, 1);
-      expect(result).toEqual({ base: 8, extra: 2, final: 10 });
+      expect(result).toEqual({ base: 8, extra: 1, final: 9 });
     });
 
     it('should handle original=12', () => {
-      // original=12 → base=12 → extra=ceilToEven(12*0.06)=ceilToEven(0.72)=2 → final=14
+      // original=12 → base=12 → extra=ceil(12*0.06)=ceil(0.72)=1 → final=13
       const result = computeFinalCount(12, 1);
-      expect(result).toEqual({ base: 12, extra: 2, final: 14 });
+      expect(result).toEqual({ base: 12, extra: 1, final: 13 });
     });
 
     it('should handle original=20', () => {
-      // original=20 → base=20 → extra=ceilToEven(20*0.06)=ceilToEven(1.2)=2 → final=22
+      // original=20 → base=20 → extra=ceil(20*0.06)=ceil(1.2)=2 → final=22
       const result = computeFinalCount(20, 1);
       expect(result).toEqual({ base: 20, extra: 2, final: 22 });
     });
 
     it('should handle original=4', () => {
-      // original=4 → base=4 → extra=ceilToEven(4*0.06)=ceilToEven(0.24)=2 → final=6
+      // original=4 → base=4 → extra=ceil(4*0.06)=ceil(0.24)=1 → final=5
       const result = computeFinalCount(4, 1);
-      expect(result).toEqual({ base: 4, extra: 2, final: 6 });
+      expect(result).toEqual({ base: 4, extra: 1, final: 5 });
     });
 
     it('should handle zero count', () => {
@@ -239,15 +239,15 @@ describe('transformSizeCounts', () => {
 
     const result = transformSizeCounts(originalCounts, 1);
 
-    // 25: 12 → base=12 → extra=2 → final=14
-    // 26: 10 → base=10 → extra=2 → final=12
+    // 25: 12 → base=12 → extra=ceil(0.72)=1 → final=13
+    // 26: 10 → base=10 → extra=ceil(0.6)=1 → final=11
     // 27: 0 → base=0 → extra=0 → final=0
-    // 28: 2 → base=2 → extra=2 → final=4
+    // 28: 2 → base=2 → extra=ceil(0.12)=1 → final=3
     expect(result).toEqual({
-      '25': 14,
-      '26': 12,
+      '25': 13,
+      '26': 11,
       '27': 0,
-      '28': 4,
+      '28': 3,
     });
   });
 });
@@ -295,7 +295,7 @@ describe('Edge cases and real-world scenarios', () => {
 
     // Large shoe count
     const shoeResult = computeFinalCount(100, 1);
-    // base=100, extra=ceilToEven(100*0.06)=ceilToEven(6)=6, final=106
+    // base=100, extra=ceil(100*0.06)=ceil(6)=6, final=106
     expect(shoeResult).toEqual({ base: 100, extra: 6, final: 106 });
   });
 
@@ -307,8 +307,8 @@ describe('Edge cases and real-world scenarios', () => {
 
     // Shoes: original=1
     const shoe1 = computeFinalCount(1, 1);
-    // base=1, extra=ceilToEven(1*0.06)=ceilToEven(0.06)=2, final=3
-    expect(shoe1).toEqual({ base: 1, extra: 2, final: 3 });
+    // base=1, extra=ceil(1*0.06)=ceil(0.06)=1, final=2
+    expect(shoe1).toEqual({ base: 1, extra: 1, final: 2 });
   });
 
   it('should maintain consistency across multiple transformations', () => {

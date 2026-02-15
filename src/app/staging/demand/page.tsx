@@ -6,39 +6,29 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 
-const REQUIRED_COLUMNS = [
-  'CODIGO_CE',
-  'NOMBRE_CE',
-  'DEPARTAMENTO',
-  'MUNICIPIO',
-  'DISTRITO',
-  'DIRECCION',
-  'ZONA',
-  'NIE',
-  'GRADO',
-  'GRADO OK',
-  'SEXO',
-  'EDAD',
-  'CAMISA',
-  'TIPO_DE_CAMISA',
-  'PANTALON/FALDA',
-  'T_PANTALON_FALDA_SHORT',
-  'ZAPATO',
-  'NOMBRE_ESTUDIANTE',
-  'FECHA_INICIO',
-  'DIFICIL_ACCESO',
-  'TRANSPORTE',
+const REQUIRED_COLUMNS = ['CODIGO', 'ITEM', 'TIPO', 'CATEGORIA', 'CANTIDAD'];
+
+const ALL_COLUMNS = [
+  'NRO',
+  'CODIGO',
+  'NOMBRE DE CENTRO ESCOLAR',
+  'TAMAÑO',
+  'MATRICULA',
+  'ITEM',
+  'TIPO',
+  'CATEGORIA',
+  'CANTIDAD',
 ];
 
-const CHUNK_SIZE = 1000; // rows per chunk
+const CHUNK_SIZE = 1000;
 
 interface UploadResult {
   success: boolean;
-  data?: { schools: number; students: number; sizes: number; stagingRows: number };
+  data?: { schools: number; demand_rows: number; stagingRows: number };
   error?: string;
 }
 
-export default function StagingPage() {
+export default function DemandStagingPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [progress, setProgress] = useState('');
   const [result, setResult] = useState<UploadResult | null>(null);
@@ -60,7 +50,7 @@ export default function StagingPage() {
 
     try {
       const text = await file.text();
-      const lines = text.split(/\r?\n/).filter(line => line.trim() !== '');
+      const lines = text.split(/\r?\n/).filter((line) => line.trim() !== '');
 
       if (lines.length < 2) {
         setResult({ success: false, error: 'El archivo CSV no contiene registros.' });
@@ -70,14 +60,14 @@ export default function StagingPage() {
 
       const header = lines[0];
 
-      // Validate columns from header
+      // Validate required columns
       const delimiter = header.includes(';') ? ';' : ',';
-      const columns = header.split(delimiter).map(c => c.replace(/^"|"$/g, '').trim());
-      const missing = REQUIRED_COLUMNS.filter(col => !columns.includes(col));
+      const columns = header.split(delimiter).map((c) => c.replace(/^"|"$/g, '').trim());
+      const missing = REQUIRED_COLUMNS.filter((col) => !columns.includes(col));
       if (missing.length > 0) {
         setResult({
           success: false,
-          error: `Columnas faltantes: ${missing.join(', ')}`,
+          error: `Columnas requeridas faltantes: ${missing.join(', ')}`,
         });
         setIsUploading(false);
         return;
@@ -89,7 +79,7 @@ export default function StagingPage() {
 
       // Step 1: Truncate staging table
       setProgress('Limpiando tabla staging...');
-      const truncateRes = await fetch('/api/staging', {
+      const truncateRes = await fetch('/api/staging/demand', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'truncate' }),
@@ -112,7 +102,7 @@ export default function StagingPage() {
           `Insertando lote ${i + 1} de ${totalChunks} (${insertedTotal.toLocaleString()} / ${totalRows.toLocaleString()} filas)...`
         );
 
-        const insertRes = await fetch('/api/staging', {
+        const insertRes = await fetch('/api/staging/demand', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: 'insert', csvChunk, header, delimiter }),
@@ -131,7 +121,7 @@ export default function StagingPage() {
 
       // Step 3: Run migration
       setProgress('Ejecutando migración de datos...');
-      const migrateRes = await fetch('/api/staging', {
+      const migrateRes = await fetch('/api/staging/demand', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'migrate' }),
@@ -161,7 +151,7 @@ export default function StagingPage() {
   return (
     <div className="container mx-auto max-w-2xl px-4 py-8">
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Cargar Datos CSV</h1>
+        <h1 className="text-2xl font-bold">Cargar Base de Datos Normalizada</h1>
         <Link href="/">
           <Button variant="outline" size="sm">
             Volver al inicio
@@ -171,19 +161,26 @@ export default function StagingPage() {
 
       {/* Navigation tabs */}
       <div className="mb-4 flex gap-2">
-        <Button variant="primary" size="sm" disabled>
-          Datos por Estudiante
-        </Button>
-        <Link href="/staging/demand">
+        <Link href="/staging">
           <Button variant="outline" size="sm">
-            Base de Datos Normalizada
+            Datos por Estudiante
           </Button>
         </Link>
+        <Button variant="primary" size="sm" disabled>
+          Base de Datos Normalizada
+        </Button>
+        <div className="ml-auto">
+          <Link href="/reports/demand">
+            <Button variant="outline" size="sm">
+              Reportes de Demanda
+            </Button>
+          </Link>
+        </div>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Importar archivo CSV</CardTitle>
+          <CardTitle>Importar CSV normalizado</CardTitle>
         </CardHeader>
         <CardContent>
           <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
@@ -201,9 +198,9 @@ export default function StagingPage() {
                 className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 file:mr-4 file:rounded-md file:border-0 file:bg-blue-50 file:px-4 file:py-2 file:text-sm file:font-medium file:text-blue-700 hover:file:bg-blue-100 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
               />
               <p className="mt-1 text-xs text-gray-500">
-                El archivo debe contener las 21 columnas requeridas.{' '}
+                El archivo debe contener las columnas: {REQUIRED_COLUMNS.join(', ')}.{' '}
                 <a
-                  href="/sample-staging.csv"
+                  href="/sample-demand.csv"
                   download
                   className="font-medium text-blue-600 underline hover:text-blue-800 dark:text-blue-400"
                 >
@@ -212,10 +209,14 @@ export default function StagingPage() {
               </p>
             </div>
 
+            <div className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-200">
+              <strong>Formato esperado:</strong> CSV con 9 columnas ({ALL_COLUMNS.join(', ')}). Las
+              cantidades se usan tal cual — sin multiplicadores ni cálculos de vacíos.
+            </div>
+
             <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">
-              <strong>Advertencia:</strong> Este proceso reemplazará todos los datos existentes de
-              escuelas, estudiantes y tallas. Asegúrate de que el archivo CSV esté completo y
-              correcto.
+              <strong>Advertencia:</strong> Este proceso reemplazará todos los datos de demanda
+              existentes. Las escuelas se actualizarán sin afectar los datos de estudiantes.
             </div>
 
             <Button type="submit" disabled={isUploading} className="w-full">
@@ -251,15 +252,16 @@ export default function StagingPage() {
                 <dd className="font-mono font-medium text-gray-900 dark:text-gray-100">
                   {result.data.schools.toLocaleString()}
                 </dd>
-                <dt className="text-gray-500 dark:text-gray-400">Estudiantes cargados:</dt>
+                <dt className="text-gray-500 dark:text-gray-400">Filas de demanda:</dt>
                 <dd className="font-mono font-medium text-gray-900 dark:text-gray-100">
-                  {result.data.students.toLocaleString()}
-                </dd>
-                <dt className="text-gray-500 dark:text-gray-400">Tallas registradas:</dt>
-                <dd className="font-mono font-medium text-gray-900 dark:text-gray-100">
-                  {result.data.sizes.toLocaleString()}
+                  {result.data.demand_rows.toLocaleString()}
                 </dd>
               </dl>
+              <Link href="/reports/demand">
+                <Button variant="primary" className="mt-4 w-full">
+                  Ver Reportes de Demanda
+                </Button>
+              </Link>
             </div>
           )}
         </CardContent>

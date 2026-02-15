@@ -1,0 +1,427 @@
+/**
+ * Demand-based Word (.docx) generators for Acta de Recepción reports.
+ *
+ * Replicates the same visual layout as the PDF generators but outputs
+ * .docx format using the 'docx' npm package. Quantities from school_demand
+ * are used as-is — no vacíos calculations.
+ */
+import fs from 'fs';
+import path from 'path';
+import {
+  Document,
+  Packer,
+  Paragraph,
+  Table,
+  TableRow,
+  TableCell,
+  TextRun,
+  WidthType,
+  AlignmentType,
+  BorderStyle,
+  ImageRun,
+  PageOrientation,
+  SectionType,
+  HeadingLevel,
+  TableLayoutType,
+} from 'docx';
+import type { DemandRow, SchoolDemandGroup } from '@/types/database';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+function groupDemandBySchool(rows: DemandRow[]): SchoolDemandGroup[] {
+  const map = new Map<string, SchoolDemandGroup>();
+
+  for (const row of rows) {
+    if (!map.has(row.school_codigo_ce)) {
+      map.set(row.school_codigo_ce, {
+        codigo_ce: row.school_codigo_ce,
+        nombre_ce: row.nombre_ce,
+        rows: [],
+      });
+    }
+    map.get(row.school_codigo_ce)!.rows.push(row);
+  }
+
+  return Array.from(map.values()).sort((a, b) => {
+    const totalA = a.rows.reduce((s, r) => s + r.cantidad, 0);
+    const totalB = b.rows.reduce((s, r) => s + r.cantidad, 0);
+    return totalB - totalA;
+  });
+}
+
+function getLogoImageRun(): ImageRun | null {
+  const logoPath = path.join(process.cwd(), 'public', 'goes_logo_2.png');
+  if (!fs.existsSync(logoPath)) return null;
+  const data = fs.readFileSync(logoPath);
+  return new ImageRun({ data, transformation: { width: 50, height: 50 }, type: 'png' });
+}
+
+function createTitleParagraph(title: string): Paragraph {
+  return new Paragraph({
+    alignment: AlignmentType.CENTER,
+    spacing: { after: 200 },
+    children: [new TextRun({ text: title, bold: true, size: 26, font: 'Arial' })],
+  });
+}
+
+function createSchoolHeader(school: SchoolDemandGroup): Paragraph[] {
+  return [
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      children: [
+        new TextRun({
+          text: school.nombre_ce.toUpperCase(),
+          bold: true,
+          size: 22,
+          font: 'Arial',
+        }),
+      ],
+    }),
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { after: 200 },
+      children: [
+        new TextRun({
+          text: `CODIGO: ${school.codigo_ce.toUpperCase()}`,
+          bold: true,
+          size: 22,
+          font: 'Arial',
+        }),
+      ],
+    }),
+  ];
+}
+
+function createPreTableFields(): Paragraph[] {
+  const fieldStyle = { size: 18, font: 'Arial' };
+  return [
+    new Paragraph({
+      spacing: { after: 100 },
+      children: [new TextRun({ text: 'DATOS DE LOS PRODUCTOS', bold: true, size: 22, font: 'Arial' })],
+    }),
+    new Paragraph({
+      spacing: { after: 60 },
+      children: [new TextRun({ text: 'Fecha: ________________________________', ...fieldStyle })],
+    }),
+    new Paragraph({
+      spacing: { after: 60 },
+      children: [new TextRun({ text: 'Hora: ________________________________', ...fieldStyle })],
+    }),
+    new Paragraph({
+      spacing: { after: 200 },
+      children: [new TextRun({ text: 'Bodega: ________________________________', ...fieldStyle })],
+    }),
+  ];
+}
+
+function createTransportFooter(): Paragraph[] {
+  const fieldStyle = { size: 18, font: 'Arial' };
+  return [
+    new Paragraph({
+      spacing: { before: 400, after: 100 },
+      children: [new TextRun({ text: 'DATOS DEL TRANSPORTE', bold: true, size: 22, font: 'Arial' })],
+    }),
+    new Paragraph({
+      spacing: { after: 60 },
+      children: [new TextRun({ text: 'Nombre del conductor: ________________________________', ...fieldStyle })],
+    }),
+    new Paragraph({
+      spacing: { after: 60 },
+      children: [new TextRun({ text: 'Número de placa: ________________________________', ...fieldStyle })],
+    }),
+    new Paragraph({
+      spacing: { after: 60 },
+      children: [new TextRun({ text: 'Número de contacto: ________________________________', ...fieldStyle })],
+    }),
+    new Paragraph({
+      spacing: { after: 60 },
+      children: [new TextRun({ text: 'Firma del conductor: ________________________________', ...fieldStyle })],
+    }),
+    new Paragraph({
+      spacing: { after: 60 },
+      children: [
+        new TextRun({
+          text: 'Firma y Nombre del Encargado del Despacho: ________________________________',
+          ...fieldStyle,
+        }),
+      ],
+    }),
+    new Paragraph({
+      spacing: { after: 60 },
+      children: [
+        new TextRun({
+          text: 'Firma y Nombre del Encargado del Centro Educativo: ________________________________',
+          ...fieldStyle,
+        }),
+      ],
+    }),
+  ];
+}
+
+const CELL_BORDERS = {
+  top: { style: BorderStyle.SINGLE, size: 1 },
+  bottom: { style: BorderStyle.SINGLE, size: 1 },
+  left: { style: BorderStyle.SINGLE, size: 1 },
+  right: { style: BorderStyle.SINGLE, size: 1 },
+};
+
+function headerCell(text: string, width: number): TableCell {
+  return new TableCell({
+    width: { size: width, type: WidthType.DXA },
+    borders: CELL_BORDERS,
+    children: [
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        children: [new TextRun({ text, bold: true, size: 20, font: 'Arial' })],
+      }),
+    ],
+  });
+}
+
+function dataCell(text: string, width: number, bold = false): TableCell {
+  return new TableCell({
+    width: { size: width, type: WidthType.DXA },
+    borders: CELL_BORDERS,
+    children: [
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        children: [new TextRun({ text, bold, size: 18, font: 'Arial' })],
+      }),
+    ],
+  });
+}
+
+function emptyCell(width: number): TableCell {
+  return new TableCell({
+    width: { size: width, type: WidthType.DXA },
+    borders: CELL_BORDERS,
+    children: [new Paragraph({})],
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Cajas Word
+// ─────────────────────────────────────────────────────────────────────────────
+
+function buildCajasSection(school: SchoolDemandGroup): (Paragraph | Table)[] {
+  const cajasRows = school.rows
+    .filter((r) => r.item === 'CAJAS')
+    .sort((a, b) => a.categoria.localeCompare(b.categoria));
+
+  const totalCantidad = cajasRows.reduce((sum, r) => sum + r.cantidad, 0);
+
+  const COL1 = 4000;
+  const COL2 = 1600;
+  const COL3 = 4000;
+
+  const tableRows = [
+    new TableRow({
+      children: [headerCell('GRADO', COL1), headerCell('CANTIDAD', COL2), headerCell('COMENTARIOS/OBSERVACIONES', COL3)],
+    }),
+    ...cajasRows.map(
+      (row) =>
+        new TableRow({
+          children: [dataCell(row.categoria, COL1), dataCell(row.cantidad.toString(), COL2), emptyCell(COL3)],
+        })
+    ),
+    new TableRow({
+      children: [dataCell('TOTAL', COL1, true), dataCell(totalCantidad.toString(), COL2, true), emptyCell(COL3)],
+    }),
+  ];
+
+  const table = new Table({
+    layout: TableLayoutType.FIXED,
+    rows: tableRows,
+  });
+
+  const logo = getLogoImageRun();
+  const elements: (Paragraph | Table)[] = [];
+
+  if (logo) {
+    elements.push(
+      new Paragraph({ alignment: AlignmentType.RIGHT, children: [logo] })
+    );
+  }
+
+  elements.push(
+    createTitleParagraph('ACTA DE RECEPCIÓN (CAJAS)'),
+    ...createSchoolHeader(school),
+    ...createPreTableFields(),
+    table,
+    ...createTransportFooter()
+  );
+
+  return elements;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Uniformes Word
+// ─────────────────────────────────────────────────────────────────────────────
+
+function buildUniformesSection(school: SchoolDemandGroup): (Paragraph | Table)[] {
+  const uniformeRows = school.rows
+    .filter((r) => r.item === 'UNIFORMES')
+    .sort((a, b) => {
+      const tipoCompare = a.tipo.localeCompare(b.tipo);
+      if (tipoCompare !== 0) return tipoCompare;
+      return a.categoria.localeCompare(b.categoria);
+    });
+
+  const totalCantidad = uniformeRows.reduce((sum, r) => sum + r.cantidad, 0);
+
+  const COL1 = 4000;
+  const COL2 = 1600;
+  const COL3 = 4000;
+
+  const tableRows = [
+    new TableRow({
+      children: [headerCell('TIPO/TALLA', COL1), headerCell('CANTIDAD', COL2), headerCell('COMENTARIOS/OBSERVACIONES', COL3)],
+    }),
+    ...uniformeRows.map(
+      (row) =>
+        new TableRow({
+          children: [
+            dataCell(`${row.tipo} - ${row.categoria}`, COL1),
+            dataCell(row.cantidad.toString(), COL2),
+            emptyCell(COL3),
+          ],
+        })
+    ),
+    new TableRow({
+      children: [dataCell('TOTAL', COL1, true), dataCell(totalCantidad.toString(), COL2, true), emptyCell(COL3)],
+    }),
+  ];
+
+  const table = new Table({
+    layout: TableLayoutType.FIXED,
+    rows: tableRows,
+  });
+
+  const logo = getLogoImageRun();
+  const elements: (Paragraph | Table)[] = [];
+
+  if (logo) {
+    elements.push(
+      new Paragraph({ alignment: AlignmentType.RIGHT, children: [logo] })
+    );
+  }
+
+  elements.push(
+    createTitleParagraph('ACTA DE RECEPCIÓN (UNIFORMES)'),
+    ...createSchoolHeader(school),
+    ...createPreTableFields(),
+    table,
+    ...createTransportFooter()
+  );
+
+  return elements;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Zapatos Word
+// ─────────────────────────────────────────────────────────────────────────────
+
+function buildZapatosSection(school: SchoolDemandGroup): (Paragraph | Table)[] {
+  const zapatosRows = school.rows
+    .filter((r) => r.item === 'ZAPATOS')
+    .sort((a, b) => {
+      const numA = parseInt(a.categoria, 10) || 0;
+      const numB = parseInt(b.categoria, 10) || 0;
+      return numA - numB;
+    });
+
+  const totalCantidad = zapatosRows.reduce((sum, r) => sum + r.cantidad, 0);
+
+  const COL1 = 1200;
+  const COL2 = 1600;
+  const COL3 = 6800;
+
+  const tableRows = [
+    new TableRow({
+      children: [headerCell('TALLA', COL1), headerCell('CANTIDAD', COL2), headerCell('COMENTARIOS/OBSERVACIONES', COL3)],
+    }),
+    ...zapatosRows.map(
+      (row) =>
+        new TableRow({
+          children: [dataCell(row.categoria, COL1), dataCell(row.cantidad.toString(), COL2), emptyCell(COL3)],
+        })
+    ),
+    new TableRow({
+      children: [dataCell('TOTAL', COL1, true), dataCell(totalCantidad.toString(), COL2, true), emptyCell(COL3)],
+    }),
+  ];
+
+  const table = new Table({
+    layout: TableLayoutType.FIXED,
+    rows: tableRows,
+  });
+
+  const logo = getLogoImageRun();
+  const elements: (Paragraph | Table)[] = [];
+
+  if (logo) {
+    elements.push(
+      new Paragraph({ alignment: AlignmentType.RIGHT, children: [logo] })
+    );
+  }
+
+  elements.push(
+    createTitleParagraph('ACTA DE RECEPCIÓN (ZAPATOS)'),
+    ...createSchoolHeader(school),
+    ...createPreTableFields(),
+    table,
+    ...createTransportFooter()
+  );
+
+  return elements;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Public generator functions
+// ─────────────────────────────────────────────────────────────────────────────
+
+type SectionBuilder = (school: SchoolDemandGroup) => (Paragraph | Table)[];
+
+async function buildDemandWord(
+  demandRows: DemandRow[],
+  sectionBuilder: SectionBuilder
+): Promise<Buffer> {
+  const schools = groupDemandBySchool(demandRows);
+
+  const sections = schools.map((school, idx) => ({
+    properties: {
+      type: idx === 0 ? undefined : SectionType.NEXT_PAGE,
+      page: {
+        size: { orientation: PageOrientation.PORTRAIT },
+        margin: { top: 720, bottom: 720, left: 540, right: 540 },
+      },
+    },
+    children: sectionBuilder(school),
+  }));
+
+  const doc = new Document({ sections });
+  return Buffer.from(await Packer.toBuffer(doc));
+}
+
+/** Generate Acta de Recepción de Cajas Word document from demand data */
+export async function generateActaRecepcionCajasWord(
+  demandRows: DemandRow[]
+): Promise<Buffer> {
+  return buildDemandWord(demandRows, buildCajasSection);
+}
+
+/** Generate Acta de Recepción de Uniformes Word document from demand data */
+export async function generateActaRecepcionUniformesWord(
+  demandRows: DemandRow[]
+): Promise<Buffer> {
+  return buildDemandWord(demandRows, buildUniformesSection);
+}
+
+/** Generate Acta de Recepción de Zapatos Word document from demand data */
+export async function generateActaRecepcionZapatosWord(
+  demandRows: DemandRow[]
+): Promise<Buffer> {
+  return buildDemandWord(demandRows, buildZapatosSection);
+}

@@ -9,8 +9,6 @@ import fs from 'fs';
 import path from 'path';
 import {
   computeFinalCount,
-  fillSizeGaps,
-  fillBaseGaps,
   getRestrictedSizeOrder,
   ceilToEven,
 } from '@/lib/reports/vacios';
@@ -512,11 +510,11 @@ export function renderFichaUniformesSection(ctx: SectionRenderContext): void {
     }
 
     // Step 3: Fill gaps in base counts
-    const filledBases = fillBaseGaps(restrictedSizes, rowBases);
+    // No gap filling — if real demand is zero, it stays zero
 
     // Step 4 & 5: Compute extra (vacíos) and final counts
     for (const size of camisaSizeOrder) {
-      const base = filledBases[size] || 0;
+      const base = rowBases[size] || 0;
       if (base > 0) {
         const extra = ceilToEven(base * 0.06);
         const finalCount = base + extra;
@@ -559,11 +557,11 @@ export function renderFichaUniformesSection(ctx: SectionRenderContext): void {
     }
 
     // Step 3: Fill gaps in base counts
-    const filledBases = fillBaseGaps(restrictedSizes, rowBases);
+    // No gap filling — if real demand is zero, it stays zero
 
     // Step 4 & 5: Compute extra (vacíos) and final counts
     for (const size of camisaSizeOrder) {
-      const base = filledBases[size] || 0;
+      const base = rowBases[size] || 0;
       if (base > 0) {
         const extra = ceilToEven(base * 0.06);
         const finalCount = base + extra;
@@ -750,9 +748,9 @@ export function renderFichaZapatosSection(ctx: SectionRenderContext): void {
     rowBases[size] = computed.base;
     rowFinals[size] = computed.final;
   }
-  const filled = fillSizeGaps(shoeSizes, rowBases, rowFinals);
+  // No gap filling for shoes — only produce units for sizes with real demand
   for (const size of shoeSizes) {
-    const finalCount = filled[size] || 0;
+    const finalCount = rowFinals[size] || 0;
     if (finalCount > 0) {
       itemCounts.push({ talla: size, cantidad: finalCount });
     }
@@ -920,7 +918,7 @@ export function renderActaRecepcionZapatosSection(ctx: SectionRenderContext): vo
     actaRowBases[size] = computed.base;
     actaRowFinals[size] = computed.final;
   }
-  const actaFilled = fillSizeGaps(shoeSizes, actaRowBases, actaRowFinals);
+  // No gap filling for shoes — only produce units for sizes with real demand
 
   interface ActaTallaRow {
     talla: string;
@@ -929,7 +927,7 @@ export function renderActaRecepcionZapatosSection(ctx: SectionRenderContext): vo
 
   const tallaRows: ActaTallaRow[] = [];
   for (const size of shoeSizes) {
-    const finalCount = actaFilled[size] || 0;
+    const finalCount = actaRowFinals[size] || 0;
     if (finalCount > 0) {
       tallaRows.push({ talla: size, cantidad: finalCount });
     }
@@ -1125,10 +1123,10 @@ export function renderActaRecepcionUniformesSection(ctx: SectionRenderContext): 
       rowBases[size] = allowedSet.has(size) ? base : 0;
     }
 
-    const filledBases = fillBaseGaps(restrictedSizes, rowBases);
+    // No gap filling — if real demand is zero, it stays zero
 
     for (const size of camisaSizeOrder) {
-      const base = filledBases[size] || 0;
+      const base = rowBases[size] || 0;
       if (base > 0) {
         const extra = ceilToEven(base * 0.06);
         const finalCount = base + extra;
@@ -1169,10 +1167,10 @@ export function renderActaRecepcionUniformesSection(ctx: SectionRenderContext): 
       rowBases[size] = allowedSet.has(size) ? base : 0;
     }
 
-    const filledBases = fillBaseGaps(restrictedSizes, rowBases);
+    // No gap filling — if real demand is zero, it stays zero
 
     for (const size of camisaSizeOrder) {
-      const base = filledBases[size] || 0;
+      const base = rowBases[size] || 0;
       if (base > 0) {
         const extra = ceilToEven(base * 0.06);
         const finalCount = base + extra;

@@ -135,3 +135,22 @@ export interface BatchProgress {
   jobs_complete: number;
   jobs_failed: number;
 }
+
+// Normalized demand pipeline types
+
+/** A single demand row from school_demand joined with school name */
+export interface DemandRow {
+  school_codigo_ce: string;
+  nombre_ce: string;
+  item: string;       // 'CAJAS' | 'UNIFORMES' | 'ZAPATOS'
+  tipo: string;       // 'CAJAS', 'CAMISA BLANCA', 'ZAPATOS', etc.
+  categoria: string;  // grade name or size
+  cantidad: number;
+}
+
+/** School group for demand-based reports (analogous to SchoolGroup for student-level) */
+export interface SchoolDemandGroup {
+  codigo_ce: string;
+  nombre_ce: string;
+  rows: DemandRow[];
+}

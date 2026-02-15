@@ -73,52 +73,13 @@ function computeFinalCount(
   multiplier: 1 | 2
 ): { base: number; extra: number; final: number } {
   const base = original * multiplier;
-  const extra = ceilToEven(base * 0.06);
+  // Shoes (multiplier=1): round up to nearest integer
+  // Clothing (multiplier=2): round up to nearest even number
+  const extra = multiplier === 1
+    ? (base > 0 ? Math.ceil(base * 0.06) : 0)
+    : ceilToEven(base * 0.06);
   const final = base + extra;
   return { base, extra, final };
-}
-
-function fillBaseGaps(
-  orderedSizes: string[],
-  baseCounts: Record<string, number>
-): Record<string, number> {
-  const result = { ...baseCounts };
-
-  for (let n = 0; n < orderedSizes.length - 1; n++) {
-    const size = orderedSizes[n];
-    const currentBase = result[size] || 0;
-    if (currentBase > 0) continue;
-
-    const nextSize = orderedSizes[n + 1];
-    const nextBase = result[nextSize] || 0;
-    if (nextBase > 0) {
-      result[size] = ceilToEven(nextBase / 2);
-    }
-  }
-
-  return result;
-}
-
-function fillSizeGaps(
-  orderedSizes: string[],
-  baseCounts: Record<string, number>,
-  finalCounts: Record<string, number>
-): Record<string, number> {
-  const result = { ...finalCounts };
-
-  for (let n = 0; n < orderedSizes.length - 1; n++) {
-    const size = orderedSizes[n];
-    const currentFinal = result[size] || 0;
-    if (currentFinal > 0) continue;
-
-    const nextSize = orderedSizes[n + 1];
-    const nextBase = baseCounts[nextSize] || 0;
-    if (nextBase > 0) {
-      result[size] = ceilToEven(nextBase / 2);
-    }
-  }
-
-  return result;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -509,11 +470,11 @@ function renderFichaUniformesSection(ctx: SectionRenderContext): void {
     }
 
     // Step 3: Fill gaps in base counts
-    const filledBases = fillBaseGaps(camisaSizeOrder, rowBases);
+    // No gap filling — if real demand is zero, it stays zero
 
     // Step 4 & 5: Compute extra and final counts
     for (const size of camisaSizeOrder) {
-      const base = filledBases[size] || 0;
+      const base = rowBases[size] || 0;
       if (base > 0) {
         const extra = ceilToEven(base * 0.06);
         const finalCount = base + extra;
@@ -547,11 +508,11 @@ function renderFichaUniformesSection(ctx: SectionRenderContext): void {
     }
 
     // Step 3: Fill gaps in base counts
-    const filledBases = fillBaseGaps(camisaSizeOrder, rowBases);
+    // No gap filling — if real demand is zero, it stays zero
 
     // Step 4 & 5: Compute extra and final counts
     for (const size of camisaSizeOrder) {
-      const base = filledBases[size] || 0;
+      const base = rowBases[size] || 0;
       if (base > 0) {
         const extra = ceilToEven(base * 0.06);
         const finalCount = base + extra;
@@ -737,9 +698,9 @@ function renderFichaZapatosSection(ctx: SectionRenderContext): void {
     rowBases[size] = computed.base;
     rowFinals[size] = computed.final;
   }
-  const filled = fillSizeGaps(shoeSizes, rowBases, rowFinals);
+  // No gap filling for shoes — only produce units for sizes with real demand
   for (const size of shoeSizes) {
-    const finalCount = filled[size] || 0;
+    const finalCount = rowFinals[size] || 0;
     if (finalCount > 0) {
       itemCounts.push({ talla: size, cantidad: finalCount });
     }

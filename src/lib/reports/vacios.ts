@@ -139,7 +139,11 @@ export function computeFinalCount(
   multiplier: 1 | 2
 ): { base: number; extra: number; final: number } {
   const base = original * multiplier;
-  const extra = ceilToEven(base * 0.06);
+  // Shoes (multiplier=1): round up to nearest integer
+  // Clothing (multiplier=2): round up to nearest even number
+  const extra = multiplier === 1
+    ? (base > 0 ? Math.ceil(base * 0.06) : 0)
+    : ceilToEven(base * 0.06);
   const final = base + extra;
 
   return { base, extra, final };
