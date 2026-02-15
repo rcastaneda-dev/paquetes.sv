@@ -20,7 +20,7 @@ for (let i = 23; i <= 45; i++) {
  * Compute per-size final counts for zapatos for a school.
  * Same logic as calculateZapatosTotalPiezas in builders.ts:
  *   1. Count originals per shoe size
- *   2. computeFinalCount(original, 1) → base + ceil(base × 0.06)
+ *   2. computeFinalCount(original, 1) → base + ceil(base × 0.05)
  *   No gap filling — sizes with zero demand stay zero
  */
 function computeZapatosRowFinals(students: StudentQueryRow[]): Record<string, number> {

@@ -76,8 +76,8 @@ function computeFinalCount(
   // Shoes (multiplier=1): round up to nearest integer
   // Clothing (multiplier=2): round up to nearest even number
   const extra = multiplier === 1
-    ? (base > 0 ? Math.ceil(base * 0.06) : 0)
-    : ceilToEven(base * 0.06);
+    ? (base > 0 ? Math.ceil(base * 0.05) : 0)
+    : ceilToEven(base * 0.05);
   const final = base + extra;
   return { base, extra, final };
 }
@@ -303,13 +303,9 @@ function renderCajasSection(ctx: SectionRenderContext): void {
   for (const grade of grades) {
     const counts = gradeMap.get(grade)!;
 
-    // Apply conditional increment based on student count per gender
-    // If zero students, no boxes needed
-    const incrementH = counts.hombres > 15 ? 1.06 : 1.15;
-    const incrementM = counts.mujeres > 15 ? 1.06 : 1.15;
-
-    const cajasHombres = counts.hombres === 0 ? 0 : Math.ceil(counts.hombres * incrementH);
-    const cajasMujeres = counts.mujeres === 0 ? 0 : Math.ceil(counts.mujeres * incrementM);
+    // Apply flat 5% increment per gender. If zero students, no boxes needed.
+    const cajasHombres = counts.hombres === 0 ? 0 : Math.ceil(counts.hombres * 1.05);
+    const cajasMujeres = counts.mujeres === 0 ? 0 : Math.ceil(counts.mujeres * 1.05);
     const cajasTotales = cajasHombres + cajasMujeres;
 
     // Store for subtotal calculation
@@ -476,7 +472,7 @@ function renderFichaUniformesSection(ctx: SectionRenderContext): void {
     for (const size of camisaSizeOrder) {
       const base = rowBases[size] || 0;
       if (base > 0) {
-        const extra = ceilToEven(base * 0.06);
+        const extra = ceilToEven(base * 0.05);
         const finalCount = base + extra;
         itemCounts.push({ tipo_talla: `${tipoKey} - ${size}`, cantidad: finalCount });
       }
@@ -514,7 +510,7 @@ function renderFichaUniformesSection(ctx: SectionRenderContext): void {
     for (const size of camisaSizeOrder) {
       const base = rowBases[size] || 0;
       if (base > 0) {
-        const extra = ceilToEven(base * 0.06);
+        const extra = ceilToEven(base * 0.05);
         const finalCount = base + extra;
         itemCounts.push({ tipo_talla: `${tipoKey} - ${size}`, cantidad: finalCount });
       }

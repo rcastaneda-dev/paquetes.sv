@@ -4,9 +4,9 @@
  * This module computes the final size frequencies for agreement reports.
  * The transformation follows these rules:
  * 1. Base count = original × multiplier (2 for clothing, 1 for shoes)
- * 2. Gap filling on base: If size has 0 base but next size has base > 0, fill with ceilToEven(nextBase / 2)
- * 3. Extra (vacíos) = ceilToEven(base × 0.06)
- * 4. Final count = base + extra
+ * 2. Extra (vacíos): clothing = ceilToEven(base × 0.05), shoes = Math.ceil(base × 0.05)
+ * 3. Final count = base + extra
+ * 4. Zero demand stays zero — no gap filling
  *
  * All calculations are non-destructive and deterministic.
  */
@@ -142,8 +142,8 @@ export function computeFinalCount(
   // Shoes (multiplier=1): round up to nearest integer
   // Clothing (multiplier=2): round up to nearest even number
   const extra = multiplier === 1
-    ? (base > 0 ? Math.ceil(base * 0.06) : 0)
-    : ceilToEven(base * 0.06);
+    ? (base > 0 ? Math.ceil(base * 0.05) : 0)
+    : ceilToEven(base * 0.05);
   const final = base + extra;
 
   return { base, extra, final };
@@ -197,102 +197,3 @@ export function transformSizeCounts(
   return result;
 }
 
-/**
- * Fill gaps in BASE counts (before applying vacíos formula).
- *
- * Scan left→right through the size order. If the current size has a base count
- * of 0 and the NEXT size has a positive base count, assign ceilToEven(nextBase / 2).
- *
- * This ensures buffer inventory exists for sizes adjacent to populated sizes,
- * and those buffers will then receive their own 6% vacíos in the next step.
- *
- * @param orderedSizes - Array of size strings in display order (e.g. ['T4', 'T6', ..., 'T2X'])
- * @param baseCounts - Map from size to base count (original × multiplier)
- * @returns Updated base counts with gaps filled
- *
- * @example
- * const sizes = ['T4', 'T6', 'T8'];
- * const base = { 'T4': 0, 'T6': 20, 'T8': 0 };  // 10 students × 2
- * const filled = fillBaseGaps(sizes, base);
- * // => { 'T4': 10, 'T6': 20, 'T8': 0 }
- * // T4 gets filled with ceilToEven(20/2) = 10
- * // T8 is not filled (next base is 0)
- */
-export function fillBaseGaps(
-  orderedSizes: string[],
-  baseCounts: Record<string, number>
-): Record<string, number> {
-  const result = { ...baseCounts };
-
-  for (let n = 0; n < orderedSizes.length - 1; n++) {
-    const size = orderedSizes[n];
-    const currentBase = result[size] || 0;
-
-    // Skip if current already has a value
-    if (currentBase > 0) {
-      continue;
-    }
-
-    const nextSize = orderedSizes[n + 1];
-    const nextBase = result[nextSize] || 0;
-
-    // Fill gap if next size has base count
-    if (nextBase > 0) {
-      result[size] = ceilToEven(nextBase / 2);
-    }
-  }
-
-  return result;
-}
-
-/**
- * Fill gaps in a size distribution after vacíos calculation.
- *
- * After computing final counts (base + vacíos), scan left→right.
- * If the current size has a final count of 0 and the NEXT size has a
- * positive base count (original × multiplier), assign ceilToEven(base / 2) as a buffer.
- *
- * This ensures there are spare units for sizes adjacent to populated sizes,
- * including leading gaps before the first populated size.
- *
- * @param orderedSizes - Array of size strings in display order (e.g. ['T4', 'T6', ..., 'T2X'])
- * @param baseCounts - Map from size to base count (original × multiplier)
- * @param finalCounts - Map from size to final count (after applying vacíos formula)
- * @returns Updated final counts with gaps filled
- *
- * @example
- * const sizes = ['T4', 'T6', 'T8'];
- * const base = { 'T4': 0, 'T6': 20, 'T8': 0 };  // 10 students × 2
- * const final = { 'T4': 0, 'T6': 24, 'T8': 0 };
- * const filled = fillSizeGaps(sizes, base, final);
- * // => { 'T4': 10, 'T6': 24, 'T8': 0 }
- * // T4 gets filled with ceilToEven(20/2) = 10
- * // T8 is not filled (next base is 0)
- */
-export function fillSizeGaps(
-  orderedSizes: string[],
-  baseCounts: Record<string, number>,
-  finalCounts: Record<string, number>
-): Record<string, number> {
-  const result = { ...finalCounts };
-
-  for (let n = 0; n < orderedSizes.length - 1; n++) {
-    const size = orderedSizes[n];
-    const currentFinal = result[size] || 0;
-
-    // Skip if current already has a value
-    if (currentFinal > 0) {
-      continue;
-    }
-
-    const nextSize = orderedSizes[n + 1];
-    const nextBase = baseCounts[nextSize] || 0;
-
-    // Fill gap if next size has base count
-    if (nextBase > 0) {
-      result[size] = ceilToEven(nextBase / 2);
-    }
-  }
-
-  return result;
-}

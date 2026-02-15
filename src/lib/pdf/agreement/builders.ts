@@ -70,10 +70,8 @@ export function calculateCajasTotales(school: SchoolGroup): number {
 
   let totalBoxes = 0;
   for (const counts of gradeMap.values()) {
-    const incrementH = counts.hombres > 15 ? 1.06 : 1.15;
-    const incrementM = counts.mujeres > 15 ? 1.06 : 1.15;
-    const cajasHombres = counts.hombres === 0 ? 0 : Math.ceil(counts.hombres * incrementH);
-    const cajasMujeres = counts.mujeres === 0 ? 0 : Math.ceil(counts.mujeres * incrementM);
+    const cajasHombres = counts.hombres === 0 ? 0 : Math.ceil(counts.hombres * 1.05);
+    const cajasMujeres = counts.mujeres === 0 ? 0 : Math.ceil(counts.mujeres * 1.05);
     totalBoxes += cajasHombres + cajasMujeres;
   }
 
@@ -130,7 +128,7 @@ export function calculateUniformesTotalPiezas(school: SchoolGroup): number {
     for (const size of camisaSizeOrder) {
       const base = rowBases[size] || 0;
       if (base > 0) {
-        const extra = ceilToEven(base * 0.06);
+        const extra = ceilToEven(base * 0.05);
         totalPiezas += base + extra;
       }
     }
@@ -169,7 +167,7 @@ export function calculateUniformesTotalPiezas(school: SchoolGroup): number {
     for (const size of camisaSizeOrder) {
       const base = rowBases[size] || 0;
       if (base > 0) {
-        const extra = ceilToEven(base * 0.06);
+        const extra = ceilToEven(base * 0.05);
         totalPiezas += base + extra;
       }
     }

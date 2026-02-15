@@ -16,8 +16,7 @@ const MAX_ROWS = 200000;
  *   1. Count originals per size
  *   2. base = original × 2
  *   3. Zero out-of-range sizes
- *   4. fillBaseGaps on restricted sizes
- *   5. final = base + ceilToEven(base × 0.06)
+ *   4. final = base + ceilToEven(base × 0.05)
  */
 function computeRowFinals(
   students: StudentQueryRow[],
@@ -61,7 +60,7 @@ function computeRowFinals(
   for (const size of sizeOrder) {
     const base = rowBases[size] || 0;
     if (base > 0) {
-      finals[size] = base + ceilToEven(base * 0.06);
+      finals[size] = base + ceilToEven(base * 0.05);
     } else {
       finals[size] = 0;
     }
