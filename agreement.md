@@ -35,8 +35,8 @@
 
 **Data Logic (Uplift Calculation):**
 
-- **Formula:** `boxes = ceil(student_count * 1.15)`
-- **Scope:** Apply 15% uplift and rounding to **Col 7**, **Col 8**, **Col 9**, and **Row Subtotals**.
+- **Formula:** `boxes = ceil(student_count * 1.05)`
+- **Scope:** Apply 5% uplift and rounding to **Col 7**, **Col 8**, **Col 9**, and **Row Subtotals**.
 
 **Header Layout (Per School):**
 _Font: Helvetica 12pt_
@@ -52,8 +52,8 @@ _Font: Helvetica 12pt_
 4.  **Codigo_ce**
 5.  **Nombre_ce**
 6.  **Grado_ok**
-7.  **Número de Cajas Hombres** (Count `Hombre` \* 1.15, rounded up)
-8.  **Número de Cajas Mujeres** (Count `Mujer` \* 1.15, rounded up)
+7.  **Número de Cajas Hombres** (Count `Hombre` \* 1.05, rounded up)
+8.  **Número de Cajas Mujeres** (Count `Mujer` \* 1.05, rounded up)
 9.  **Cajas Totales** (Sum of Col 7 + Col 8)
 
 ---

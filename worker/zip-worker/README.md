@@ -51,14 +51,14 @@ The school bundle is unique because the ZIP worker **generates its own PDFs** in
 2. **Ficha Uniformes** (portrait) - School uniform card
 3. **Ficha Zapatos** (portrait) - School shoe card
 
-This includes the "vacíos" buffer calculation (15% extra + gap-filling between sizes) and garment-type size restrictions.
+This includes the "vacíos" buffer calculation (5% extra) and garment-type size restrictions.
 
 ## Source Files
 
 | File                         | Lines  | Purpose                                          |
 | ---------------------------- | ------ | ------------------------------------------------ |
 | `index.ts`                   | ~479   | Main polling loop + region/category job handlers |
-| `school-bundle-processor.ts` | ~1,076 | Self-contained PDF generator for school bundles  |
+| `school-bundle-processor.ts` | ~1,032 | Self-contained PDF generator for school bundles  |
 | `assets/goes_logo_2.png`     | -      | GOES logo embedded in school bundle PDFs         |
 
 ## Requirements
@@ -458,4 +458,4 @@ For issues:
 
 **Built for:** paquetes.sv
 **Version:** 1.0.0
-**Last Updated:** 2026-02-10
+**Last Updated:** 2026-02-14

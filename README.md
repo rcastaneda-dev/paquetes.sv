@@ -33,6 +33,13 @@ Sistema para **consultar estudiantes** (por escuela/grado/fecha) y **generar PDF
 | **Ficha Uniformes** | `ficha_uniformes` | Ficha por escuela (portrait)            |
 | **Ficha Zapatos**   | `ficha_zapatos`   | Ficha por escuela (portrait)            |
 
+#### Actas de recepción (portrait, por escuela)
+
+| Tipo                        | Descripción                                           |
+| --------------------------- | ----------------------------------------------------- |
+| **Acta Recepción Uniformes** | TIPO/TALLA, CANTIDAD, COMENTARIOS + datos transporte |
+| **Acta Recepción Zapatos**   | TALLA, CANTIDAD, COMENTARIOS + datos transporte      |
+
 Todos los PDFs de acuerdos incluyen una línea de registro manual: `HORA DE INICIO: ___ HORA DE FINALIZACION: ___`.
 
 ### Flujos principales
@@ -41,11 +48,18 @@ Todos los PDFs de acuerdos incluyen una línea de registro manual: `HORA DE INIC
   - UI filtra y consulta datos
   - Endpoints generan PDFs bajo demanda (streaming): `/api/students/print`, `/api/students/print-labels`
   - Reportes de acuerdos ad-hoc: `/api/reports/cajas`, `/api/reports/camisas`, `/api/reports/pantalones`, `/api/reports/zapatos`
+  - Actas de recepción ad-hoc: `/api/reports/acta-recepcion-uniformes`, `/api/reports/acta-recepcion-zapatos`
 
 - **Bulk jobs (regiones)**
   - Se crea un `report_job` + `report_tasks` (con soporte de **shards** para jobs grandes)
   - `/api/worker/process-tasks` reclama tareas vía RPC, genera **2 PDFs por escuela** (tallas + etiquetas) y los sube a Storage
   - El ZIP worker procesa `zip_jobs` de tipo `region` y publica el ZIP final; la UI descarga con **signed URLs**
+
+- **Demand pipeline (datos normalizados)**
+  - Upload alternativo para CSVs con cantidades pre-calculadas (9 columnas: NRO, CODIGO, NOMBRE, TAMAÑO, MATRICULA, ITEM, TIPO, CATEGORIA, CANTIDAD)
+  - Datos pasan directo sin cálculos de vacíos (no `computeFinalCount`, no buffer)
+  - Tablas: `staging_demand_raw` → `school_demand`
+  - UI: `/staging/demand` (upload), `/reports/demand` (descarga de 7 reportes: 3 PDF, 3 Word, 1 Excel)
 
 - **Bulk jobs (categorías por `fecha_inicio`)**
   - Se crean `report_category_tasks` con 6 categorías: `estudiantes`, `camisa`, `prenda_inferior`, `zapatos`, `ficha_uniformes`, `ficha_zapatos`
@@ -67,7 +81,7 @@ Todos los PDFs de acuerdos incluyen una línea de registro manual: `HORA DE INIC
 - **Protección de cancelación**: tareas canceladas no pueden ser actualizadas (previene race conditions)
 - **Paginación de PostgREST**: fetch en lotes de 1,000 filas con límite de seguridad de 200,000 filas
 - **Normalización de paths**: `toSafePathSegment()` convierte caracteres a ASCII-safe (é → e) para paths de Storage
-- **Vacíos (buffer de seguridad)**: cálculo de 15% extra + gap-filling entre tallas, con restricciones por tipo de prenda
+- **Vacíos (buffer de seguridad)**: cálculo de 5% extra por tipo de prenda (ceilToEven para uniformes, Math.ceil para zapatos/cajas)
 - **Validación y configuración**: Zod (`src/lib/validation/*`) para env + auth de workers (Bearer / `x-worker-secret`)
 
 ### API routes
@@ -104,6 +118,8 @@ Todos los PDFs de acuerdos incluyen una línea de registro manual: `HORA DE INIC
 | `/api/reports/camisas`       | GET    | PDF de Camisas                                         |
 | `/api/reports/pantalones`    | GET    | PDF de Pantalones                                      |
 | `/api/reports/zapatos`       | GET    | PDF de Zapatos                                         |
+| `/api/reports/acta-recepcion-uniformes` | GET | Acta de Recepción (Uniformes)                  |
+| `/api/reports/acta-recepcion-zapatos`  | GET | Acta de Recepción (Zapatos)                    |
 | `/api/schools/search`        | GET    | Autocompletado de escuelas                             |
 | `/api/grades`                | GET    | Grados disponibles                                     |
 
@@ -115,27 +131,54 @@ Todos los PDFs de acuerdos incluyen una línea de registro manual: `HORA DE INIC
 | `/api/worker/process-category-tasks`    | POST   | Reclamar y procesar tareas de categoría |
 | `/api/worker/process-school-bundle-zip` | POST   | Generar ZIPs de school bundle           |
 
+#### Demand pipeline (datos normalizados)
+
+| Endpoint                                         | Método | Descripción                                    |
+| ------------------------------------------------ | ------ | ---------------------------------------------- |
+| `/api/staging/demand`                            | POST   | Upload CSV normalizado (truncate/insert/migrate)|
+| `/api/reports/demand/acta-cajas`                 | GET    | Acta de Recepción Cajas (PDF) desde demand     |
+| `/api/reports/demand/acta-uniformes`             | GET    | Acta de Recepción Uniformes (PDF) desde demand |
+| `/api/reports/demand/acta-zapatos`               | GET    | Acta de Recepción Zapatos (PDF) desde demand   |
+| `/api/reports/demand/acta-cajas-word`            | GET    | Acta de Recepción Cajas (Word) desde demand    |
+| `/api/reports/demand/acta-uniformes-word`        | GET    | Acta de Recepción Uniformes (Word) desde demand|
+| `/api/reports/demand/acta-zapatos-word`          | GET    | Acta de Recepción Zapatos (Word) desde demand  |
+| `/api/reports/demand/consolidado-excel`          | GET    | Consolidado por escuela (Excel) desde demand   |
+
 ### Estructura
 
 ```
 src/
 ├── app/                          # UI (App Router) + API routes
-│   └── api/
-│       ├── bulk/                  # Job management & downloads
-│       ├── students/              # Queries & ad-hoc PDFs
-│       ├── reports/               # Agreement PDFs ad-hoc
-│       ├── schools/               # School search
-│       ├── grades/                # Grade lookup
-│       └── worker/                # Worker endpoints (auth required)
+│   ├── api/
+│   │   ├── bulk/                  # Job management & downloads
+│   │   ├── students/              # Queries & ad-hoc PDFs
+│   │   ├── reports/               # Agreement PDFs ad-hoc
+│   │   │   ├── cajas|camisas|…    # Student-level reports
+│   │   │   ├── acta-recepcion-*/  # Actas de recepción (uniformes, zapatos)
+│   │   │   └── demand/            # Demand-based reports (PDF, Word, Excel)
+│   │   ├── schools/               # School search
+│   │   ├── grades/                # Grade lookup
+│   │   ├── staging/               # CSV upload (student-level + demand)
+│   │   └── worker/                # Worker endpoints (auth required)
+│   ├── staging/                   # Upload pages
+│   │   ├── page.tsx               # Student-level CSV upload
+│   │   └── demand/page.tsx        # Normalized demand CSV upload
+│   └── reports/
+│       └── demand/page.tsx        # Demand report downloads
 ├── lib/
 │   ├── supabase/                  # Clients (browser + server)
 │   ├── pdf/
 │   │   ├── generator.ts           # Tallas + Etiquetas
 │   │   ├── generators-agreement.ts # Cajas, Camisas, Pantalones, Zapatos
+│   │   ├── generators-demand.ts   # Actas de Recepción desde demand (sin vacíos)
 │   │   ├── agreement/             # Fichas, consolidated builder, sections, types
 │   │   └── streams.ts             # Stream converters
+│   ├── word/
+│   │   └── generators-demand.ts   # Actas de Recepción Word desde demand
+│   ├── excel/
+│   │   └── generators-demand.ts   # Consolidado Excel desde demand
 │   ├── reports/
-│   │   └── vacios.ts              # Buffer calculation (15% extra + gap-filling)
+│   │   └── vacios.ts              # Buffer calculation (5% extra, no gap-filling)
 │   ├── storage/
 │   │   └── keys.ts                # Storage path builders + normalization
 │   ├── config/
