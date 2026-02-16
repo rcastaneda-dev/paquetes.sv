@@ -2,7 +2,7 @@
  * Demand-based Excel generator for Consolidado report.
  *
  * Produces an .xlsx file with one row per school:
- *   CODIGO DEL CENTRO | CAJA | UNIFORMES | ZAPATOS | Total general
+ *   CODIGO DEL CENTRO | Nombre CE | CAJA | UNIFORMES | ZAPATOS | Total general
  *
  * Quantities are read directly from school_demand — no vacíos calculations.
  */
@@ -11,6 +11,7 @@ import type { DemandRow } from '@/types/database';
 
 interface SchoolTotals {
   codigo_ce: string;
+  nombre_ce: string;
   cajas: number;
   uniformes: number;
   zapatos: number;
@@ -31,6 +32,7 @@ export async function generateConsolidadoDemandExcel(
     if (!schoolMap.has(row.school_codigo_ce)) {
       schoolMap.set(row.school_codigo_ce, {
         codigo_ce: row.school_codigo_ce,
+        nombre_ce: row.nombre_ce,
         cajas: 0,
         uniformes: 0,
         zapatos: 0,
@@ -62,7 +64,7 @@ export async function generateConsolidadoDemandExcel(
 
   // Header row
   const headerRow = sheet.getRow(1);
-  headerRow.values = ['CODIGO DEL CENTRO', 'CAJA', 'UNIFORMES', 'ZAPATOS', 'Total general'];
+  headerRow.values = ['CODIGO DEL CENTRO', 'Nombre CE', 'CAJA', 'UNIFORMES', 'ZAPATOS', 'Total general'];
   headerRow.font = { bold: true };
   headerRow.alignment = { horizontal: 'center' };
 
@@ -75,7 +77,7 @@ export async function generateConsolidadoDemandExcel(
 
   for (const school of schools) {
     const row = sheet.getRow(rowIndex);
-    row.values = [school.codigo_ce, school.cajas, school.uniformes, school.zapatos, school.total];
+    row.values = [school.codigo_ce, school.nombre_ce, school.cajas, school.uniformes, school.zapatos, school.total];
     grandCajas += school.cajas;
     grandUniformes += school.uniformes;
     grandZapatos += school.zapatos;
@@ -85,7 +87,7 @@ export async function generateConsolidadoDemandExcel(
 
   // Total general row
   const totalRow = sheet.getRow(rowIndex);
-  totalRow.values = ['Total general', grandCajas, grandUniformes, grandZapatos, grandTotal];
+  totalRow.values = ['Total general', '', grandCajas, grandUniformes, grandZapatos, grandTotal];
   totalRow.font = { bold: true };
 
   // Auto-width columns

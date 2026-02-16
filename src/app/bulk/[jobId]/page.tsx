@@ -58,6 +58,7 @@ export default function JobDetailPage() {
   const [downloadingPivotExcel, setDownloadingPivotExcel] = useState(false);
   const [downloadingZapatosPivotExcel, setDownloadingZapatosPivotExcel] = useState(false);
   const [downloadingPivotExcelV2, setDownloadingPivotExcelV2] = useState(false);
+  const [downloadingCajasExcel, setDownloadingCajasExcel] = useState(false);
   const [schoolBundleLoading, setSchoolBundleLoading] = useState(false);
   const [schoolBundleStatus, setSchoolBundleStatus] = useState<{
     status: 'queued' | 'processing' | 'complete' | 'failed';
@@ -377,6 +378,35 @@ export default function JobDetailPage() {
       alert('Error al descargar Prendas Acumulado Editable V2');
     } finally {
       setDownloadingPivotExcelV2(false);
+    }
+  };
+
+  const handleDownloadCajasExcel = async () => {
+    try {
+      setDownloadingCajasExcel(true);
+
+      const response = await fetch(`/api/bulk/jobs/${jobId}/cajas-pivot-excel`);
+
+      if (!response.ok) {
+        const data = await response.json();
+        alert(`Error: ${data.error || 'Error al generar Cajas Acumulado Editable'}`);
+        return;
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'Cajas_Acumulado_Editable.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Error downloading Cajas Acumulado Editable:', error);
+      alert('Error al descargar Cajas Acumulado Editable');
+    } finally {
+      setDownloadingCajasExcel(false);
     }
   };
 
@@ -826,6 +856,17 @@ export default function JobDetailPage() {
                   <span className="text-lg font-semibold">Prendas Acumulado Editable (V2)</span>
                   <span className="text-xs text-muted-foreground">
                     {downloadingPivotExcelV2 ? 'Generando Excel...' : 'Descargar .xlsx'}
+                  </span>
+                </Button>
+                <Button
+                  onClick={handleDownloadCajasExcel}
+                  disabled={downloadingCajasExcel}
+                  variant="outline"
+                  className="h-auto flex-col items-start p-4"
+                >
+                  <span className="text-lg font-semibold">Cajas Acumulado Editable</span>
+                  <span className="text-xs text-muted-foreground">
+                    {downloadingCajasExcel ? 'Generando Excel...' : 'Descargar .xlsx'}
                   </span>
                 </Button>
               </div>
