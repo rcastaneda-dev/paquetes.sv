@@ -295,7 +295,7 @@ function buildCajasSection(school: SchoolDemandGroup): (Paragraph | Table)[] {
   }
 
   elements.push(
-    createTitleParagraph('ACTA DE RECEPCIÓN (CAJAS)'),
+    createTitleParagraph('ACTA DE RECEPCIÓN (CAJAS) FALTANTES'),
     ...createSchoolHeader(school),
     ...createPreTableFields(),
     table,
@@ -365,7 +365,7 @@ function buildUniformesSection(school: SchoolDemandGroup): (Paragraph | Table)[]
   }
 
   elements.push(
-    createTitleParagraph('ACTA DE RECEPCIÓN (UNIFORMES)'),
+    createTitleParagraph('ACTA DE RECEPCIÓN (UNIFORMES) FALTANTES'),
     ...createSchoolHeader(school),
     ...createPreTableFields(),
     table,
@@ -435,7 +435,7 @@ function buildZapatosSection(school: SchoolDemandGroup): (Paragraph | Table)[] {
   }
 
   elements.push(
-    createTitleParagraph('ACTA DE RECEPCIÓN (ZAPATOS)'),
+    createTitleParagraph('ACTA DE RECEPCIÓN (ZAPATOS) FALTANTES'),
     ...createSchoolHeader(school),
     ...createPreTableFields(),
     table,
@@ -605,7 +605,7 @@ function buildComandaCajasSection(school: SchoolDemandGroup): (Paragraph | Table
   }
 
   elements.push(
-    createTitleParagraph('DETALLE DE PROGRAMACIÓN DE CAJAS'),
+    createTitleParagraph('DETALLE DE PROGRAMACIÓN DE CAJAS FALTANTES'),
     createFechaDespachoLine(),
     ...createComandaSchoolHeader(school),
     table
@@ -661,7 +661,7 @@ function buildComandaUniformesSection(school: SchoolDemandGroup): (Paragraph | T
   }
 
   elements.push(
-    createTitleParagraph('FICHA DE DISTRIBUCION POR ESCUELA (UNIFORMES)'),
+    createTitleParagraph('FICHA DE DISTRIBUCION POR ESCUELA (UNIFORMES) FALTANTES'),
     createFechaDespachoLine(),
     ...createComandaSchoolHeader(school),
     table,
@@ -723,7 +723,7 @@ function buildComandaZapatosSection(school: SchoolDemandGroup): (Paragraph | Tab
   }
 
   elements.push(
-    createTitleParagraph('FICHA DE DISTRIBUCION POR ESCUELA (ZAPATOS)'),
+    createTitleParagraph('FICHA DE DISTRIBUCION POR ESCUELA (ZAPATOS) FALTANTES'),
     createFechaDespachoLine(),
     ...createComandaSchoolHeader(school),
     table,

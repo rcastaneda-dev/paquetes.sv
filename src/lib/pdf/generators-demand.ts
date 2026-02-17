@@ -140,7 +140,7 @@ function renderActaCajasSchool(
     doc.addPage(ACTA_RECEPCION_CAJAS_PAGE_OPTIONS);
   }
 
-  const title = 'ACTA DE RECEPCIÓN (CAJAS)';
+  const title = 'ACTA DE RECEPCIÓN (CAJAS) FALTANTES';
   drawTitleAndSchoolHeader(doc, title, school);
 
   const xStart = 40;
@@ -238,7 +238,7 @@ function renderActaUniformesSchool(
     doc.addPage(ACTA_RECEPCION_UNIFORMES_PAGE_OPTIONS);
   }
 
-  const title = 'ACTA DE RECEPCIÓN (UNIFORMES)';
+  const title = 'ACTA DE RECEPCIÓN (UNIFORMES) FALTANTES';
   drawTitleAndSchoolHeader(doc, title, school);
 
   const xStart = 30;
@@ -387,7 +387,7 @@ function renderActaZapatosSchool(
     doc.addPage(ACTA_RECEPCION_ZAPATOS_PAGE_OPTIONS);
   }
 
-  const title = 'ACTA DE RECEPCIÓN (ZAPATOS)';
+  const title = 'ACTA DE RECEPCIÓN (ZAPATOS) FALTANTES';
   drawTitleAndSchoolHeader(doc, title, school);
 
   const xStart = 40;
@@ -620,7 +620,7 @@ function renderComandaCajasSchool(
     doc.addPage(CAJAS_PAGE_OPTIONS);
   }
 
-  const title = 'DETALLE DE PROGRAMACIÓN DE CAJAS';
+  const title = 'DETALLE DE PROGRAMACIÓN DE CAJAS FALTANTES';
   drawComandaTitleAndSchoolHeader(doc, title, school);
 
   // Filter rows for CAJAS
@@ -739,7 +739,7 @@ function renderComandaUniformesSchool(
     doc.addPage(FICHA_UNIFORMES_PAGE_OPTIONS);
   }
 
-  const title = 'FICHA DE DISTRIBUCION POR ESCUELA (UNIFORMES)';
+  const title = 'FICHA DE DISTRIBUCION POR ESCUELA (UNIFORMES) FALTANTES';
   drawComandaTitleAndSchoolHeader(doc, title, school);
 
   // Filter rows for UNIFORMES
@@ -842,7 +842,7 @@ function renderComandaZapatosSchool(
     doc.addPage(FICHA_ZAPATOS_PAGE_OPTIONS);
   }
 
-  const title = 'FICHA DE DISTRIBUCION POR ESCUELA (ZAPATOS)';
+  const title = 'FICHA DE DISTRIBUCION POR ESCUELA (ZAPATOS) FALTANTES';
   drawComandaTitleAndSchoolHeader(doc, title, school);
 
   // Filter rows for ZAPATOS
