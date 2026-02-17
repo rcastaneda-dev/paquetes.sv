@@ -75,9 +75,8 @@ function computeFinalCount(
   const base = original * multiplier;
   // Shoes (multiplier=1): round up to nearest integer
   // Clothing (multiplier=2): round up to nearest even number
-  const extra = multiplier === 1
-    ? (base > 0 ? Math.ceil(base * 0.05) : 0)
-    : ceilToEven(base * 0.05);
+  const extra =
+    multiplier === 1 ? (base > 0 ? Math.ceil(base * 0.05) : 0) : ceilToEven(base * 0.05);
   const final = base + extra;
   return { base, extra, final };
 }

@@ -30,7 +30,8 @@ export default function HomePage() {
   const [isGeneratingPantalones, setIsGeneratingPantalones] = useState(false);
   const [isGeneratingZapatos, setIsGeneratingZapatos] = useState(false);
   const [isGeneratingActaRecepcion, setIsGeneratingActaRecepcion] = useState(false);
-  const [isGeneratingActaRecepcionUniformes, setIsGeneratingActaRecepcionUniformes] = useState(false);
+  const [isGeneratingActaRecepcionUniformes, setIsGeneratingActaRecepcionUniformes] =
+    useState(false);
   const pageSize = 50;
 
   const fetchStudents = async (page: number = 1) => {

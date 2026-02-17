@@ -22,9 +22,7 @@ interface SchoolTotals {
  * Generate Consolidado Excel from demand data.
  * Returns an .xlsx buffer ready to be streamed.
  */
-export async function generateConsolidadoDemandExcel(
-  demandRows: DemandRow[]
-): Promise<Buffer> {
+export async function generateConsolidadoDemandExcel(demandRows: DemandRow[]): Promise<Buffer> {
   // Aggregate by school
   const schoolMap = new Map<string, SchoolTotals>();
 
@@ -50,7 +48,7 @@ export async function generateConsolidadoDemandExcel(
   }
 
   // Calculate totals and sort descending
-  const schools = Array.from(schoolMap.values()).map((s) => ({
+  const schools = Array.from(schoolMap.values()).map(s => ({
     ...s,
     total: s.cajas + s.uniformes + s.zapatos,
   }));
@@ -64,7 +62,14 @@ export async function generateConsolidadoDemandExcel(
 
   // Header row
   const headerRow = sheet.getRow(1);
-  headerRow.values = ['CODIGO DEL CENTRO', 'Nombre CE', 'CAJA', 'UNIFORMES', 'ZAPATOS', 'Total general'];
+  headerRow.values = [
+    'CODIGO DEL CENTRO',
+    'Nombre CE',
+    'CAJA',
+    'UNIFORMES',
+    'ZAPATOS',
+    'Total general',
+  ];
   headerRow.font = { bold: true };
   headerRow.alignment = { horizontal: 'center' };
 
@@ -77,7 +82,14 @@ export async function generateConsolidadoDemandExcel(
 
   for (const school of schools) {
     const row = sheet.getRow(rowIndex);
-    row.values = [school.codigo_ce, school.nombre_ce, school.cajas, school.uniformes, school.zapatos, school.total];
+    row.values = [
+      school.codigo_ce,
+      school.nombre_ce,
+      school.cajas,
+      school.uniformes,
+      school.zapatos,
+      school.total,
+    ];
     grandCajas += school.cajas;
     grandUniformes += school.uniformes;
     grandZapatos += school.zapatos;
@@ -91,9 +103,9 @@ export async function generateConsolidadoDemandExcel(
   totalRow.font = { bold: true };
 
   // Auto-width columns
-  sheet.columns.forEach((column) => {
+  sheet.columns.forEach(column => {
     let maxLength = 0;
-    column.eachCell?.({ includeEmpty: false }, (cell) => {
+    column.eachCell?.({ includeEmpty: false }, cell => {
       const len = cell.value ? cell.value.toString().length : 0;
       if (len > maxLength) maxLength = len;
     });

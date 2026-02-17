@@ -146,9 +146,9 @@ export interface DemandRow {
   distrito: string;
   zona: string;
   transporte: string;
-  item: string;       // 'CAJAS' | 'UNIFORMES' | 'ZAPATOS'
-  tipo: string;       // 'CAJAS', 'CAMISA BLANCA', 'ZAPATOS', etc.
-  categoria: string;  // grade name or size
+  item: string; // 'CAJAS' | 'UNIFORMES' | 'ZAPATOS'
+  tipo: string; // 'CAJAS', 'CAMISA BLANCA', 'ZAPATOS', etc.
+  categoria: string; // grade name or size
   cantidad: number;
 }
 

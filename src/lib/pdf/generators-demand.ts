@@ -304,7 +304,10 @@ function renderActaUniformesSchool(
       doc
         .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
         .font('Helvetica-Bold')
-        .text(`DEPARTAMENTO: ${(school.departamento || 'N/A').toUpperCase()} - DISTRITO: ${(school.distrito || 'N/A').toUpperCase()}`, { align: 'center' });
+        .text(
+          `DEPARTAMENTO: ${(school.departamento || 'N/A').toUpperCase()} - DISTRITO: ${(school.distrito || 'N/A').toUpperCase()}`,
+          { align: 'center' }
+        );
       doc.moveDown(1);
       currentY = doc.y;
 
@@ -939,9 +942,7 @@ function renderComandaZapatosSchool(
  * Generate Comanda de Cajas PDF from demand data.
  * Landscape layout, one page per school, sorted by total descending.
  */
-export function generateComandaCajasPDFFromDemand(
-  demandRows: DemandRow[]
-): PDFDocumentInstance {
+export function generateComandaCajasPDFFromDemand(demandRows: DemandRow[]): PDFDocumentInstance {
   const schools = groupDemandBySchool(demandRows).filter(
     s => s.rows.filter(r => r.item === 'CAJAS').reduce((sum, r) => sum + r.cantidad, 0) > 0
   );
@@ -987,9 +988,7 @@ export function generateComandaUniformesPDFFromDemand(
  * Generate Comanda de Zapatos PDF from demand data.
  * Portrait layout, one page per school, sorted by total descending.
  */
-export function generateComandaZapatosPDFFromDemand(
-  demandRows: DemandRow[]
-): PDFDocumentInstance {
+export function generateComandaZapatosPDFFromDemand(demandRows: DemandRow[]): PDFDocumentInstance {
   const schools = groupDemandBySchool(demandRows).filter(
     s => s.rows.filter(r => r.item === 'ZAPATOS').reduce((sum, r) => sum + r.cantidad, 0) > 0
   );

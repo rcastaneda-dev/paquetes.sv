@@ -10,7 +10,9 @@ export async function querySchoolDemand(params?: {
 }): Promise<DemandRow[]> {
   let query = supabaseServer
     .from('school_demand')
-    .select('school_codigo_ce, item, tipo, categoria, cantidad, schools!inner(nombre_ce, departamento, distrito, zona, transporte)')
+    .select(
+      'school_codigo_ce, item, tipo, categoria, cantidad, schools!inner(nombre_ce, departamento, distrito, zona, transporte)'
+    )
     .order('school_codigo_ce');
 
   if (params?.schoolCodigoCe) {
@@ -23,8 +25,14 @@ export async function querySchoolDemand(params?: {
     throw new Error(`Error querying school demand: ${error.message}`);
   }
 
-  return (data ?? []).map((row) => {
-    const school = row.schools as unknown as { nombre_ce: string; departamento: string; distrito: string; zona: string; transporte: string };
+  return (data ?? []).map(row => {
+    const school = row.schools as unknown as {
+      nombre_ce: string;
+      departamento: string;
+      distrito: string;
+      zona: string;
+      transporte: string;
+    };
     return {
       school_codigo_ce: row.school_codigo_ce,
       nombre_ce: school.nombre_ce,

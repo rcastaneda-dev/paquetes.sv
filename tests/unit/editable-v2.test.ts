@@ -8,7 +8,11 @@
 import { describe, it, expect } from 'vitest';
 import type { StudentQueryRow } from '@/types/database';
 import type { SchoolGroup } from '@/lib/pdf/agreement/types';
-import { buildUniformesFlatRows, buildZapatosFlatRows, buildConsolidadoFlatRows } from '@/lib/reports/editable-v2';
+import {
+  buildUniformesFlatRows,
+  buildZapatosFlatRows,
+  buildConsolidadoFlatRows,
+} from '@/lib/reports/editable-v2';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Test helpers
@@ -103,8 +107,18 @@ describe('buildUniformesFlatRows', () => {
 
   it('should handle multiple garment types with continuous CORRELATIVO', () => {
     const students = [
-      makeStudent({ camisa: 'T4', tipo_de_camisa: 'CELESTE', pantalon_falda: 'T4', t_pantalon_falda_short: 'SHORT AZUL' }),
-      makeStudent({ camisa: 'T6', tipo_de_camisa: 'CELESTE', pantalon_falda: 'T6', t_pantalon_falda_short: 'SHORT AZUL' }),
+      makeStudent({
+        camisa: 'T4',
+        tipo_de_camisa: 'CELESTE',
+        pantalon_falda: 'T4',
+        t_pantalon_falda_short: 'SHORT AZUL',
+      }),
+      makeStudent({
+        camisa: 'T6',
+        tipo_de_camisa: 'CELESTE',
+        pantalon_falda: 'T6',
+        t_pantalon_falda_short: 'SHORT AZUL',
+      }),
     ];
     const school = makeSchool('10740', 'Escuela A', students);
     const rows = buildUniformesFlatRows([school]);
@@ -127,10 +141,20 @@ describe('buildUniformesFlatRows', () => {
 
   it('should continue CORRELATIVO across multiple schools', () => {
     const studentsA = [
-      makeStudent({ school_codigo_ce: '10740', nombre_ce: 'Escuela A', camisa: 'T4', tipo_de_camisa: 'CELESTE' }),
+      makeStudent({
+        school_codigo_ce: '10740',
+        nombre_ce: 'Escuela A',
+        camisa: 'T4',
+        tipo_de_camisa: 'CELESTE',
+      }),
     ];
     const studentsB = [
-      makeStudent({ school_codigo_ce: '12504', nombre_ce: 'Escuela B', camisa: 'T6', tipo_de_camisa: 'CELESTE' }),
+      makeStudent({
+        school_codigo_ce: '12504',
+        nombre_ce: 'Escuela B',
+        camisa: 'T6',
+        tipo_de_camisa: 'CELESTE',
+      }),
     ];
     const schoolA = makeSchool('10740', 'Escuela A', studentsA);
     const schoolB = makeSchool('12504', 'Escuela B', studentsB);
@@ -145,9 +169,7 @@ describe('buildUniformesFlatRows', () => {
 
   it('should omit sizes with zero quantity', () => {
     // Only T4 has students; T6, T8, etc. should not appear
-    const students = [
-      makeStudent({ camisa: 'T4', tipo_de_camisa: 'CELESTE' }),
-    ];
+    const students = [makeStudent({ camisa: 'T4', tipo_de_camisa: 'CELESTE' })];
     const school = makeSchool('10740', 'Escuela A', students);
     const rows = buildUniformesFlatRows([school]);
 
@@ -169,9 +191,7 @@ describe('buildUniformesFlatRows', () => {
   });
 
   it('should normalize tipo_de_camisa to CAMISA prefix', () => {
-    const students = [
-      makeStudent({ camisa: 'T6', tipo_de_camisa: 'BLANCA' }),
-    ];
+    const students = [makeStudent({ camisa: 'T6', tipo_de_camisa: 'BLANCA' })];
     const school = makeSchool('10647', 'Escuela C', students);
     const rows = buildUniformesFlatRows([school]);
 
@@ -204,9 +224,7 @@ describe('buildUniformesFlatRows', () => {
   });
 
   it('should start CORRELATIVO at 1', () => {
-    const students = [
-      makeStudent({ camisa: 'T4', tipo_de_camisa: 'CELESTE' }),
-    ];
+    const students = [makeStudent({ camisa: 'T4', tipo_de_camisa: 'CELESTE' })];
     const school = makeSchool('10740', 'Escuela A', students);
     const rows = buildUniformesFlatRows([school]);
 
@@ -261,10 +279,7 @@ describe('buildZapatosFlatRows', () => {
   });
 
   it('should always use ZAPATOS as TIPO_PRENDA', () => {
-    const students = [
-      makeStudent({ zapato: '30' }),
-      makeStudent({ zapato: '35' }),
-    ];
+    const students = [makeStudent({ zapato: '30' }), makeStudent({ zapato: '35' })];
     const school = makeSchool('10740', 'Escuela A', students);
     const rows = buildZapatosFlatRows([school]);
 
@@ -274,9 +289,7 @@ describe('buildZapatosFlatRows', () => {
   });
 
   it('should omit sizes with zero demand', () => {
-    const students = [
-      makeStudent({ zapato: '28' }),
-    ];
+    const students = [makeStudent({ zapato: '28' })];
     const school = makeSchool('10740', 'Escuela A', students);
     const rows = buildZapatosFlatRows([school]);
 
@@ -304,10 +317,7 @@ describe('buildZapatosFlatRows', () => {
   });
 
   it('should populate NOMBRE_CE on every row', () => {
-    const students = [
-      makeStudent({ zapato: '25' }),
-      makeStudent({ zapato: '30' }),
-    ];
+    const students = [makeStudent({ zapato: '25' }), makeStudent({ zapato: '30' })];
     const school = makeSchool('10740', 'Mi Escuela', students);
     const rows = buildZapatosFlatRows([school]);
 
@@ -317,9 +327,7 @@ describe('buildZapatosFlatRows', () => {
   });
 
   it('should start CORRELATIVO at 1', () => {
-    const students = [
-      makeStudent({ zapato: '25' }),
-    ];
+    const students = [makeStudent({ zapato: '25' })];
     const school = makeSchool('10740', 'Escuela A', students);
     const rows = buildZapatosFlatRows([school]);
 
@@ -338,9 +346,7 @@ describe('buildConsolidadoFlatRows', () => {
   });
 
   it('should place uniforms before zapatos', () => {
-    const students = [
-      makeStudent({ camisa: 'T4', tipo_de_camisa: 'CELESTE', zapato: '25' }),
-    ];
+    const students = [makeStudent({ camisa: 'T4', tipo_de_camisa: 'CELESTE', zapato: '25' })];
     const school = makeSchool('10740', 'Escuela A', students);
     const rows = buildConsolidadoFlatRows([school]);
 
@@ -372,9 +378,7 @@ describe('buildConsolidadoFlatRows', () => {
   });
 
   it('should populate NOMBRE_CE on every row', () => {
-    const students = [
-      makeStudent({ camisa: 'T4', tipo_de_camisa: 'CELESTE', zapato: '30' }),
-    ];
+    const students = [makeStudent({ camisa: 'T4', tipo_de_camisa: 'CELESTE', zapato: '30' })];
     const school = makeSchool('10740', 'Mi Escuela', students);
     const rows = buildConsolidadoFlatRows([school]);
 
@@ -384,9 +388,7 @@ describe('buildConsolidadoFlatRows', () => {
   });
 
   it('should handle schools with only uniforms (no zapatos)', () => {
-    const students = [
-      makeStudent({ camisa: 'T4', tipo_de_camisa: 'CELESTE' }),
-    ];
+    const students = [makeStudent({ camisa: 'T4', tipo_de_camisa: 'CELESTE' })];
     const school = makeSchool('10740', 'Escuela A', students);
     const rows = buildConsolidadoFlatRows([school]);
 
@@ -396,9 +398,7 @@ describe('buildConsolidadoFlatRows', () => {
   });
 
   it('should handle schools with only zapatos (no uniforms)', () => {
-    const students = [
-      makeStudent({ zapato: '28' }),
-    ];
+    const students = [makeStudent({ zapato: '28' })];
     const school = makeSchool('10740', 'Escuela A', students);
     const rows = buildConsolidadoFlatRows([school]);
 

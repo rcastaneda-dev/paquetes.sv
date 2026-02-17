@@ -1094,7 +1094,18 @@ export function renderActaRecepcionUniformesSection(ctx: SectionRenderContext): 
   const itemCounts: ActaUniformeRow[] = [];
 
   const camisaSizeOrder = [
-    'T4', 'T6', 'T8', 'T10', 'T12', 'T14', 'T16', 'T18', 'T20', 'T22', 'T1X', 'T2X',
+    'T4',
+    'T6',
+    'T8',
+    'T10',
+    'T12',
+    'T14',
+    'T16',
+    'T18',
+    'T20',
+    'T22',
+    'T1X',
+    'T2X',
   ];
 
   // Source 1: Camisas (tipo_camisa + camisa)
@@ -1236,7 +1247,10 @@ export function renderActaRecepcionUniformesSection(ctx: SectionRenderContext): 
       doc.fontSize(AGREEMENT_FONT.COLUMN_HEADER).font('Helvetica-Bold');
       x = xStart;
       doc.rect(x, currentY, tipoTallaColWidth, actaHeaderHeight).stroke();
-      doc.text('TIPO/TALLA', x + 2, currentY + 5, { width: tipoTallaColWidth - 4, align: 'center' });
+      doc.text('TIPO/TALLA', x + 2, currentY + 5, {
+        width: tipoTallaColWidth - 4,
+        align: 'center',
+      });
       x += tipoTallaColWidth;
       doc.rect(x, currentY, cantidadColWidth, actaHeaderHeight).stroke();
       doc.text('CANTIDAD', x + 2, currentY + 5, { width: cantidadColWidth - 4, align: 'center' });
@@ -1254,7 +1268,10 @@ export function renderActaRecepcionUniformesSection(ctx: SectionRenderContext): 
     x = xStart;
 
     doc.rect(x, currentY, tipoTallaColWidth, actaRowHeight).stroke();
-    doc.text(row.tipo_talla, x + 2, currentY + 2, { width: tipoTallaColWidth - 4, align: 'center' });
+    doc.text(row.tipo_talla, x + 2, currentY + 2, {
+      width: tipoTallaColWidth - 4,
+      align: 'center',
+    });
     x += tipoTallaColWidth;
 
     doc.rect(x, currentY, cantidadColWidth, actaRowHeight).stroke();
@@ -1482,7 +1499,11 @@ export function renderActaRecepcionCajasSection(ctx: SectionRenderContext): void
   const actaFooterStartY = doc.y + 6;
 
   doc.fontSize(AGREEMENT_FONT.BODY).font('Helvetica');
-  doc.text('Nombre del conductor: ________________________________', actaFooterLeftX, actaFooterStartY);
+  doc.text(
+    'Nombre del conductor: ________________________________',
+    actaFooterLeftX,
+    actaFooterStartY
+  );
   doc.text('Número de placa: ________________________________', actaFooterLeftX, doc.y + 5);
   doc.text('Número de contacto: ________________________________', actaFooterLeftX, doc.y + 5);
   doc.text('Firma del conductor: ________________________________', actaFooterLeftX, doc.y + 5);

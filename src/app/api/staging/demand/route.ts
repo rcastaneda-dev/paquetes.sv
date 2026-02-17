@@ -4,10 +4,31 @@ import { supabaseServer } from '@/lib/supabase/server';
 
 const BATCH_SIZE = 500;
 
-const REQUIRED_COLUMNS = ['CODIGO', 'DEPARTAMENTO', 'DISTRITO', 'FECHA', 'ITEM', 'TIPO', 'CATEGORIA', 'CANTIDAD'];
+const REQUIRED_COLUMNS = [
+  'CODIGO',
+  'DEPARTAMENTO',
+  'DISTRITO',
+  'FECHA',
+  'ITEM',
+  'TIPO',
+  'CATEGORIA',
+  'CANTIDAD',
+];
 
 // Columns that exist in staging_demand_raw (used to strip extra CSV columns)
-const STAGING_COLUMNS = ['CODIGO', 'NOMBRE DE CENTRO ESCOLAR', 'DEPARTAMENTO', 'DISTRITO', 'ZONA', 'TIPO_DE_VEHICULO', 'FECHA', 'ITEM', 'TIPO', 'CATEGORIA', 'CANTIDAD'];
+const STAGING_COLUMNS = [
+  'CODIGO',
+  'NOMBRE DE CENTRO ESCOLAR',
+  'DEPARTAMENTO',
+  'DISTRITO',
+  'ZONA',
+  'TIPO_DE_VEHICULO',
+  'FECHA',
+  'ITEM',
+  'TIPO',
+  'CATEGORIA',
+  'CANTIDAD',
+];
 
 /** Keep only keys that match staging table columns */
 function pickStagingColumns(record: Record<string, string>): Record<string, string> {
@@ -40,8 +61,10 @@ export async function POST(request: NextRequest) {
       const delimiter = clientDelimiter || (header.includes(';') ? ';' : ',');
 
       // Validate required columns are present in header
-      const headerColumns = header.split(delimiter).map((c: string) => c.trim().replace(/^"|"$/g, ''));
-      const missing = REQUIRED_COLUMNS.filter((col) => !headerColumns.includes(col));
+      const headerColumns = header
+        .split(delimiter)
+        .map((c: string) => c.trim().replace(/^"|"$/g, ''));
+      const missing = REQUIRED_COLUMNS.filter(col => !headerColumns.includes(col));
       if (missing.length > 0) {
         return NextResponse.json(
           { error: `Columnas requeridas faltantes: ${missing.join(', ')}` },

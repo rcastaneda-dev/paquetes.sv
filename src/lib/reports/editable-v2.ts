@@ -5,7 +5,12 @@
 
 import type { StudentQueryRow } from '@/types/database';
 import type { SchoolGroup } from '@/lib/pdf/agreement/types';
-import { CLOTHING_SIZE_ORDER, computeClothingExtra, getRestrictedSizeOrder, computeFinalCount } from '@/lib/reports/vacios';
+import {
+  CLOTHING_SIZE_ORDER,
+  computeClothingExtra,
+  getRestrictedSizeOrder,
+  computeFinalCount,
+} from '@/lib/reports/vacios';
 
 export interface FlatRow {
   correlativo: number;

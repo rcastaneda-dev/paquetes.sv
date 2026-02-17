@@ -4,7 +4,11 @@ import { supabaseServer } from '@/lib/supabase/server';
 import type { StudentQueryRow } from '@/types/database';
 import { groupBySchool } from '@/lib/pdf/agreement/sections';
 import { calculateUniformesTotalPiezas } from '@/lib/pdf/agreement/builders';
-import { CLOTHING_SIZE_ORDER, computeClothingExtra, getRestrictedSizeOrder } from '@/lib/reports/vacios';
+import {
+  CLOTHING_SIZE_ORDER,
+  computeClothingExtra,
+  getRestrictedSizeOrder,
+} from '@/lib/reports/vacios';
 
 const FILENAME = 'Consolidado_Pivot_Uniformes.xlsx';
 const PAGE_SIZE = 1000;

@@ -147,9 +147,8 @@ export function computeFinalCount(
   const base = original * multiplier;
   // Shoes (multiplier=1): round to nearest integer (only rounds up if fractional >= 0.5)
   // Clothing (multiplier=2): round up to nearest even number, only if original >= 10
-  const extra = multiplier === 1
-    ? (base > 0 ? Math.round(base * 0.05) : 0)
-    : computeClothingExtra(base);
+  const extra =
+    multiplier === 1 ? (base > 0 ? Math.round(base * 0.05) : 0) : computeClothingExtra(base);
   const final = base + extra;
 
   return { base, extra, final };
@@ -202,4 +201,3 @@ export function transformSizeCounts(
 
   return result;
 }
-

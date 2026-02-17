@@ -507,12 +507,17 @@ function createComandaSchoolHeader(school: SchoolDemandGroup): Paragraph[] {
     }),
     new Paragraph({
       alignment: AlignmentType.CENTER,
-      children: [new TextRun({ text: `CODIGO: ${school.codigo_ce.toUpperCase()}`, ...headerStyle })],
+      children: [
+        new TextRun({ text: `CODIGO: ${school.codigo_ce.toUpperCase()}`, ...headerStyle }),
+      ],
     }),
     new Paragraph({
       alignment: AlignmentType.CENTER,
       children: [
-        new TextRun({ text: `DEPARTAMENTO: ${departamento} - DISTRITO: ${distrito}`, ...headerStyle }),
+        new TextRun({
+          text: `DEPARTAMENTO: ${departamento} - DISTRITO: ${distrito}`,
+          ...headerStyle,
+        }),
       ],
     }),
     new Paragraph({
@@ -566,11 +571,7 @@ function buildComandaCajasSection(school: SchoolDemandGroup): (Paragraph | Table
 
   const tableRows = [
     new TableRow({
-      children: [
-        headerCell('NO', COL1),
-        headerCell('GRADO', COL2),
-        headerCell('CANTIDAD', COL3),
-      ],
+      children: [headerCell('NO', COL1), headerCell('GRADO', COL2), headerCell('CANTIDAD', COL3)],
     }),
     ...cajasRows.map(
       (row, idx) =>
@@ -701,10 +702,7 @@ function buildComandaZapatosSection(school: SchoolDemandGroup): (Paragraph | Tab
     ...zapatosRows.map(
       row =>
         new TableRow({
-          children: [
-            dataCell(row.categoria, COL1),
-            dataCell(row.cantidad.toString(), COL2),
-          ],
+          children: [dataCell(row.categoria, COL1), dataCell(row.cantidad.toString(), COL2)],
         })
     ),
   ];

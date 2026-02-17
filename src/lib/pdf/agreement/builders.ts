@@ -23,7 +23,11 @@ import {
   ACTA_RECEPCION_UNIFORMES_PAGE_OPTIONS,
   ACTA_RECEPCION_CAJAS_PAGE_OPTIONS,
 } from './sections';
-import { computeClothingExtra, computeFinalCount, getRestrictedSizeOrder } from '@/lib/reports/vacios';
+import {
+  computeClothingExtra,
+  computeFinalCount,
+  getRestrictedSizeOrder,
+} from '@/lib/reports/vacios';
 
 interface PageOptions {
   size: 'LETTER';

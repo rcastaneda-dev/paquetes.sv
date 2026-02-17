@@ -89,7 +89,14 @@ export async function GET(_request: Request, { params }: { params: { jobId: stri
     });
 
     const headerRow = sheet.getRow(1);
-    headerRow.values = ['CORRELATIVO', 'CODIGO_CE', 'NOMBRE_CE', 'TIPO_PRENDA', 'TALLA', 'CANTIDAD'];
+    headerRow.values = [
+      'CORRELATIVO',
+      'CODIGO_CE',
+      'NOMBRE_CE',
+      'TIPO_PRENDA',
+      'TALLA',
+      'CANTIDAD',
+    ];
     headerRow.font = { bold: true };
     headerRow.alignment = { horizontal: 'center' };
 
