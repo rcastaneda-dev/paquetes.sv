@@ -51,24 +51,35 @@ const RENDERER_BY_SECTION: Record<AgreementSectionType, SectionRenderer> = {
 // Comanda code helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Section types that should display a comanda code in the top-left corner */
-const COMANDA_SECTIONS = new Set<AgreementSectionType>([
-  'cajas',
-  'ficha_uniformes',
-  'ficha_zapatos',
-]);
+/**
+ * Prefix used for the overlay code per section type.
+ * - C = Comanda (cajas, ficha_uniformes, ficha_zapatos)
+ * - A = Acta    (acta_recepcion_uniformes, acta_recepcion_zapatos)
+ */
+const OVERLAY_CODE_PREFIX: Record<AgreementSectionType, string> = {
+  cajas: 'C',
+  ficha_uniformes: 'C',
+  ficha_zapatos: 'C',
+  acta_recepcion_uniformes: 'A',
+  acta_recepcion_zapatos: 'A',
+};
 
 /**
- * Build a comanda code string: C{dd}{mm}-{id}
+ * Build an overlay code string: {prefix}{dd}{mm}-{id}
+ * - prefix is "C" for comandas or "A" for actas
+ * - fechaInicio is the "Fecha entrega C.E." in YYYY-MM-DD format
  * - schoolIndex is 0-based; displayed as 001, 002, …
  * - pageInSchool (1-based) adds a suffix only for page 2+  (e.g. C1702-001-2)
  */
-function formatComandaCode(schoolIndex: number, pageInSchool = 1): string {
-  const now = new Date();
-  const dd = String(now.getDate()).padStart(2, '0');
-  const mm = String(now.getMonth() + 1).padStart(2, '0');
+function formatOverlayCode(
+  prefix: string,
+  fechaInicio: string,
+  schoolIndex: number,
+  pageInSchool = 1
+): string {
+  const [, mm, dd] = fechaInicio.split('-');
   const id = String(schoolIndex + 1).padStart(3, '0');
-  const base = `C${dd}${mm}-${id}`;
+  const base = `${prefix}${dd}${mm}-${id}`;
   return pageInSchool > 1 ? `${base}-${pageInSchool}` : base;
 }
 
@@ -308,7 +319,7 @@ export function buildConsolidatedPdf(options: {
   const renderer = RENDERER_BY_SECTION[section];
 
   const doc = new PDFDocument({ ...pageOptions, bufferPages: true }) as PDFDocumentInstance;
-  const useComanda = COMANDA_SECTIONS.has(section);
+  const prefix = OVERLAY_CODE_PREFIX[section];
   const pageCodes: string[] = [];
 
   for (let i = 0; i < sortedSchools.length; i++) {
@@ -321,20 +332,14 @@ export function buildConsolidatedPdf(options: {
       addPage: i > 0,
     });
 
-    if (useComanda) {
-      const pagesAfter = doc.bufferedPageRange().count;
-      const pagesForSchool = i === 0 ? pagesAfter : pagesAfter - pagesBefore;
-      for (let p = 1; p <= pagesForSchool; p++) {
-        pageCodes.push(formatComandaCode(i, p));
-      }
+    const pagesAfter = doc.bufferedPageRange().count;
+    const pagesForSchool = i === 0 ? pagesAfter : pagesAfter - pagesBefore;
+    for (let p = 1; p <= pagesForSchool; p++) {
+      pageCodes.push(formatOverlayCode(prefix, fechaInicio, i, p));
     }
   }
 
-  if (useComanda) {
-    stampPageOverlays(doc, pageCodes);
-  } else {
-    addPageNumbers(doc);
-  }
+  stampPageOverlays(doc, pageCodes);
   doc.end();
   return doc;
 }

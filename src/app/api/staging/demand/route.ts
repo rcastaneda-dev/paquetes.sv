@@ -4,7 +4,19 @@ import { supabaseServer } from '@/lib/supabase/server';
 
 const BATCH_SIZE = 500;
 
-const REQUIRED_COLUMNS = ['CODIGO', 'ITEM', 'TIPO', 'CATEGORIA', 'CANTIDAD'];
+const REQUIRED_COLUMNS = ['CODIGO', 'DEPARTAMENTO', 'DISTRITO', 'FECHA', 'ITEM', 'TIPO', 'CATEGORIA', 'CANTIDAD'];
+
+// Columns that exist in staging_demand_raw (used to strip extra CSV columns)
+const STAGING_COLUMNS = ['CODIGO', 'NOMBRE DE CENTRO ESCOLAR', 'DEPARTAMENTO', 'DISTRITO', 'FECHA', 'ITEM', 'TIPO', 'CATEGORIA', 'CANTIDAD'];
+
+/** Keep only keys that match staging table columns */
+function pickStagingColumns(record: Record<string, string>): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const col of STAGING_COLUMNS) {
+    if (col in record) out[col] = record[col];
+  }
+  return out;
+}
 
 // POST: receive normalized demand CSV chunks and insert into staging
 export async function POST(request: NextRequest) {
@@ -47,8 +59,9 @@ export async function POST(request: NextRequest) {
         delimiter,
       });
 
-      for (let i = 0; i < records.length; i += BATCH_SIZE) {
-        const batch = records.slice(i, i + BATCH_SIZE);
+      const cleaned = (records as Record<string, string>[]).map(pickStagingColumns);
+      for (let i = 0; i < cleaned.length; i += BATCH_SIZE) {
+        const batch = cleaned.slice(i, i + BATCH_SIZE);
         const { error } = await supabaseServer.from('staging_demand_raw').insert(batch);
         if (error) {
           return NextResponse.json(
@@ -58,13 +71,14 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      return NextResponse.json({ success: true, inserted: records.length });
+      return NextResponse.json({ success: true, inserted: cleaned.length });
     }
 
     // Action: insert pre-parsed rows directly
     if (action === 'insert' && rows) {
-      for (let i = 0; i < rows.length; i += BATCH_SIZE) {
-        const batch = rows.slice(i, i + BATCH_SIZE);
+      const cleanedRows = rows.map(pickStagingColumns);
+      for (let i = 0; i < cleanedRows.length; i += BATCH_SIZE) {
+        const batch = cleanedRows.slice(i, i + BATCH_SIZE);
         const { error } = await supabaseServer.from('staging_demand_raw').insert(batch);
         if (error) {
           return NextResponse.json(
@@ -73,7 +87,7 @@ export async function POST(request: NextRequest) {
           );
         }
       }
-      return NextResponse.json({ success: true, inserted: rows.length });
+      return NextResponse.json({ success: true, inserted: cleanedRows.length });
     }
 
     // Action: run migration

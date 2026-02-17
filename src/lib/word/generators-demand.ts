@@ -38,6 +38,8 @@ function groupDemandBySchool(rows: DemandRow[]): SchoolDemandGroup[] {
       map.set(row.school_codigo_ce, {
         codigo_ce: row.school_codigo_ce,
         nombre_ce: row.nombre_ce,
+        departamento: row.departamento,
+        distrito: row.distrito,
         rows: [],
       });
     }

@@ -142,6 +142,8 @@ export interface BatchProgress {
 export interface DemandRow {
   school_codigo_ce: string;
   nombre_ce: string;
+  departamento: string;
+  distrito: string;
   item: string;       // 'CAJAS' | 'UNIFORMES' | 'ZAPATOS'
   tipo: string;       // 'CAJAS', 'CAMISA BLANCA', 'ZAPATOS', etc.
   categoria: string;  // grade name or size
@@ -152,5 +154,7 @@ export interface DemandRow {
 export interface SchoolDemandGroup {
   codigo_ce: string;
   nombre_ce: string;
+  departamento: string;
+  distrito: string;
   rows: DemandRow[];
 }

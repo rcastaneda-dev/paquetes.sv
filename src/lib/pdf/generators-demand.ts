@@ -36,6 +36,8 @@ function groupDemandBySchool(rows: DemandRow[]): SchoolDemandGroup[] {
       map.set(row.school_codigo_ce, {
         codigo_ce: row.school_codigo_ce,
         nombre_ce: row.nombre_ce,
+        departamento: row.departamento,
+        distrito: row.distrito,
         rows: [],
       });
     }
@@ -108,6 +110,13 @@ function drawTitleAndSchoolHeader(
     .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
     .font('Helvetica-Bold')
     .text(`CODIGO: ${school.codigo_ce.toUpperCase()}`, { align: 'center' });
+
+  const departamento = (school.departamento || 'N/A').toUpperCase();
+  const distrito = (school.distrito || 'N/A').toUpperCase();
+  doc
+    .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+    .font('Helvetica-Bold')
+    .text(`DEPARTAMENTO: ${departamento} - DISTRITO: ${distrito}`, { align: 'center' });
 
   doc.moveDown(1);
 }
@@ -286,6 +295,10 @@ function renderActaUniformesSchool(
         .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
         .font('Helvetica-Bold')
         .text(`CODIGO: ${school.codigo_ce.toUpperCase()}`, { align: 'center' });
+      doc
+        .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+        .font('Helvetica-Bold')
+        .text(`DEPARTAMENTO: ${(school.departamento || 'N/A').toUpperCase()} - DISTRITO: ${(school.distrito || 'N/A').toUpperCase()}`, { align: 'center' });
       doc.moveDown(1);
       currentY = doc.y;
 

@@ -6,14 +6,14 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 
-const REQUIRED_COLUMNS = ['CODIGO', 'ITEM', 'TIPO', 'CATEGORIA', 'CANTIDAD'];
+const REQUIRED_COLUMNS = ['CODIGO', 'DEPARTAMENTO', 'DISTRITO', 'FECHA', 'ITEM', 'TIPO', 'CATEGORIA', 'CANTIDAD'];
 
 const ALL_COLUMNS = [
-  'NRO',
   'CODIGO',
   'NOMBRE DE CENTRO ESCOLAR',
-  'TAMAÑO',
-  'MATRICULA',
+  'DEPARTAMENTO',
+  'DISTRITO',
+  'FECHA',
   'ITEM',
   'TIPO',
   'CATEGORIA',
