@@ -864,6 +864,8 @@ export function renderActaRecepcionZapatosSection(ctx: SectionRenderContext): vo
   }
 
   const title = 'ACTA DE RECEPCIÓN (ZAPATOS)';
+  const departamento = school.departamento || 'N/A';
+  const distrito = school.distrito || 'N/A';
 
   addLogoToPage(doc, doc.page.width);
 
@@ -880,6 +882,12 @@ export function renderActaRecepcionZapatosSection(ctx: SectionRenderContext): vo
     .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
     .font('Helvetica-Bold')
     .text(`CODIGO: ${school.codigo_ce.toUpperCase()}`, { align: 'center' });
+  doc
+    .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+    .font('Helvetica-Bold')
+    .text(`DEPARTAMENTO: ${departamento.toUpperCase()} - DISTRITO: ${distrito.toUpperCase()}`, {
+      align: 'center',
+    });
 
   doc.moveDown(1);
 
@@ -1052,6 +1060,8 @@ export function renderActaRecepcionUniformesSection(ctx: SectionRenderContext): 
   }
 
   const title = 'ACTA DE RECEPCIÓN (UNIFORMES)';
+  const departamento = school.departamento || 'N/A';
+  const distrito = school.distrito || 'N/A';
 
   addLogoToPage(doc, doc.page.width);
 
@@ -1068,6 +1078,12 @@ export function renderActaRecepcionUniformesSection(ctx: SectionRenderContext): 
     .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
     .font('Helvetica-Bold')
     .text(`CODIGO: ${school.codigo_ce.toUpperCase()}`, { align: 'center' });
+  doc
+    .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+    .font('Helvetica-Bold')
+    .text(`DEPARTAMENTO: ${departamento.toUpperCase()} - DISTRITO: ${distrito.toUpperCase()}`, {
+      align: 'center',
+    });
 
   doc.moveDown(1);
 
@@ -1240,6 +1256,12 @@ export function renderActaRecepcionUniformesSection(ctx: SectionRenderContext): 
         .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
         .font('Helvetica-Bold')
         .text(`CODIGO: ${school.codigo_ce.toUpperCase()}`, { align: 'center' });
+      doc
+        .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+        .font('Helvetica-Bold')
+        .text(`DEPARTAMENTO: ${departamento.toUpperCase()} - DISTRITO: ${distrito.toUpperCase()}`, {
+          align: 'center',
+        });
       doc.moveDown(1);
       currentY = doc.y;
 
@@ -1350,6 +1372,8 @@ export function renderActaRecepcionCajasSection(ctx: SectionRenderContext): void
   }
 
   const title = 'ACTA DE RECEPCIÓN (CAJAS)';
+  const departamento = school.departamento || 'N/A';
+  const distrito = school.distrito || 'N/A';
 
   addLogoToPage(doc, doc.page.width);
 
@@ -1366,6 +1390,12 @@ export function renderActaRecepcionCajasSection(ctx: SectionRenderContext): void
     .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
     .font('Helvetica-Bold')
     .text(`CODIGO: ${school.codigo_ce.toUpperCase()}`, { align: 'center' });
+  doc
+    .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+    .font('Helvetica-Bold')
+    .text(`DEPARTAMENTO: ${departamento.toUpperCase()} - DISTRITO: ${distrito.toUpperCase()}`, {
+      align: 'center',
+    });
 
   doc.moveDown(1);
 
