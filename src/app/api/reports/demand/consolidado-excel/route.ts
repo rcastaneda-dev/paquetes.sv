@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     return new NextResponse(new Uint8Array(buffer), {
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'Content-Disposition': 'attachment; filename="consolidado-demand.xlsx"',
+        'Content-Disposition': 'attachment; filename="consolidado-faltantes.xlsx"',
         'Cache-Control': 'no-store',
       },
     });
