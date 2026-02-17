@@ -144,6 +144,8 @@ export interface DemandRow {
   nombre_ce: string;
   departamento: string;
   distrito: string;
+  zona: string;
+  transporte: string;
   item: string;       // 'CAJAS' | 'UNIFORMES' | 'ZAPATOS'
   tipo: string;       // 'CAJAS', 'CAMISA BLANCA', 'ZAPATOS', etc.
   categoria: string;  // grade name or size
@@ -156,5 +158,7 @@ export interface SchoolDemandGroup {
   nombre_ce: string;
   departamento: string;
   distrito: string;
+  zona: string;
+  transporte: string;
   rows: DemandRow[];
 }

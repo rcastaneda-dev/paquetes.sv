@@ -13,6 +13,8 @@ const ALL_COLUMNS = [
   'NOMBRE DE CENTRO ESCOLAR',
   'DEPARTAMENTO',
   'DISTRITO',
+  'ZONA',
+  'TIPO_DE_VEHICULO',
   'FECHA',
   'ITEM',
   'TIPO',
@@ -210,7 +212,7 @@ export default function DemandStagingPage() {
             </div>
 
             <div className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-200">
-              <strong>Formato esperado:</strong> CSV con 9 columnas ({ALL_COLUMNS.join(', ')}). Las
+              <strong>Formato esperado:</strong> CSV con 11 columnas ({ALL_COLUMNS.join(', ')}). Las
               cantidades se usan tal cual — sin multiplicadores ni cálculos de vacíos.
             </div>
 

@@ -15,6 +15,42 @@ interface ReportConfig {
 
 const REPORTS: ReportConfig[] = [
   {
+    label: 'Comanda de Cajas',
+    sublabel: 'PDF',
+    format: 'pdf',
+    endpoint: '/api/reports/demand/comanda-cajas',
+  },
+  {
+    label: 'Comanda de Cajas',
+    sublabel: 'Word',
+    format: 'docx',
+    endpoint: '/api/reports/demand/comanda-cajas-word',
+  },
+  {
+    label: 'Comanda de Uniformes',
+    sublabel: 'PDF',
+    format: 'pdf',
+    endpoint: '/api/reports/demand/comanda-uniformes',
+  },
+  {
+    label: 'Comanda de Uniformes',
+    sublabel: 'Word',
+    format: 'docx',
+    endpoint: '/api/reports/demand/comanda-uniformes-word',
+  },
+  {
+    label: 'Comanda de Zapatos',
+    sublabel: 'PDF',
+    format: 'pdf',
+    endpoint: '/api/reports/demand/comanda-zapatos',
+  },
+  {
+    label: 'Comanda de Zapatos',
+    sublabel: 'Word',
+    format: 'docx',
+    endpoint: '/api/reports/demand/comanda-zapatos-word',
+  },
+  {
     label: 'Acta de Recepción de Cajas',
     sublabel: 'PDF',
     format: 'pdf',

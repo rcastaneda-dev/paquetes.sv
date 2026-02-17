@@ -7,7 +7,7 @@ const BATCH_SIZE = 500;
 const REQUIRED_COLUMNS = ['CODIGO', 'DEPARTAMENTO', 'DISTRITO', 'FECHA', 'ITEM', 'TIPO', 'CATEGORIA', 'CANTIDAD'];
 
 // Columns that exist in staging_demand_raw (used to strip extra CSV columns)
-const STAGING_COLUMNS = ['CODIGO', 'NOMBRE DE CENTRO ESCOLAR', 'DEPARTAMENTO', 'DISTRITO', 'FECHA', 'ITEM', 'TIPO', 'CATEGORIA', 'CANTIDAD'];
+const STAGING_COLUMNS = ['CODIGO', 'NOMBRE DE CENTRO ESCOLAR', 'DEPARTAMENTO', 'DISTRITO', 'ZONA', 'TIPO_DE_VEHICULO', 'FECHA', 'ITEM', 'TIPO', 'CATEGORIA', 'CANTIDAD'];
 
 /** Keep only keys that match staging table columns */
 function pickStagingColumns(record: Record<string, string>): Record<string, string> {

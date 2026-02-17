@@ -40,6 +40,8 @@ function groupDemandBySchool(rows: DemandRow[]): SchoolDemandGroup[] {
         nombre_ce: row.nombre_ce,
         departamento: row.departamento,
         distrito: row.distrito,
+        zona: row.zona,
+        transporte: row.transporte,
         rows: [],
       });
     }
@@ -248,9 +250,9 @@ function buildCajasSection(school: SchoolDemandGroup): (Paragraph | Table)[] {
 
   const totalCantidad = cajasRows.reduce((sum, r) => sum + r.cantidad, 0);
 
-  const COL1 = 4000;
-  const COL2 = 1600;
-  const COL3 = 4000;
+  const COL1 = 5000;
+  const COL2 = 2000;
+  const COL3 = 4160;
 
   const tableRows = [
     new TableRow({
@@ -280,6 +282,7 @@ function buildCajasSection(school: SchoolDemandGroup): (Paragraph | Table)[] {
   ];
 
   const table = new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
     layout: TableLayoutType.FIXED,
     rows: tableRows,
   });
@@ -317,9 +320,9 @@ function buildUniformesSection(school: SchoolDemandGroup): (Paragraph | Table)[]
 
   const totalCantidad = uniformeRows.reduce((sum, r) => sum + r.cantidad, 0);
 
-  const COL1 = 4000;
-  const COL2 = 1600;
-  const COL3 = 4000;
+  const COL1 = 5000;
+  const COL2 = 2000;
+  const COL3 = 4160;
 
   const tableRows = [
     new TableRow({
@@ -349,6 +352,7 @@ function buildUniformesSection(school: SchoolDemandGroup): (Paragraph | Table)[]
   ];
 
   const table = new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
     layout: TableLayoutType.FIXED,
     rows: tableRows,
   });
@@ -386,9 +390,9 @@ function buildZapatosSection(school: SchoolDemandGroup): (Paragraph | Table)[] {
 
   const totalCantidad = zapatosRows.reduce((sum, r) => sum + r.cantidad, 0);
 
-  const COL1 = 1200;
-  const COL2 = 1600;
-  const COL3 = 6800;
+  const COL1 = 1500;
+  const COL2 = 2000;
+  const COL3 = 7660;
 
   const tableRows = [
     new TableRow({
@@ -418,6 +422,7 @@ function buildZapatosSection(school: SchoolDemandGroup): (Paragraph | Table)[] {
   ];
 
   const table = new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
     layout: TableLayoutType.FIXED,
     rows: tableRows,
   });
@@ -483,4 +488,298 @@ export async function generateActaRecepcionUniformesWord(demandRows: DemandRow[]
 /** Generate Acta de Recepción de Zapatos Word document from demand data */
 export async function generateActaRecepcionZapatosWord(demandRows: DemandRow[]): Promise<Buffer> {
   return buildDemandWord(demandRows, buildZapatosSection, 'ZAPATOS');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Comanda helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+function createComandaSchoolHeader(school: SchoolDemandGroup): Paragraph[] {
+  const departamento = (school.departamento || 'N/A').toUpperCase();
+  const distrito = (school.distrito || 'N/A').toUpperCase();
+  const zona = (school.zona || 'N/A').toUpperCase();
+  const transporte = (school.transporte || 'N/A').toUpperCase();
+  const headerStyle = { bold: true, size: 22, font: 'Arial' } as const;
+  return [
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      children: [new TextRun({ text: school.nombre_ce.toUpperCase(), ...headerStyle })],
+    }),
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      children: [new TextRun({ text: `CODIGO: ${school.codigo_ce.toUpperCase()}`, ...headerStyle })],
+    }),
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      children: [
+        new TextRun({ text: `DEPARTAMENTO: ${departamento} - DISTRITO: ${distrito}`, ...headerStyle }),
+      ],
+    }),
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      children: [
+        new TextRun({ text: `ZONA: ${zona} - TIPO DE VEHICULO: ${transporte}`, ...headerStyle }),
+      ],
+    }),
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { after: 200 },
+      children: [
+        new TextRun({
+          text: 'HORA DE INICIO:  ___________________ HORA DE FINALIZACION: ___________________',
+          size: 22,
+          font: 'Arial',
+        }),
+      ],
+    }),
+  ];
+}
+
+function createFechaDespachoLine(): Paragraph {
+  return new Paragraph({
+    alignment: AlignmentType.CENTER,
+    spacing: { after: 300 },
+    children: [
+      new TextRun({
+        text: 'Fecha de despacho: ___________________  Fecha entrega C.E.: ___________________',
+        size: 22,
+        font: 'Arial',
+      }),
+    ],
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Comanda Cajas Word (landscape)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function buildComandaCajasSection(school: SchoolDemandGroup): (Paragraph | Table)[] {
+  const cajasRows = school.rows
+    .filter(r => r.item === 'CAJAS')
+    .sort((a, b) => a.categoria.localeCompare(b.categoria));
+
+  const totalCantidad = cajasRows.reduce((sum, r) => sum + r.cantidad, 0);
+
+  const COL1 = 1600; // NO
+  const COL2 = 9560; // GRADO
+  const COL3 = 3600; // CANTIDAD
+
+  const tableRows = [
+    new TableRow({
+      children: [
+        headerCell('NO', COL1),
+        headerCell('GRADO', COL2),
+        headerCell('CANTIDAD', COL3),
+      ],
+    }),
+    ...cajasRows.map(
+      (row, idx) =>
+        new TableRow({
+          children: [
+            dataCell((idx + 1).toString(), COL1),
+            dataCell(row.categoria, COL2),
+            dataCell(row.cantidad.toString(), COL3),
+          ],
+        })
+    ),
+    new TableRow({
+      children: [
+        dataCell('', COL1, true),
+        dataCell('SUBTOTAL', COL2, true),
+        dataCell(totalCantidad.toString(), COL3, true),
+      ],
+    }),
+  ];
+
+  const table = new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    layout: TableLayoutType.FIXED,
+    rows: tableRows,
+  });
+
+  const logo = getLogoImageRun();
+  const elements: (Paragraph | Table)[] = [];
+
+  if (logo) {
+    elements.push(new Paragraph({ alignment: AlignmentType.RIGHT, children: [logo] }));
+  }
+
+  elements.push(
+    createTitleParagraph('DETALLE DE PROGRAMACIÓN DE CAJAS'),
+    createFechaDespachoLine(),
+    ...createComandaSchoolHeader(school),
+    table
+  );
+
+  return elements;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Comanda Uniformes Word (portrait)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function buildComandaUniformesSection(school: SchoolDemandGroup): (Paragraph | Table)[] {
+  const uniformeRows = school.rows
+    .filter(r => r.item === 'UNIFORMES')
+    .sort((a, b) => {
+      const tipoCompare = a.tipo.localeCompare(b.tipo);
+      if (tipoCompare !== 0) return tipoCompare;
+      return a.categoria.localeCompare(b.categoria);
+    });
+
+  const totalPiezas = uniformeRows.reduce((sum, r) => sum + r.cantidad, 0);
+
+  const COL1 = 7440; // TIPO/TALLA
+  const COL2 = 3720; // CANTIDAD
+
+  const tableRows = [
+    new TableRow({
+      children: [headerCell('TIPO/TALLA', COL1), headerCell('CANTIDAD', COL2)],
+    }),
+    ...uniformeRows.map(
+      row =>
+        new TableRow({
+          children: [
+            dataCell(`${row.tipo} - ${row.categoria}`, COL1),
+            dataCell(row.cantidad.toString(), COL2),
+          ],
+        })
+    ),
+  ];
+
+  const table = new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    layout: TableLayoutType.FIXED,
+    rows: tableRows,
+  });
+
+  const logo = getLogoImageRun();
+  const elements: (Paragraph | Table)[] = [];
+
+  if (logo) {
+    elements.push(new Paragraph({ alignment: AlignmentType.RIGHT, children: [logo] }));
+  }
+
+  elements.push(
+    createTitleParagraph('FICHA DE DISTRIBUCION POR ESCUELA (UNIFORMES)'),
+    createFechaDespachoLine(),
+    ...createComandaSchoolHeader(school),
+    table,
+    new Paragraph({
+      spacing: { before: 200 },
+      children: [
+        new TextRun({ text: `TOTAL PIEZAS: ${totalPiezas}`, bold: true, size: 22, font: 'Arial' }),
+      ],
+    })
+  );
+
+  return elements;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Comanda Zapatos Word (portrait)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function buildComandaZapatosSection(school: SchoolDemandGroup): (Paragraph | Table)[] {
+  const zapatosRows = school.rows
+    .filter(r => r.item === 'ZAPATOS')
+    .sort((a, b) => {
+      const numA = parseInt(a.categoria, 10) || 0;
+      const numB = parseInt(b.categoria, 10) || 0;
+      return numA - numB;
+    });
+
+  const totalPiezas = zapatosRows.reduce((sum, r) => sum + r.cantidad, 0);
+
+  const COL1 = 7440; // TALLA
+  const COL2 = 3720; // CANTIDAD
+
+  const tableRows = [
+    new TableRow({
+      children: [headerCell('TALLA', COL1), headerCell('CANTIDAD', COL2)],
+    }),
+    ...zapatosRows.map(
+      row =>
+        new TableRow({
+          children: [
+            dataCell(row.categoria, COL1),
+            dataCell(row.cantidad.toString(), COL2),
+          ],
+        })
+    ),
+  ];
+
+  const table = new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    layout: TableLayoutType.FIXED,
+    rows: tableRows,
+  });
+
+  const logo = getLogoImageRun();
+  const elements: (Paragraph | Table)[] = [];
+
+  if (logo) {
+    elements.push(new Paragraph({ alignment: AlignmentType.RIGHT, children: [logo] }));
+  }
+
+  elements.push(
+    createTitleParagraph('FICHA DE DISTRIBUCION POR ESCUELA (ZAPATOS)'),
+    createFechaDespachoLine(),
+    ...createComandaSchoolHeader(school),
+    table,
+    new Paragraph({
+      spacing: { before: 200 },
+      children: [
+        new TextRun({ text: `TOTAL PIEZAS: ${totalPiezas}`, bold: true, size: 22, font: 'Arial' }),
+      ],
+    })
+  );
+
+  return elements;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Public comanda generator functions
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function buildComandaWord(
+  demandRows: DemandRow[],
+  sectionBuilder: SectionBuilder,
+  itemType: string,
+  landscape: boolean
+): Promise<Buffer> {
+  const schools = groupDemandBySchool(demandRows).filter(
+    s => s.rows.filter(r => r.item === itemType).reduce((sum, r) => sum + r.cantidad, 0) > 0
+  );
+
+  const orientation = landscape ? PageOrientation.LANDSCAPE : PageOrientation.PORTRAIT;
+
+  const sections = schools.map((school, idx) => ({
+    properties: {
+      type: idx === 0 ? undefined : SectionType.NEXT_PAGE,
+      page: {
+        size: { orientation },
+        margin: { top: 720, bottom: 720, left: 540, right: 540 },
+      },
+    },
+    children: sectionBuilder(school),
+  }));
+
+  const doc = new Document({ sections });
+  return Buffer.from(await Packer.toBuffer(doc));
+}
+
+/** Generate Comanda de Cajas Word document from demand data (landscape) */
+export async function generateComandaCajasWord(demandRows: DemandRow[]): Promise<Buffer> {
+  return buildComandaWord(demandRows, buildComandaCajasSection, 'CAJAS', true);
+}
+
+/** Generate Comanda de Uniformes Word document from demand data (portrait) */
+export async function generateComandaUniformesWord(demandRows: DemandRow[]): Promise<Buffer> {
+  return buildComandaWord(demandRows, buildComandaUniformesSection, 'UNIFORMES', false);
+}
+
+/** Generate Comanda de Zapatos Word document from demand data (portrait) */
+export async function generateComandaZapatosWord(demandRows: DemandRow[]): Promise<Buffer> {
+  return buildComandaWord(demandRows, buildComandaZapatosSection, 'ZAPATOS', false);
 }
