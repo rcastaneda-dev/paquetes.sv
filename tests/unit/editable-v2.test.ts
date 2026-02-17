@@ -54,10 +54,10 @@ function makeSchool(
     codigo_ce,
     nombre_ce,
     departamento: students[0]?.departamento ?? 'SAN SALVADOR',
-    municipio:    students[0]?.municipio    ?? 'SAN SALVADOR_CENTRO',
-    distrito:     students[0]?.distrito     ?? 'SAN SALVADOR',
-    zona:         students[0]?.zona         ?? 'URBANA',
-    transporte:   students[0]?.transporte   ?? 'NO',
+    municipio: students[0]?.municipio ?? 'SAN SALVADOR_CENTRO',
+    distrito: students[0]?.distrito ?? 'SAN SALVADOR',
+    zona: students[0]?.zona ?? 'URBANA',
+    transporte: students[0]?.transporte ?? 'NO',
     students,
   };
 }
