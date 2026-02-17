@@ -50,7 +50,7 @@ export default function DemandStagingPage() {
 
     try {
       const text = await file.text();
-      const lines = text.split(/\r?\n/).filter((line) => line.trim() !== '');
+      const lines = text.split(/\r?\n/).filter(line => line.trim() !== '');
 
       if (lines.length < 2) {
         setResult({ success: false, error: 'El archivo CSV no contiene registros.' });
@@ -62,8 +62,8 @@ export default function DemandStagingPage() {
 
       // Validate required columns
       const delimiter = header.includes(';') ? ';' : ',';
-      const columns = header.split(delimiter).map((c) => c.replace(/^"|"$/g, '').trim());
-      const missing = REQUIRED_COLUMNS.filter((col) => !columns.includes(col));
+      const columns = header.split(delimiter).map(c => c.replace(/^"|"$/g, '').trim());
+      const missing = REQUIRED_COLUMNS.filter(col => !columns.includes(col));
       if (missing.length > 0) {
         setResult({
           success: false,
@@ -172,7 +172,7 @@ export default function DemandStagingPage() {
         <div className="ml-auto">
           <Link href="/reports/demand">
             <Button variant="outline" size="sm">
-              Reportes de Demanda
+              Reporte de Faltantes
             </Button>
           </Link>
         </div>
@@ -259,7 +259,7 @@ export default function DemandStagingPage() {
               </dl>
               <Link href="/reports/demand">
                 <Button variant="primary" className="mt-4 w-full">
-                  Ver Reportes de Demanda
+                  Ver Reporte de Faltantes
                 </Button>
               </Link>
             </div>

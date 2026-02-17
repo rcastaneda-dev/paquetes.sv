@@ -47,6 +47,60 @@ const RENDERER_BY_SECTION: Record<AgreementSectionType, SectionRenderer> = {
   acta_recepcion_uniformes: renderActaRecepcionUniformesSection,
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Comanda code helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Section types that should display a comanda code in the top-left corner */
+const COMANDA_SECTIONS = new Set<AgreementSectionType>([
+  'cajas',
+  'ficha_uniformes',
+  'ficha_zapatos',
+]);
+
+/**
+ * Build a comanda code string: C{dd}{mm}-{id}
+ * - schoolIndex is 0-based; displayed as 001, 002, …
+ * - pageInSchool (1-based) adds a suffix only for page 2+  (e.g. C1702-001-2)
+ */
+function formatComandaCode(schoolIndex: number, pageInSchool = 1): string {
+  const now = new Date();
+  const dd = String(now.getDate()).padStart(2, '0');
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const id = String(schoolIndex + 1).padStart(3, '0');
+  const base = `C${dd}${mm}-${id}`;
+  return pageInSchool > 1 ? `${base}-${pageInSchool}` : base;
+}
+
+/**
+ * Single switchToPage pass: stamps comanda codes (top-left) AND page numbers
+ * (bottom-center) on every buffered page.
+ */
+function stampPageOverlays(doc: PDFDocumentInstance, comandaCodes: string[]): void {
+  const range = doc.bufferedPageRange();
+  for (let i = range.start; i < range.start + range.count; i++) {
+    doc.switchToPage(i);
+    const idx = i - range.start;
+
+    // Comanda code — top-left
+    const code = comandaCodes[idx];
+    if (code) {
+      doc.fontSize(8).font('Helvetica-Bold').fillColor('black');
+      doc.text(code, 30, 20, { lineBreak: false });
+    }
+
+    // Page number — bottom-center
+    const pageNum = `${idx + 1}`;
+    doc.fontSize(8).font('Helvetica').fillColor('black');
+    const tw = doc.widthOfString(pageNum);
+    doc.text(pageNum, (doc.page.width - tw) / 2, doc.page.height - 20, { lineBreak: false });
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Totals calculators
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
  * Calculate total CAJAS for a school (sum of hombres + mujeres boxes).
  * Exported for use by consolidado Excel export.
@@ -254,17 +308,33 @@ export function buildConsolidatedPdf(options: {
   const renderer = RENDERER_BY_SECTION[section];
 
   const doc = new PDFDocument({ ...pageOptions, bufferPages: true }) as PDFDocumentInstance;
+  const useComanda = COMANDA_SECTIONS.has(section);
+  const pageCodes: string[] = [];
 
   for (let i = 0; i < sortedSchools.length; i++) {
+    const pagesBefore = doc.bufferedPageRange().count;
+
     renderer({
       doc,
       school: sortedSchools[i],
       fechaInicio,
       addPage: i > 0,
     });
+
+    if (useComanda) {
+      const pagesAfter = doc.bufferedPageRange().count;
+      const pagesForSchool = i === 0 ? pagesAfter : pagesAfter - pagesBefore;
+      for (let p = 1; p <= pagesForSchool; p++) {
+        pageCodes.push(formatComandaCode(i, p));
+      }
+    }
   }
 
-  addPageNumbers(doc);
+  if (useComanda) {
+    stampPageOverlays(doc, pageCodes);
+  } else {
+    addPageNumbers(doc);
+  }
   doc.end();
   return doc;
 }

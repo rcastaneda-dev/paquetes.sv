@@ -68,9 +68,7 @@ export default function DemandReportsPage() {
     if (schoolFilter.trim()) {
       params.set('school_codigo_ce', schoolFilter.trim());
     }
-    const url = params.toString()
-      ? `${report.endpoint}?${params.toString()}`
-      : report.endpoint;
+    const url = params.toString() ? `${report.endpoint}?${params.toString()}` : report.endpoint;
     window.open(url, '_blank', 'noopener,noreferrer');
     // Reset after a short delay (download starts immediately)
     setTimeout(() => setGenerating(null), 1500);
@@ -79,7 +77,7 @@ export default function DemandReportsPage() {
   return (
     <div className="container mx-auto max-w-2xl px-4 py-8">
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Reportes de Demanda</h1>
+        <h1 className="text-2xl font-bold">Reporte de Faltantes</h1>
         <div className="flex gap-2">
           <Link href="/staging/demand">
             <Button variant="outline" size="sm">
@@ -103,7 +101,7 @@ export default function DemandReportsPage() {
             <input
               type="text"
               value={schoolFilter}
-              onChange={(e) => setSchoolFilter(e.target.value)}
+              onChange={e => setSchoolFilter(e.target.value)}
               placeholder="Código de centro escolar (ej: 11492)"
               className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
             />
@@ -125,7 +123,7 @@ export default function DemandReportsPage() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {REPORTS.map((report) => (
+            {REPORTS.map(report => (
               <Button
                 key={report.endpoint}
                 variant="outline"

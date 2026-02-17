@@ -246,9 +246,9 @@ export default function JobDetailPage() {
       a.href = url;
 
       const fileNames: Record<string, string> = {
-        cajas: 'consolidado_cajas.pdf',
-        ficha_uniformes: 'consolidado_uniformes.pdf',
-        ficha_zapatos: 'consolidado_zapatos.pdf',
+        cajas: 'comanda_cajas.pdf',
+        ficha_uniformes: 'comanda_uniformes.pdf',
+        ficha_zapatos: 'comanda_zapatos.pdf',
         acta_recepcion_zapatos: 'consolidado_acta_recepcion_zapatos.pdf',
         acta_recepcion_uniformes: 'consolidado_acta_recepcion_uniformes.pdf',
       };
@@ -767,9 +767,9 @@ export default function JobDetailPage() {
             <CardContent className="space-y-3">
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {[
-                  { key: 'cajas', label: 'Consolidado Cajas' },
-                  { key: 'ficha_uniformes', label: 'Consolidado Uniformes' },
-                  { key: 'ficha_zapatos', label: 'Consolidado Zapatos' },
+                  { key: 'cajas', label: 'Comanda Cajas' },
+                  { key: 'ficha_uniformes', label: 'Comanda Uniformes' },
+                  { key: 'ficha_zapatos', label: 'Comanda Zapatos' },
                   {
                     key: 'acta_recepcion_zapatos',
                     label: 'Consolidado Actas de Recepcion (Zapatos)',
