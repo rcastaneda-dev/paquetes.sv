@@ -133,7 +133,7 @@ function renderActaCajasSchool(
 
   // Filter rows for CAJAS
   const cajasRows = school.rows
-    .filter((r) => r.item === 'CAJAS')
+    .filter(r => r.item === 'CAJAS')
     .sort((a, b) => a.categoria.localeCompare(b.categoria));
 
   // Table layout
@@ -231,7 +231,7 @@ function renderActaUniformesSchool(
 
   // Filter rows for UNIFORMES — format as "TIPO - CATEGORIA"
   const uniformeRows = school.rows
-    .filter((r) => r.item === 'UNIFORMES')
+    .filter(r => r.item === 'UNIFORMES')
     .sort((a, b) => {
       const tipoCompare = a.tipo.localeCompare(b.tipo);
       if (tipoCompare !== 0) return tipoCompare;
@@ -376,7 +376,7 @@ function renderActaZapatosSchool(
 
   // Filter rows for ZAPATOS
   const zapatosRows = school.rows
-    .filter((r) => r.item === 'ZAPATOS')
+    .filter(r => r.item === 'ZAPATOS')
     .sort((a, b) => {
       const numA = parseInt(a.categoria, 10) || 0;
       const numB = parseInt(b.categoria, 10) || 0;
@@ -468,7 +468,9 @@ function renderActaZapatosSchool(
 export function generateActaRecepcionCajasPDFFromDemand(
   demandRows: DemandRow[]
 ): PDFDocumentInstance {
-  const schools = groupDemandBySchool(demandRows);
+  const schools = groupDemandBySchool(demandRows).filter(
+    s => s.rows.filter(r => r.item === 'CAJAS').reduce((sum, r) => sum + r.cantidad, 0) > 0
+  );
   const doc = new PDFDocument({
     ...ACTA_RECEPCION_CAJAS_PAGE_OPTIONS,
     bufferPages: true,
@@ -490,7 +492,9 @@ export function generateActaRecepcionCajasPDFFromDemand(
 export function generateActaRecepcionUniformesPDFFromDemand(
   demandRows: DemandRow[]
 ): PDFDocumentInstance {
-  const schools = groupDemandBySchool(demandRows);
+  const schools = groupDemandBySchool(demandRows).filter(
+    s => s.rows.filter(r => r.item === 'UNIFORMES').reduce((sum, r) => sum + r.cantidad, 0) > 0
+  );
   const doc = new PDFDocument({
     ...ACTA_RECEPCION_UNIFORMES_PAGE_OPTIONS,
     bufferPages: true,
@@ -512,7 +516,9 @@ export function generateActaRecepcionUniformesPDFFromDemand(
 export function generateActaRecepcionZapatosPDFFromDemand(
   demandRows: DemandRow[]
 ): PDFDocumentInstance {
-  const schools = groupDemandBySchool(demandRows);
+  const schools = groupDemandBySchool(demandRows).filter(
+    s => s.rows.filter(r => r.item === 'ZAPATOS').reduce((sum, r) => sum + r.cantidad, 0) > 0
+  );
   const doc = new PDFDocument({
     ...ACTA_RECEPCION_ZAPATOS_PAGE_OPTIONS,
     bufferPages: true,

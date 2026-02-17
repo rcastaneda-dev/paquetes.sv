@@ -99,7 +99,9 @@ function createPreTableFields(): Paragraph[] {
   return [
     new Paragraph({
       spacing: { after: 100 },
-      children: [new TextRun({ text: 'DATOS DE LOS PRODUCTOS', bold: true, size: 22, font: 'Arial' })],
+      children: [
+        new TextRun({ text: 'DATOS DE LOS PRODUCTOS', bold: true, size: 22, font: 'Arial' }),
+      ],
     }),
     new Paragraph({
       spacing: { after: 60 },
@@ -121,23 +123,42 @@ function createTransportFooter(): Paragraph[] {
   return [
     new Paragraph({
       spacing: { before: 400, after: 100 },
-      children: [new TextRun({ text: 'DATOS DEL TRANSPORTE', bold: true, size: 22, font: 'Arial' })],
+      children: [
+        new TextRun({ text: 'DATOS DEL TRANSPORTE', bold: true, size: 22, font: 'Arial' }),
+      ],
     }),
     new Paragraph({
       spacing: { after: 60 },
-      children: [new TextRun({ text: 'Nombre del conductor: ________________________________', ...fieldStyle })],
+      children: [
+        new TextRun({
+          text: 'Nombre del conductor: ________________________________',
+          ...fieldStyle,
+        }),
+      ],
     }),
     new Paragraph({
       spacing: { after: 60 },
-      children: [new TextRun({ text: 'Número de placa: ________________________________', ...fieldStyle })],
+      children: [
+        new TextRun({ text: 'Número de placa: ________________________________', ...fieldStyle }),
+      ],
     }),
     new Paragraph({
       spacing: { after: 60 },
-      children: [new TextRun({ text: 'Número de contacto: ________________________________', ...fieldStyle })],
+      children: [
+        new TextRun({
+          text: 'Número de contacto: ________________________________',
+          ...fieldStyle,
+        }),
+      ],
     }),
     new Paragraph({
       spacing: { after: 60 },
-      children: [new TextRun({ text: 'Firma del conductor: ________________________________', ...fieldStyle })],
+      children: [
+        new TextRun({
+          text: 'Firma del conductor: ________________________________',
+          ...fieldStyle,
+        }),
+      ],
     }),
     new Paragraph({
       spacing: { after: 60 },
@@ -207,7 +228,7 @@ function emptyCell(width: number): TableCell {
 
 function buildCajasSection(school: SchoolDemandGroup): (Paragraph | Table)[] {
   const cajasRows = school.rows
-    .filter((r) => r.item === 'CAJAS')
+    .filter(r => r.item === 'CAJAS')
     .sort((a, b) => a.categoria.localeCompare(b.categoria));
 
   const totalCantidad = cajasRows.reduce((sum, r) => sum + r.cantidad, 0);
@@ -218,16 +239,28 @@ function buildCajasSection(school: SchoolDemandGroup): (Paragraph | Table)[] {
 
   const tableRows = [
     new TableRow({
-      children: [headerCell('GRADO', COL1), headerCell('CANTIDAD', COL2), headerCell('COMENTARIOS/OBSERVACIONES', COL3)],
+      children: [
+        headerCell('GRADO', COL1),
+        headerCell('CANTIDAD', COL2),
+        headerCell('COMENTARIOS/OBSERVACIONES', COL3),
+      ],
     }),
     ...cajasRows.map(
-      (row) =>
+      row =>
         new TableRow({
-          children: [dataCell(row.categoria, COL1), dataCell(row.cantidad.toString(), COL2), emptyCell(COL3)],
+          children: [
+            dataCell(row.categoria, COL1),
+            dataCell(row.cantidad.toString(), COL2),
+            emptyCell(COL3),
+          ],
         })
     ),
     new TableRow({
-      children: [dataCell('TOTAL', COL1, true), dataCell(totalCantidad.toString(), COL2, true), emptyCell(COL3)],
+      children: [
+        dataCell('TOTAL', COL1, true),
+        dataCell(totalCantidad.toString(), COL2, true),
+        emptyCell(COL3),
+      ],
     }),
   ];
 
@@ -240,9 +273,7 @@ function buildCajasSection(school: SchoolDemandGroup): (Paragraph | Table)[] {
   const elements: (Paragraph | Table)[] = [];
 
   if (logo) {
-    elements.push(
-      new Paragraph({ alignment: AlignmentType.RIGHT, children: [logo] })
-    );
+    elements.push(new Paragraph({ alignment: AlignmentType.RIGHT, children: [logo] }));
   }
 
   elements.push(
@@ -262,7 +293,7 @@ function buildCajasSection(school: SchoolDemandGroup): (Paragraph | Table)[] {
 
 function buildUniformesSection(school: SchoolDemandGroup): (Paragraph | Table)[] {
   const uniformeRows = school.rows
-    .filter((r) => r.item === 'UNIFORMES')
+    .filter(r => r.item === 'UNIFORMES')
     .sort((a, b) => {
       const tipoCompare = a.tipo.localeCompare(b.tipo);
       if (tipoCompare !== 0) return tipoCompare;
@@ -277,10 +308,14 @@ function buildUniformesSection(school: SchoolDemandGroup): (Paragraph | Table)[]
 
   const tableRows = [
     new TableRow({
-      children: [headerCell('TIPO/TALLA', COL1), headerCell('CANTIDAD', COL2), headerCell('COMENTARIOS/OBSERVACIONES', COL3)],
+      children: [
+        headerCell('TIPO/TALLA', COL1),
+        headerCell('CANTIDAD', COL2),
+        headerCell('COMENTARIOS/OBSERVACIONES', COL3),
+      ],
     }),
     ...uniformeRows.map(
-      (row) =>
+      row =>
         new TableRow({
           children: [
             dataCell(`${row.tipo} - ${row.categoria}`, COL1),
@@ -290,7 +325,11 @@ function buildUniformesSection(school: SchoolDemandGroup): (Paragraph | Table)[]
         })
     ),
     new TableRow({
-      children: [dataCell('TOTAL', COL1, true), dataCell(totalCantidad.toString(), COL2, true), emptyCell(COL3)],
+      children: [
+        dataCell('TOTAL', COL1, true),
+        dataCell(totalCantidad.toString(), COL2, true),
+        emptyCell(COL3),
+      ],
     }),
   ];
 
@@ -303,9 +342,7 @@ function buildUniformesSection(school: SchoolDemandGroup): (Paragraph | Table)[]
   const elements: (Paragraph | Table)[] = [];
 
   if (logo) {
-    elements.push(
-      new Paragraph({ alignment: AlignmentType.RIGHT, children: [logo] })
-    );
+    elements.push(new Paragraph({ alignment: AlignmentType.RIGHT, children: [logo] }));
   }
 
   elements.push(
@@ -325,7 +362,7 @@ function buildUniformesSection(school: SchoolDemandGroup): (Paragraph | Table)[]
 
 function buildZapatosSection(school: SchoolDemandGroup): (Paragraph | Table)[] {
   const zapatosRows = school.rows
-    .filter((r) => r.item === 'ZAPATOS')
+    .filter(r => r.item === 'ZAPATOS')
     .sort((a, b) => {
       const numA = parseInt(a.categoria, 10) || 0;
       const numB = parseInt(b.categoria, 10) || 0;
@@ -340,16 +377,28 @@ function buildZapatosSection(school: SchoolDemandGroup): (Paragraph | Table)[] {
 
   const tableRows = [
     new TableRow({
-      children: [headerCell('TALLA', COL1), headerCell('CANTIDAD', COL2), headerCell('COMENTARIOS/OBSERVACIONES', COL3)],
+      children: [
+        headerCell('TALLA', COL1),
+        headerCell('CANTIDAD', COL2),
+        headerCell('COMENTARIOS/OBSERVACIONES', COL3),
+      ],
     }),
     ...zapatosRows.map(
-      (row) =>
+      row =>
         new TableRow({
-          children: [dataCell(row.categoria, COL1), dataCell(row.cantidad.toString(), COL2), emptyCell(COL3)],
+          children: [
+            dataCell(row.categoria, COL1),
+            dataCell(row.cantidad.toString(), COL2),
+            emptyCell(COL3),
+          ],
         })
     ),
     new TableRow({
-      children: [dataCell('TOTAL', COL1, true), dataCell(totalCantidad.toString(), COL2, true), emptyCell(COL3)],
+      children: [
+        dataCell('TOTAL', COL1, true),
+        dataCell(totalCantidad.toString(), COL2, true),
+        emptyCell(COL3),
+      ],
     }),
   ];
 
@@ -362,9 +411,7 @@ function buildZapatosSection(school: SchoolDemandGroup): (Paragraph | Table)[] {
   const elements: (Paragraph | Table)[] = [];
 
   if (logo) {
-    elements.push(
-      new Paragraph({ alignment: AlignmentType.RIGHT, children: [logo] })
-    );
+    elements.push(new Paragraph({ alignment: AlignmentType.RIGHT, children: [logo] }));
   }
 
   elements.push(
@@ -386,9 +433,12 @@ type SectionBuilder = (school: SchoolDemandGroup) => (Paragraph | Table)[];
 
 async function buildDemandWord(
   demandRows: DemandRow[],
-  sectionBuilder: SectionBuilder
+  sectionBuilder: SectionBuilder,
+  itemType: string
 ): Promise<Buffer> {
-  const schools = groupDemandBySchool(demandRows);
+  const schools = groupDemandBySchool(demandRows).filter(
+    s => s.rows.filter(r => r.item === itemType).reduce((sum, r) => sum + r.cantidad, 0) > 0
+  );
 
   const sections = schools.map((school, idx) => ({
     properties: {
@@ -406,22 +456,16 @@ async function buildDemandWord(
 }
 
 /** Generate Acta de Recepción de Cajas Word document from demand data */
-export async function generateActaRecepcionCajasWord(
-  demandRows: DemandRow[]
-): Promise<Buffer> {
-  return buildDemandWord(demandRows, buildCajasSection);
+export async function generateActaRecepcionCajasWord(demandRows: DemandRow[]): Promise<Buffer> {
+  return buildDemandWord(demandRows, buildCajasSection, 'CAJAS');
 }
 
 /** Generate Acta de Recepción de Uniformes Word document from demand data */
-export async function generateActaRecepcionUniformesWord(
-  demandRows: DemandRow[]
-): Promise<Buffer> {
-  return buildDemandWord(demandRows, buildUniformesSection);
+export async function generateActaRecepcionUniformesWord(demandRows: DemandRow[]): Promise<Buffer> {
+  return buildDemandWord(demandRows, buildUniformesSection, 'UNIFORMES');
 }
 
 /** Generate Acta de Recepción de Zapatos Word document from demand data */
-export async function generateActaRecepcionZapatosWord(
-  demandRows: DemandRow[]
-): Promise<Buffer> {
-  return buildDemandWord(demandRows, buildZapatosSection);
+export async function generateActaRecepcionZapatosWord(demandRows: DemandRow[]): Promise<Buffer> {
+  return buildDemandWord(demandRows, buildZapatosSection, 'ZAPATOS');
 }
