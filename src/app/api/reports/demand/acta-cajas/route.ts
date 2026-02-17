@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     return new NextResponse(pdfBuffer, {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': 'inline; filename="acta-recepcion-cajas-demand.pdf"',
+        'Content-Disposition': 'inline; filename="acta-recepcion-cajas-faltantes.pdf"',
         'Cache-Control': 'no-store',
       },
     });

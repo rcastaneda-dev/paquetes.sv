@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     return new NextResponse(new Uint8Array(buffer), {
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'Content-Disposition': 'attachment; filename="acta-recepcion-zapatos-demand.docx"',
+        'Content-Disposition': 'attachment; filename="acta-recepcion-zapatos-faltantes.docx"',
         'Cache-Control': 'no-store',
       },
     });
