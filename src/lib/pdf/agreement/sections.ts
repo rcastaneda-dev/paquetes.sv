@@ -96,6 +96,12 @@ export const ACTA_RECEPCION_UNIFORMES_PAGE_OPTIONS = {
   margins: { top: 40, bottom: 40, left: 30, right: 30 },
 };
 
+export const ACTA_RECEPCION_CAJAS_PAGE_OPTIONS = {
+  size: 'LETTER' as const,
+  layout: 'portrait' as const,
+  margins: { top: 40, bottom: 40, left: 30, right: 30 },
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Shared helpers (relocated from generators-agreement.ts)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1305,6 +1311,189 @@ export function renderActaRecepcionUniformesSection(ctx: SectionRenderContext): 
   doc.text(
     'Firma y Nombre del Encargado del Centro Educativo: ________________________________',
     footerLeftX,
+    doc.y + 5
+  );
+}
+
+/**
+ * Render the "ACTA DE RECEPCIÓN (CAJAS)" section for a single school.
+ * Layout: LETTER portrait, single table with compact rows, transport footer.
+ *
+ * Structure:
+ *   1. Title: ACTA DE RECEPCIÓN (CAJAS)
+ *   2. Pre-table fields: DATOS DE LOS PRODUCTOS (Fecha, Hora, Bodega)
+ *   3. Data table: GRADO | CANTIDAD | COMENTARIOS/OBSERVACIONES with Total row
+ *   4. Footer: Transport & signature fields
+ */
+export function renderActaRecepcionCajasSection(ctx: SectionRenderContext): void {
+  const { doc, school, addPage: shouldAddPage } = ctx;
+
+  if (shouldAddPage) {
+    doc.addPage(ACTA_RECEPCION_CAJAS_PAGE_OPTIONS);
+  }
+
+  const title = 'ACTA DE RECEPCIÓN (CAJAS)';
+
+  addLogoToPage(doc, doc.page.width);
+
+  // 1. Title
+  doc.fontSize(AGREEMENT_FONT.TITLE).font('Helvetica-Bold').text(title, { align: 'center' });
+  doc.moveDown(1);
+
+  // School header
+  doc
+    .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+    .font('Helvetica-Bold')
+    .text(school.nombre_ce.toUpperCase(), { align: 'center' });
+  doc
+    .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+    .font('Helvetica-Bold')
+    .text(`CODIGO: ${school.codigo_ce.toUpperCase()}`, { align: 'center' });
+
+  doc.moveDown(1);
+
+  // 2. Pre-table: DATOS DE LOS PRODUCTOS
+  const actaXStart = 40;
+  doc.fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER).font('Helvetica-Bold');
+  doc.text('DATOS DE LOS PRODUCTOS', actaXStart, doc.y, { align: 'left' });
+  doc.moveDown(0.5);
+
+  doc.fontSize(AGREEMENT_FONT.BODY).font('Helvetica');
+  doc.text('Fecha: ________________________________', actaXStart);
+  doc.moveDown(0.3);
+  doc.text('Hora: ________________________________', actaXStart);
+  doc.moveDown(0.3);
+  doc.text('Bodega: ________________________________', actaXStart);
+  doc.moveDown(1);
+
+  // 3. Data table — aggregate cajas by grade
+  const gradeMap = new Map<string, { hombres: number; mujeres: number }>();
+  for (const student of school.students) {
+    const grade = student.grado_ok || student.grado || 'N/A';
+    if (!gradeMap.has(grade)) {
+      gradeMap.set(grade, { hombres: 0, mujeres: 0 });
+    }
+    const counts = gradeMap.get(grade)!;
+    if (student.sexo === 'Hombre') {
+      counts.hombres++;
+    } else if (student.sexo === 'Mujer') {
+      counts.mujeres++;
+    }
+  }
+
+  const grades = Array.from(gradeMap.keys()).sort();
+
+  interface ActaCajasRow {
+    grado: string;
+    cantidad: number;
+  }
+
+  const cajasRows: ActaCajasRow[] = [];
+  for (const grade of grades) {
+    const counts = gradeMap.get(grade)!;
+    // Apply flat 5% increment per gender (same as renderCajasSection)
+    const cajasHombres = counts.hombres === 0 ? 0 : Math.round(counts.hombres * 1.05);
+    const cajasMujeres = counts.mujeres === 0 ? 0 : Math.round(counts.mujeres * 1.05);
+    const cajasTotales = cajasHombres + cajasMujeres;
+    if (cajasTotales > 0) {
+      cajasRows.push({ grado: grade, cantidad: cajasTotales });
+    }
+  }
+
+  // Table layout — 3 columns
+  let currentY = doc.y;
+  const gradoColWidth = 200;
+  const cantidadColWidth = 80;
+  const comentariosColWidth = doc.page.width - 60 - gradoColWidth - cantidadColWidth;
+  const actaHeaderHeight = 20;
+  const actaRowHeight = 14;
+
+  const totalCantidad = cajasRows.reduce((sum, r) => sum + r.cantidad, 0);
+
+  // Draw table header
+  doc.fontSize(AGREEMENT_FONT.COLUMN_HEADER).font('Helvetica-Bold');
+  let x = actaXStart;
+
+  doc.rect(x, currentY, gradoColWidth, actaHeaderHeight).stroke();
+  doc.text('GRADO', x + 2, currentY + 5, { width: gradoColWidth - 4, align: 'center' });
+  x += gradoColWidth;
+
+  doc.rect(x, currentY, cantidadColWidth, actaHeaderHeight).stroke();
+  doc.text('CANTIDAD', x + 2, currentY + 5, { width: cantidadColWidth - 4, align: 'center' });
+  x += cantidadColWidth;
+
+  doc.rect(x, currentY, comentariosColWidth, actaHeaderHeight).stroke();
+  doc.text('COMENTARIOS/OBSERVACIONES', x + 2, currentY + 5, {
+    width: comentariosColWidth - 4,
+    align: 'center',
+  });
+
+  currentY += actaHeaderHeight;
+
+  // Draw data rows
+  doc.font('Helvetica').fontSize(AGREEMENT_FONT.BODY);
+
+  for (const row of cajasRows) {
+    x = actaXStart;
+
+    doc.rect(x, currentY, gradoColWidth, actaRowHeight).stroke();
+    doc.text(row.grado, x + 2, currentY + 2, { width: gradoColWidth - 4, align: 'center' });
+    x += gradoColWidth;
+
+    doc.rect(x, currentY, cantidadColWidth, actaRowHeight).stroke();
+    doc.text(row.cantidad.toString(), x + 2, currentY + 2, {
+      width: cantidadColWidth - 4,
+      align: 'center',
+    });
+    x += cantidadColWidth;
+
+    doc.rect(x, currentY, comentariosColWidth, actaRowHeight).stroke();
+
+    currentY += actaRowHeight;
+  }
+
+  // Total row
+  doc.font('Helvetica-Bold').fontSize(AGREEMENT_FONT.BODY);
+  x = actaXStart;
+
+  doc.rect(x, currentY, gradoColWidth, actaRowHeight).stroke();
+  doc.text('TOTAL', x + 2, currentY + 2, { width: gradoColWidth - 4, align: 'center' });
+  x += gradoColWidth;
+
+  doc.rect(x, currentY, cantidadColWidth, actaRowHeight).stroke();
+  doc.text(totalCantidad.toString(), x + 2, currentY + 2, {
+    width: cantidadColWidth - 4,
+    align: 'center',
+  });
+  x += cantidadColWidth;
+
+  doc.rect(x, currentY, comentariosColWidth, actaRowHeight).stroke();
+
+  currentY += actaRowHeight;
+  doc.y = currentY;
+  doc.moveDown(2);
+  currentY = doc.y;
+
+  // 4. Footer: DATOS DEL TRANSPORTE + signature fields
+  const actaFooterLeftX = actaXStart;
+
+  doc.fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER).font('Helvetica-Bold');
+  doc.text('DATOS DEL TRANSPORTE', actaFooterLeftX, currentY, { align: 'left' });
+  const actaFooterStartY = doc.y + 6;
+
+  doc.fontSize(AGREEMENT_FONT.BODY).font('Helvetica');
+  doc.text('Nombre del conductor: ________________________________', actaFooterLeftX, actaFooterStartY);
+  doc.text('Número de placa: ________________________________', actaFooterLeftX, doc.y + 5);
+  doc.text('Número de contacto: ________________________________', actaFooterLeftX, doc.y + 5);
+  doc.text('Firma del conductor: ________________________________', actaFooterLeftX, doc.y + 5);
+  doc.text(
+    'Firma y Nombre del Encargado del Despacho: ________________________________',
+    actaFooterLeftX,
+    doc.y + 5
+  );
+  doc.text(
+    'Firma y Nombre del Encargado del Centro Educativo: ________________________________',
+    actaFooterLeftX,
     doc.y + 5
   );
 }

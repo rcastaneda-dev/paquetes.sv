@@ -15,11 +15,13 @@ import {
   renderFichaZapatosSection,
   renderActaRecepcionZapatosSection,
   renderActaRecepcionUniformesSection,
+  renderActaRecepcionCajasSection,
   CAJAS_PAGE_OPTIONS,
   FICHA_UNIFORMES_PAGE_OPTIONS,
   FICHA_ZAPATOS_PAGE_OPTIONS,
   ACTA_RECEPCION_ZAPATOS_PAGE_OPTIONS,
   ACTA_RECEPCION_UNIFORMES_PAGE_OPTIONS,
+  ACTA_RECEPCION_CAJAS_PAGE_OPTIONS,
 } from './sections';
 import { computeClothingExtra, computeFinalCount, getRestrictedSizeOrder } from '@/lib/reports/vacios';
 
@@ -35,6 +37,7 @@ const PAGE_OPTIONS_BY_SECTION: Record<AgreementSectionType, PageOptions> = {
   ficha_zapatos: FICHA_ZAPATOS_PAGE_OPTIONS,
   acta_recepcion_zapatos: ACTA_RECEPCION_ZAPATOS_PAGE_OPTIONS,
   acta_recepcion_uniformes: ACTA_RECEPCION_UNIFORMES_PAGE_OPTIONS,
+  acta_recepcion_cajas: ACTA_RECEPCION_CAJAS_PAGE_OPTIONS,
 };
 
 type SectionRenderer = typeof renderCajasSection;
@@ -45,6 +48,7 @@ const RENDERER_BY_SECTION: Record<AgreementSectionType, SectionRenderer> = {
   ficha_zapatos: renderFichaZapatosSection,
   acta_recepcion_zapatos: renderActaRecepcionZapatosSection,
   acta_recepcion_uniformes: renderActaRecepcionUniformesSection,
+  acta_recepcion_cajas: renderActaRecepcionCajasSection,
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -62,6 +66,7 @@ const OVERLAY_CODE_PREFIX: Record<AgreementSectionType, string> = {
   ficha_zapatos: 'C',
   acta_recepcion_uniformes: 'A',
   acta_recepcion_zapatos: 'A',
+  acta_recepcion_cajas: 'A',
 };
 
 /**
@@ -284,7 +289,7 @@ function sortSchoolsByTotal(schools: SchoolGroup[], section: AgreementSectionTyp
     let totalA = 0;
     let totalB = 0;
 
-    if (section === 'cajas') {
+    if (section === 'cajas' || section === 'acta_recepcion_cajas') {
       totalA = calculateCajasTotales(a);
       totalB = calculateCajasTotales(b);
     } else if (section === 'ficha_uniformes' || section === 'acta_recepcion_uniformes') {

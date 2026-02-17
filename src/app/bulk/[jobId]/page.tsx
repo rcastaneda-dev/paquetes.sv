@@ -251,6 +251,7 @@ export default function JobDetailPage() {
         ficha_zapatos: 'comanda_zapatos.pdf',
         acta_recepcion_zapatos: 'consolidado_acta_recepcion_zapatos.pdf',
         acta_recepcion_uniformes: 'consolidado_acta_recepcion_uniformes.pdf',
+        acta_recepcion_cajas: 'consolidado_acta_recepcion_cajas.pdf',
       };
       a.download = fileNames[section] || `consolidado_${section}.pdf`;
       document.body.appendChild(a);
@@ -777,6 +778,10 @@ export default function JobDetailPage() {
                   {
                     key: 'acta_recepcion_uniformes',
                     label: 'Consolidado Actas de Recepcion (Uniformes)',
+                  },
+                  {
+                    key: 'acta_recepcion_cajas',
+                    label: 'Consolidado Actas de Recepcion (Cajas)',
                   },
                 ].map(({ key, label }) => {
                   const isDownloading = downloadingConsolidated[key];

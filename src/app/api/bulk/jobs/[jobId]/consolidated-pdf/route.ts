@@ -16,6 +16,7 @@ const sectionSchema = z.object({
     'ficha_zapatos',
     'acta_recepcion_zapatos',
     'acta_recepcion_uniformes',
+    'acta_recepcion_cajas',
   ]),
 });
 
@@ -25,6 +26,7 @@ const SECTION_FILENAMES: Record<AgreementSectionType, string> = {
   ficha_zapatos: 'comanda_zapatos.pdf',
   acta_recepcion_zapatos: 'consolidado_acta_recepcion_zapatos.pdf',
   acta_recepcion_uniformes: 'consolidado_acta_recepcion_uniformes.pdf',
+  acta_recepcion_cajas: 'consolidado_acta_recepcion_cajas.pdf',
 };
 
 /**
