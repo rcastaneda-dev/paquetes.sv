@@ -69,6 +69,8 @@ function createTitleParagraph(title: string): Paragraph {
 }
 
 function createSchoolHeader(school: SchoolDemandGroup): Paragraph[] {
+  const departamento = (school.departamento || 'N/A').toUpperCase();
+  const distrito = (school.distrito || 'N/A').toUpperCase();
   return [
     new Paragraph({
       alignment: AlignmentType.CENTER,
@@ -83,10 +85,21 @@ function createSchoolHeader(school: SchoolDemandGroup): Paragraph[] {
     }),
     new Paragraph({
       alignment: AlignmentType.CENTER,
-      spacing: { after: 200 },
       children: [
         new TextRun({
           text: `CODIGO: ${school.codigo_ce.toUpperCase()}`,
+          bold: true,
+          size: 22,
+          font: 'Arial',
+        }),
+      ],
+    }),
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { after: 200 },
+      children: [
+        new TextRun({
+          text: `DEPARTAMENTO: ${departamento} - DISTRITO: ${distrito}`,
           bold: true,
           size: 22,
           font: 'Arial',
