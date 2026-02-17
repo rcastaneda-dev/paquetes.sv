@@ -152,6 +152,7 @@ export function groupBySchool(students: StudentQueryRow[]): SchoolGroup[] {
         codigo_ce: student.school_codigo_ce,
         nombre_ce: student.nombre_ce,
         departamento: student.departamento,
+        municipio: student.municipio,
         distrito: student.distrito,
         zona: student.zona,
         transporte: student.transporte,

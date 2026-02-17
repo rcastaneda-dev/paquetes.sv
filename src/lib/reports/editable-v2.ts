@@ -16,6 +16,9 @@ export interface FlatRow {
   correlativo: number;
   codigo_ce: string;
   nombre_ce: string;
+  departamento: string;
+  municipio: string;
+  distrito: string;
   tipo_prenda: string;
   talla: string;
   cantidad: number;
@@ -138,6 +141,9 @@ export function buildUniformesFlatRows(schools: SchoolGroup[]): FlatRow[] {
             correlativo: correlativo++,
             codigo_ce: school.codigo_ce,
             nombre_ce: school.nombre_ce,
+            departamento: school.departamento,
+            municipio: school.municipio,
+            distrito: school.distrito,
             tipo_prenda: typeValue,
             talla: size,
             cantidad: val,
@@ -167,6 +173,9 @@ export function buildZapatosFlatRows(schools: SchoolGroup[]): FlatRow[] {
           correlativo: correlativo++,
           codigo_ce: school.codigo_ce,
           nombre_ce: school.nombre_ce,
+          departamento: school.departamento,
+          municipio: school.municipio,
+          distrito: school.distrito,
           tipo_prenda: 'ZAPATOS',
           talla: size,
           cantidad: val,

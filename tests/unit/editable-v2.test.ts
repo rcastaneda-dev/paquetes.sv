@@ -2,7 +2,8 @@
  * Unit tests for V2 flat-format editable exports.
  *
  * Tests the pure row-building functions that transform SchoolGroup[] into
- * flat rows with columns: CORRELATIVO, CODIGO_CE, NOMBRE_CE, TIPO_PRENDA, TALLA, CANTIDAD.
+ * flat rows with columns:
+ * CORRELATIVO, CODIGO_CE, NOMBRE_CE, DEPARTAMENTO, MUNICIPIO, DISTRITO, TIPO_PRENDA, TALLA, CANTIDAD.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -28,8 +29,9 @@ function makeStudent(overrides: Partial<StudentQueryRow> = {}): StudentQueryRow 
     grado_ok: '3',
     school_codigo_ce: '10740',
     nombre_ce: 'Escuela Test',
-    departamento: 'San Salvador',
-    distrito: '01',
+    departamento: 'SAN SALVADOR',
+    municipio: 'SAN SALVADOR_CENTRO',
+    distrito: 'SAN SALVADOR',
     zona: 'URBANA',
     transporte: 'NO',
     fecha_inicio: '2025-01-01',
@@ -51,10 +53,11 @@ function makeSchool(
   return {
     codigo_ce,
     nombre_ce,
-    departamento: students[0]?.departamento ?? 'San Salvador',
-    distrito: students[0]?.distrito ?? '01',
-    zona: students[0]?.zona ?? 'URBANA',
-    transporte: students[0]?.transporte ?? 'NO',
+    departamento: students[0]?.departamento ?? 'SAN SALVADOR',
+    municipio:    students[0]?.municipio    ?? 'SAN SALVADOR_CENTRO',
+    distrito:     students[0]?.distrito     ?? 'SAN SALVADOR',
+    zona:         students[0]?.zona         ?? 'URBANA',
+    transporte:   students[0]?.transporte   ?? 'NO',
     students,
   };
 }
@@ -91,6 +94,9 @@ describe('buildUniformesFlatRows', () => {
       correlativo: 1,
       codigo_ce: '10740',
       nombre_ce: 'Escuela A',
+      departamento: 'SAN SALVADOR',
+      municipio: 'SAN SALVADOR_CENTRO',
+      distrito: 'SAN SALVADOR',
       tipo_prenda: 'CAMISA CELESTE',
       talla: 'T4',
       cantidad: 4,
@@ -99,6 +105,9 @@ describe('buildUniformesFlatRows', () => {
       correlativo: 2,
       codigo_ce: '10740',
       nombre_ce: 'Escuela A',
+      departamento: 'SAN SALVADOR',
+      municipio: 'SAN SALVADOR_CENTRO',
+      distrito: 'SAN SALVADOR',
       tipo_prenda: 'CAMISA CELESTE',
       talla: 'T6',
       cantidad: 2,
@@ -264,6 +273,9 @@ describe('buildZapatosFlatRows', () => {
       correlativo: 1,
       codigo_ce: '10740',
       nombre_ce: 'Escuela A',
+      departamento: 'SAN SALVADOR',
+      municipio: 'SAN SALVADOR_CENTRO',
+      distrito: 'SAN SALVADOR',
       tipo_prenda: 'ZAPATOS',
       talla: '25',
       cantidad: 2,
@@ -272,6 +284,9 @@ describe('buildZapatosFlatRows', () => {
       correlativo: 2,
       codigo_ce: '10740',
       nombre_ce: 'Escuela A',
+      departamento: 'SAN SALVADOR',
+      municipio: 'SAN SALVADOR_CENTRO',
+      distrito: 'SAN SALVADOR',
       tipo_prenda: 'ZAPATOS',
       talla: '27',
       cantidad: 1,

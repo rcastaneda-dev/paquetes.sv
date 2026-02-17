@@ -13,7 +13,8 @@ const MAX_ROWS = 200000;
 /**
  * GET /api/bulk/jobs/[jobId]/consolidado-pivot-excel-v2
  *
- * Returns an .xlsx with flat rows: CORRELATIVO, CODIGO_CE, NOMBRE_CE, TIPO_PRENDA, TALLA, CANTIDAD.
+ * Returns an .xlsx with flat rows:
+ * CORRELATIVO, CODIGO_CE, NOMBRE_CE, DEPARTAMENTO, MUNICIPIO, DISTRITO, TIPO_PRENDA, TALLA, CANTIDAD.
  */
 export async function GET(_request: Request, { params }: { params: { jobId: string } }) {
   const reportJobId = params.jobId;
@@ -93,6 +94,9 @@ export async function GET(_request: Request, { params }: { params: { jobId: stri
       'CORRELATIVO',
       'CODIGO_CE',
       'NOMBRE_CE',
+      'DEPARTAMENTO',
+      'MUNICIPIO',
+      'DISTRITO',
       'TIPO_PRENDA',
       'TALLA',
       'CANTIDAD',
@@ -103,7 +107,17 @@ export async function GET(_request: Request, { params }: { params: { jobId: stri
     for (let i = 0; i < flatRows.length; i++) {
       const r = flatRows[i];
       const row = sheet.getRow(i + 2);
-      row.values = [r.correlativo, r.codigo_ce, r.nombre_ce, r.tipo_prenda, r.talla, r.cantidad];
+      row.values = [
+        r.correlativo,
+        r.codigo_ce,
+        r.nombre_ce,
+        r.departamento,
+        r.municipio,
+        r.distrito,
+        r.tipo_prenda,
+        r.talla,
+        r.cantidad,
+      ];
     }
 
     // Auto-width for columns
