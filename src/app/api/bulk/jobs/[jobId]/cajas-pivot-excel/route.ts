@@ -53,7 +53,7 @@ function computeCajasPerGrade(
  * GET /api/bulk/jobs/[jobId]/cajas-pivot-excel
  *
  * Returns an .xlsx with consolidated cajas data across all schools.
- * Columns: No, Codigo CE, Nombre CE, Grado, Cajas Hombres, Cajas Mujeres, Cajas Totales
+ * Columns: No, Codigo CE, Nombre CE, Departamento, Distrito, Grado, Cajas Hombres, Cajas Mujeres, Cajas Totales
  */
 export async function GET(_request: Request, { params }: { params: { jobId: string } }) {
   const reportJobId = params.jobId;
@@ -132,6 +132,8 @@ export async function GET(_request: Request, { params }: { params: { jobId: stri
       'No',
       'Codigo CE',
       'Nombre CE',
+      'Departamento',
+      'Distrito',
       'Grado',
       'Cajas Hombres',
       'Cajas Mujeres',
@@ -157,6 +159,8 @@ export async function GET(_request: Request, { params }: { params: { jobId: stri
           correlativo,
           school.codigo_ce,
           school.nombre_ce,
+          school.departamento,
+          school.distrito,
           gradeRow.grado,
           gradeRow.hombres > 0 ? gradeRow.hombres : null,
           gradeRow.mujeres > 0 ? gradeRow.mujeres : null,
@@ -178,6 +182,8 @@ export async function GET(_request: Request, { params }: { params: { jobId: stri
       null,
       null,
       'Total general',
+      null,
+      null,
       null,
       grandTotalH > 0 ? grandTotalH : null,
       grandTotalM > 0 ? grandTotalM : null,

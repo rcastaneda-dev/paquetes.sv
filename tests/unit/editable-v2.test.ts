@@ -3,7 +3,7 @@
  *
  * Tests the pure row-building functions that transform SchoolGroup[] into
  * flat rows with columns:
- * CORRELATIVO, CODIGO_CE, NOMBRE_CE, DEPARTAMENTO, MUNICIPIO, DISTRITO, TIPO_PRENDA, TALLA, CANTIDAD.
+ * CORRELATIVO, CODIGO_CE, NOMBRE_CE, DEPARTAMENTO, DISTRITO, TIPO_PRENDA, TALLA, CANTIDAD.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -95,7 +95,6 @@ describe('buildUniformesFlatRows', () => {
       codigo_ce: '10740',
       nombre_ce: 'Escuela A',
       departamento: 'SAN SALVADOR',
-      municipio: 'SAN SALVADOR_CENTRO',
       distrito: 'SAN SALVADOR',
       tipo_prenda: 'CAMISA CELESTE',
       talla: 'T4',
@@ -106,7 +105,6 @@ describe('buildUniformesFlatRows', () => {
       codigo_ce: '10740',
       nombre_ce: 'Escuela A',
       departamento: 'SAN SALVADOR',
-      municipio: 'SAN SALVADOR_CENTRO',
       distrito: 'SAN SALVADOR',
       tipo_prenda: 'CAMISA CELESTE',
       talla: 'T6',
@@ -274,7 +272,6 @@ describe('buildZapatosFlatRows', () => {
       codigo_ce: '10740',
       nombre_ce: 'Escuela A',
       departamento: 'SAN SALVADOR',
-      municipio: 'SAN SALVADOR_CENTRO',
       distrito: 'SAN SALVADOR',
       tipo_prenda: 'ZAPATOS',
       talla: '25',
@@ -285,7 +282,6 @@ describe('buildZapatosFlatRows', () => {
       codigo_ce: '10740',
       nombre_ce: 'Escuela A',
       departamento: 'SAN SALVADOR',
-      municipio: 'SAN SALVADOR_CENTRO',
       distrito: 'SAN SALVADOR',
       tipo_prenda: 'ZAPATOS',
       talla: '27',

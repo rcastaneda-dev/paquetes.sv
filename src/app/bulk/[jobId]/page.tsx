@@ -282,7 +282,7 @@ export default function JobDetailPage() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'Consolidado_Portafolio.xlsx';
+      a.download = 'consolidado_estudiantes.xlsx';
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);

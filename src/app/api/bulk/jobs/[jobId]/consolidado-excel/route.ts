@@ -9,7 +9,7 @@ import {
   calculateZapatosTotalPiezas,
 } from '@/lib/pdf/agreement/builders';
 
-const FILENAME = 'Consolidado_Portafolio.xlsx';
+const FILENAME = 'consolidado_estudiantes.xlsx';
 
 /** PostgREST max-rows (Supabase default = 1000). Page in increments of 1000. */
 const PAGE_SIZE = 1000;
@@ -18,7 +18,8 @@ const MAX_ROWS = 200000;
 /**
  * GET /api/bulk/jobs/[jobId]/consolidado-excel
  *
- * Returns an .xlsx file with one row per school: codigo, total_zapatos, total_uniformes, total_cajas.
+ * Returns an .xlsx file with one row per school:
+ * CODIGO, NOMBRE_CE, DEPARTAMENTO, DISTRITO, TOTAL DE UNIFORMES, TOTAL DE ZAPATOS, TOTAL DE CAJAS.
  * First row is header (bold, caps). No title or padding rows. Not part of ZIP bundle logic.
  */
 export async function GET(_request: Request, { params }: { params: { jobId: string } }) {
@@ -90,7 +91,15 @@ export async function GET(_request: Request, { params }: { params: { jobId: stri
     const sheet = workbook.addWorksheet('Consolidado', { views: [{ state: 'frozen', ySplit: 1 }] });
 
     const headerRow = sheet.getRow(1);
-    headerRow.values = ['CODIGO', 'TOTAL DE UNIFORMES', 'TOTAL DE ZAPATOS', 'TOTAL DE CAJAS'];
+    headerRow.values = [
+      'CODIGO',
+      'NOMBRE_CE',
+      'DEPARTAMENTO',
+      'DISTRITO',
+      'TOTAL DE UNIFORMES',
+      'TOTAL DE ZAPATOS',
+      'TOTAL DE CAJAS',
+    ];
     headerRow.font = { bold: true };
     headerRow.alignment = { horizontal: 'left' };
 
@@ -101,7 +110,15 @@ export async function GET(_request: Request, { params }: { params: { jobId: stri
       const totalCajas = calculateCajasTotales(school);
 
       const row = sheet.getRow(rowIndex);
-      row.values = [school.codigo_ce, totalUniformes, totalZapatos, totalCajas];
+      row.values = [
+        school.codigo_ce,
+        school.nombre_ce,
+        school.departamento,
+        school.distrito,
+        totalUniformes,
+        totalZapatos,
+        totalCajas,
+      ];
       row.font = { bold: false };
       rowIndex++;
     }
