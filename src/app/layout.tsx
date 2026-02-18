@@ -3,7 +3,7 @@ import './globals.css';
 import { Footer } from '@/components/Footer';
 
 export const metadata: Metadata = {
-  title: 'Paquetes.sv - Sistema de Tallas Escolares',
+  title: 'paquetes.sv - Sistema de Tallas Escolares',
   description: 'Sistema de gestión de tallas de uniformes escolares',
 };
 

@@ -15,9 +15,6 @@ export function Footer() {
               height={48}
               className="h-12 w-12 object-contain"
             />
-            <div className="text-sm text-gray-600">
-              <p className="font-semibold">Gobierno de El Salvador</p>
-            </div>
           </div>
           <div className="text-center text-sm text-gray-500 sm:text-right">
             <p>© {currentYear} Paquetes Escolares</p>

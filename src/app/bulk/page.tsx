@@ -138,10 +138,10 @@ export default function BulkReportsPage() {
       <header className="border-b">
         <div className="container mx-auto px-4 py-4">
           <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
-            <h1 className="text-xl font-bold sm:text-2xl">Paquetes.sv - Reportes Masivos</h1>
+            <h1 className="text-xl font-bold sm:text-2xl">paquetes.sv - Reportes Masivos</h1>
             <Link href="/">
               <Button variant="outline" className="whitespace-nowrap px-3 text-sm sm:px-4">
-                Volver a Consultas
+                Volver al inicio
               </Button>
             </Link>
           </div>

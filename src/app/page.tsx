@@ -1,472 +1,100 @@
-'use client';
-
-import { useState, useCallback } from 'react';
 import Link from 'next/link';
 
-import { FiltersPanel } from '@/components/FiltersPanel';
-import { StudentsGrid } from '@/components/StudentsGrid';
-import { Button } from '@/components/ui/Button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-
-import type { StudentQueryRow } from '@/types/database';
+import { Card, CardContent } from '@/components/ui/Card';
 
 export default function HomePage() {
-  const [filters, setFilters] = useState<{ school_codigo_ce: string | null; grado: string | null }>(
-    {
-      school_codigo_ce: null,
-      grado: null,
-    }
-  );
-  const [lastSearchFilters, setLastSearchFilters] = useState<{
-    school_codigo_ce: string | null;
-    grado: string | null;
-  } | null>(null);
-  const [students, setStudents] = useState<StudentQueryRow[]>([]);
-  const [totalCount, setTotalCount] = useState(0);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isGeneratingCajas, setIsGeneratingCajas] = useState(false);
-  const [isGeneratingCamisas, setIsGeneratingCamisas] = useState(false);
-  const [isGeneratingPantalones, setIsGeneratingPantalones] = useState(false);
-  const [isGeneratingZapatos, setIsGeneratingZapatos] = useState(false);
-  const [isGeneratingActaRecepcion, setIsGeneratingActaRecepcion] = useState(false);
-  const [isGeneratingActaRecepcionUniformes, setIsGeneratingActaRecepcionUniformes] =
-    useState(false);
-  const pageSize = 50;
-
-  const fetchStudents = async (page: number = 1) => {
-    setIsLoading(true);
-    try {
-      const params = new URLSearchParams({
-        page: page.toString(),
-        pageSize: pageSize.toString(),
-      });
-
-      if (filters.school_codigo_ce) {
-        params.append('school_codigo_ce', filters.school_codigo_ce);
-      }
-      if (filters.grado) {
-        params.append('grado', filters.grado);
-      }
-
-      const response = await fetch(`/api/students/query?${params}`);
-      const data = await response.json();
-
-      if (data.error) {
-        console.error('Error fetching students:', data.error);
-        return;
-      }
-
-      setStudents(data.students || []);
-      setTotalCount(data.totalCount || 0);
-      setCurrentPage(page);
-    } catch (error) {
-      console.error('Error fetching students:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleFilterChange = useCallback(
-    (newFilters: { school_codigo_ce: string | null; grado: string | null }) => {
-      setFilters(newFilters);
-      if (!newFilters.school_codigo_ce && !newFilters.grado) {
-        setLastSearchFilters(null);
-      }
-    },
-    []
-  );
-
-  const handleSearch = useCallback(() => {
-    setLastSearchFilters(filters);
-    fetchStudents(1);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters]);
-
-  const handlePageChange = useCallback(
-    (page: number) => {
-      fetchStudents(page);
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [filters]
-  );
-
-  const canGenerateReports = !!lastSearchFilters?.school_codigo_ce;
-
-  const handleGenerateCajas = async () => {
-    if (!lastSearchFilters?.school_codigo_ce) return;
-
-    setIsGeneratingCajas(true);
-    try {
-      const params = new URLSearchParams();
-      params.set('school_codigo_ce', lastSearchFilters.school_codigo_ce);
-      if (lastSearchFilters.grado) {
-        params.set('grado', lastSearchFilters.grado);
-      }
-
-      window.open(`/api/reports/cajas?${params.toString()}`, '_blank', 'noopener,noreferrer');
-    } finally {
-      setIsGeneratingCajas(false);
-    }
-  };
-
-  const handleGenerateCamisas = async () => {
-    if (!lastSearchFilters?.school_codigo_ce) return;
-
-    setIsGeneratingCamisas(true);
-    try {
-      const params = new URLSearchParams();
-      params.set('school_codigo_ce', lastSearchFilters.school_codigo_ce);
-      if (lastSearchFilters.grado) {
-        params.set('grado', lastSearchFilters.grado);
-      }
-
-      window.open(`/api/reports/camisas?${params.toString()}`, '_blank', 'noopener,noreferrer');
-    } finally {
-      setIsGeneratingCamisas(false);
-    }
-  };
-
-  const handleGeneratePantalones = async () => {
-    if (!lastSearchFilters?.school_codigo_ce) return;
-
-    setIsGeneratingPantalones(true);
-    try {
-      const params = new URLSearchParams();
-      params.set('school_codigo_ce', lastSearchFilters.school_codigo_ce);
-      if (lastSearchFilters.grado) {
-        params.set('grado', lastSearchFilters.grado);
-      }
-
-      window.open(`/api/reports/pantalones?${params.toString()}`, '_blank', 'noopener,noreferrer');
-    } finally {
-      setIsGeneratingPantalones(false);
-    }
-  };
-
-  const handleGenerateZapatos = async () => {
-    if (!lastSearchFilters?.school_codigo_ce) return;
-
-    setIsGeneratingZapatos(true);
-    try {
-      const params = new URLSearchParams();
-      params.set('school_codigo_ce', lastSearchFilters.school_codigo_ce);
-      if (lastSearchFilters.grado) {
-        params.set('grado', lastSearchFilters.grado);
-      }
-
-      window.open(`/api/reports/zapatos?${params.toString()}`, '_blank', 'noopener,noreferrer');
-    } finally {
-      setIsGeneratingZapatos(false);
-    }
-  };
-
-  const handleGenerateActaRecepcion = async () => {
-    if (!lastSearchFilters?.school_codigo_ce) return;
-
-    setIsGeneratingActaRecepcion(true);
-    try {
-      const params = new URLSearchParams();
-      params.set('school_codigo_ce', lastSearchFilters.school_codigo_ce);
-      if (lastSearchFilters.grado) {
-        params.set('grado', lastSearchFilters.grado);
-      }
-
-      window.open(
-        `/api/reports/acta-recepcion-zapatos?${params.toString()}`,
-        '_blank',
-        'noopener,noreferrer'
-      );
-    } finally {
-      setIsGeneratingActaRecepcion(false);
-    }
-  };
-
-  const handleGenerateActaRecepcionUniformes = async () => {
-    if (!lastSearchFilters?.school_codigo_ce) return;
-
-    setIsGeneratingActaRecepcionUniformes(true);
-    try {
-      const params = new URLSearchParams();
-      params.set('school_codigo_ce', lastSearchFilters.school_codigo_ce);
-      if (lastSearchFilters.grado) {
-        params.set('grado', lastSearchFilters.grado);
-      }
-
-      window.open(
-        `/api/reports/acta-recepcion-uniformes?${params.toString()}`,
-        '_blank',
-        'noopener,noreferrer'
-      );
-    } finally {
-      setIsGeneratingActaRecepcionUniformes(false);
-    }
-  };
-
-  // Debug handlers for random 10-school PDFs
-  const handleDebugCajas = () => {
-    window.open('/api/reports/debug-random?type=cajas&limit=10', '_blank', 'noopener,noreferrer');
-  };
-
-  const handleDebugCamisas = () => {
-    window.open('/api/reports/debug-random?type=camisas&limit=10', '_blank', 'noopener,noreferrer');
-  };
-
-  const handleDebugPantalones = () => {
-    window.open(
-      '/api/reports/debug-random?type=pantalones&limit=10',
-      '_blank',
-      'noopener,noreferrer'
-    );
-  };
-
-  const handleDebugZapatos = () => {
-    window.open('/api/reports/debug-random?type=zapatos&limit=10', '_blank', 'noopener,noreferrer');
-  };
-
-  const handleDebugFicha = () => {
-    window.open('/api/reports/debug-random?type=ficha&limit=10', '_blank', 'noopener,noreferrer');
-  };
-
-  const handleDebugFichaUniformes = () => {
-    window.open(
-      '/api/reports/debug-random?type=ficha-uniformes&limit=10',
-      '_blank',
-      'noopener,noreferrer'
-    );
-  };
-
-  const handleDebugFichaZapatos = () => {
-    window.open(
-      '/api/reports/debug-random?type=ficha-zapatos&limit=10',
-      '_blank',
-      'noopener,noreferrer'
-    );
-  };
-
-  const handleDebugDayZapatos = () => {
-    window.open(
-      '/api/reports/debug-random?type=day-zapatos&limit=10',
-      '_blank',
-      'noopener,noreferrer'
-    );
-  };
-
-  const handleDebugDayUniformes = () => {
-    window.open(
-      '/api/reports/debug-random?type=day-uniformes&limit=10',
-      '_blank',
-      'noopener,noreferrer'
-    );
-  };
-
-  // Show debug buttons if explicitly enabled
-  const showDebugButtons = process.env.NEXT_PUBLIC_ENABLE_DEBUG_BUTTONS === 'true';
-
   return (
-    <div className="flex-1 bg-background">
-      <header className="border-b">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold">Paquetes.sv</h1>
-            <div className="flex gap-2">
-              <Link href="/staging">
-                <Button variant="outline">Cargar Datos</Button>
-              </Link>
-              <Link href="/bulk">
-                <Button variant="outline">Reportes Masivos</Button>
-              </Link>
-            </div>
+    <div className="flex flex-1 flex-col">
+      <div className="flex flex-1 items-center justify-center px-4 py-16">
+        <div className="w-full max-w-3xl space-y-10">
+          {/* Heading */}
+          <div className="text-center">
+            <h1 className="text-balance text-3xl font-bold tracking-tight sm:text-4xl">
+              paquetes.sv
+            </h1>
+            <p className="mt-3 text-pretty text-lg text-muted-foreground">
+              Sistema de gestión de paquetes escolares
+            </p>
+          </div>
+
+          {/* Two entry-point cards */}
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+            {/* Estudiantes card */}
+            <Link href="/staging">
+              <Card className="h-full transition-colors hover:border-primary">
+                <CardContent className="flex flex-col items-center gap-4 px-8 pb-10 pt-12 text-center">
+                  <div className="rounded-xl bg-primary/10 p-4 text-primary">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="32"
+                      height="32"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={1.5}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                      <circle cx="9" cy="7" r="4" />
+                      <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                    </svg>
+                  </div>
+                  <h2 className="text-balance text-xl font-semibold">Estudiantes</h2>
+                  <p className="text-pretty text-sm text-muted-foreground">
+                    Carga datos de estudiantes, genera reportes masivos y descarga PDFs
+                    consolidados.
+                  </p>
+                </CardContent>
+              </Card>
+            </Link>
+
+            {/* Faltantes card */}
+            <Link href="/staging/demand">
+              <Card className="h-full transition-colors hover:border-primary">
+                <CardContent className="flex flex-col items-center gap-4 px-8 pb-10 pt-12 text-center">
+                  <div className="rounded-xl bg-primary/10 p-4 text-primary">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="32"
+                      height="32"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={1.5}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <rect width="8" height="4" x="8" y="2" rx="1" ry="1" />
+                      <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+                      <path d="M12 11h4" />
+                      <path d="M12 16h4" />
+                      <path d="M8 11h.01" />
+                      <path d="M8 16h.01" />
+                    </svg>
+                  </div>
+                  <h2 className="text-balance text-xl font-semibold">Faltantes</h2>
+                  <p className="text-pretty text-sm text-muted-foreground">
+                    Carga la base de datos normalizada y descarga comandas, actas de recepción y
+                    consolidados.
+                  </p>
+                </CardContent>
+              </Card>
+            </Link>
+          </div>
+
+          {/* Secondary link */}
+          <div className="text-center">
+            <Link
+              href="/consulta"
+              className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+            >
+              Consulta por escuela
+            </Link>
           </div>
         </div>
-      </header>
-
-      <main className="container mx-auto px-4 py-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>Consulta de Estudiantes</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <FiltersPanel onFilterChange={handleFilterChange} onSearch={handleSearch} />
-
-            {canGenerateReports && (
-              <div className="flex flex-col gap-3">
-                <div className="text-sm font-medium text-muted-foreground">Generar Reportes:</div>
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
-                  <Button
-                    variant="outline"
-                    onClick={handleGenerateCajas}
-                    disabled={isGeneratingCajas}
-                    className="h-auto flex-col py-3"
-                  >
-                    <span className="text-base font-semibold">Cajas</span>
-                    <span className="text-xs text-muted-foreground">
-                      {isGeneratingCajas ? 'Generando...' : 'PDF'}
-                    </span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={handleGenerateCamisas}
-                    disabled={isGeneratingCamisas}
-                    className="h-auto flex-col py-3"
-                  >
-                    <span className="text-base font-semibold">Camisas</span>
-                    <span className="text-xs text-muted-foreground">
-                      {isGeneratingCamisas ? 'Generando...' : 'PDF'}
-                    </span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={handleGeneratePantalones}
-                    disabled={isGeneratingPantalones}
-                    className="h-auto flex-col py-3"
-                  >
-                    <span className="text-base font-semibold">Pantalones</span>
-                    <span className="text-xs text-muted-foreground">
-                      {isGeneratingPantalones ? 'Generando...' : 'PDF'}
-                    </span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={handleGenerateZapatos}
-                    disabled={isGeneratingZapatos}
-                    className="h-auto flex-col py-3"
-                  >
-                    <span className="text-base font-semibold">Zapatos</span>
-                    <span className="text-xs text-muted-foreground">
-                      {isGeneratingZapatos ? 'Generando...' : 'PDF'}
-                    </span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={handleGenerateActaRecepcion}
-                    disabled={isGeneratingActaRecepcion}
-                    className="h-auto flex-col py-3"
-                  >
-                    <span className="text-sm font-semibold">Actas Recepción</span>
-                    <span className="text-xs text-muted-foreground">
-                      {isGeneratingActaRecepcion ? 'Generando...' : 'Zapatos'}
-                    </span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={handleGenerateActaRecepcionUniformes}
-                    disabled={isGeneratingActaRecepcionUniformes}
-                    className="h-auto flex-col py-3"
-                  >
-                    <span className="text-sm font-semibold">Actas Recepción</span>
-                    <span className="text-xs text-muted-foreground">
-                      {isGeneratingActaRecepcionUniformes ? 'Generando...' : 'Uniformes'}
-                    </span>
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {showDebugButtons && (
-              <div className="flex flex-col gap-3 border-t pt-6">
-                <div className="text-sm font-medium text-amber-600 dark:text-amber-400">
-                  Debug: Generar PDFs con 10 escuelas aleatorias
-                </div>
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  <Button
-                    variant="outline"
-                    onClick={handleDebugCajas}
-                    className="h-auto flex-col border-amber-300 py-3 hover:bg-amber-50 dark:border-amber-700 dark:hover:bg-amber-950"
-                  >
-                    <span className="text-base font-semibold">Cajas</span>
-                    <span className="text-xs text-muted-foreground">10 escuelas</span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={handleDebugCamisas}
-                    className="h-auto flex-col border-amber-300 py-3 hover:bg-amber-50 dark:border-amber-700 dark:hover:bg-amber-950"
-                  >
-                    <span className="text-base font-semibold">Camisas</span>
-                    <span className="text-xs text-muted-foreground">10 escuelas</span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={handleDebugPantalones}
-                    className="h-auto flex-col border-amber-300 py-3 hover:bg-amber-50 dark:border-amber-700 dark:hover:bg-amber-950"
-                  >
-                    <span className="text-base font-semibold">Pantalones</span>
-                    <span className="text-xs text-muted-foreground">10 escuelas</span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={handleDebugZapatos}
-                    className="h-auto flex-col border-amber-300 py-3 hover:bg-amber-50 dark:border-amber-700 dark:hover:bg-amber-950"
-                  >
-                    <span className="text-base font-semibold">Zapatos</span>
-                    <span className="text-xs text-muted-foreground">10 escuelas</span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={handleDebugFicha}
-                    className="h-auto flex-col border-amber-300 py-3 hover:bg-amber-50 dark:border-amber-700 dark:hover:bg-amber-950"
-                  >
-                    <span className="text-base font-semibold">Ficha</span>
-                    <span className="text-xs text-muted-foreground">10 escuelas</span>
-                  </Button>
-                </div>
-                <div className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
-                  Fichas por Escuela y Día:
-                </div>
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  <Button
-                    variant="outline"
-                    onClick={handleDebugFichaUniformes}
-                    className="h-auto flex-col border-emerald-300 py-3 hover:bg-emerald-50 dark:border-emerald-700 dark:hover:bg-emerald-950"
-                  >
-                    <span className="text-base font-semibold">Ficha Uniformes</span>
-                    <span className="text-xs text-muted-foreground">Por escuela</span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={handleDebugFichaZapatos}
-                    className="h-auto flex-col border-emerald-300 py-3 hover:bg-emerald-50 dark:border-emerald-700 dark:hover:bg-emerald-950"
-                  >
-                    <span className="text-base font-semibold">Ficha Zapatos</span>
-                    <span className="text-xs text-muted-foreground">Por escuela</span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={handleDebugDayUniformes}
-                    className="h-auto flex-col border-emerald-300 py-3 hover:bg-emerald-50 dark:border-emerald-700 dark:hover:bg-emerald-950"
-                  >
-                    <span className="text-base font-semibold">Day Uniformes</span>
-                    <span className="text-xs text-muted-foreground">Consolidado</span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={handleDebugDayZapatos}
-                    className="h-auto flex-col border-emerald-300 py-3 hover:bg-emerald-50 dark:border-emerald-700 dark:hover:bg-emerald-950"
-                  >
-                    <span className="text-base font-semibold">Day Zapatos</span>
-                    <span className="text-xs text-muted-foreground">Consolidado</span>
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {isLoading ? (
-              <div className="py-12 text-center">
-                <div className="inline-block h-8 w-8 animate-spin rounded-full border-b-2 border-primary"></div>
-                <p className="mt-4 text-muted-foreground">Cargando estudiantes...</p>
-              </div>
-            ) : (
-              <StudentsGrid
-                students={students}
-                totalCount={totalCount}
-                currentPage={currentPage}
-                pageSize={pageSize}
-                onPageChange={handlePageChange}
-              />
-            )}
-          </CardContent>
-        </Card>
-      </main>
+      </div>
     </div>
   );
 }
