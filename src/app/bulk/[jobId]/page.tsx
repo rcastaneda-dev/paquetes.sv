@@ -705,7 +705,7 @@ export default function JobDetailPage() {
         {!isCategoryJob && (job.status === 'complete' || job.status === 'failed') && (
           <Card>
             <CardHeader>
-              <CardTitle>Descargar PDFs por Región</CardTitle>
+              <CardTitle>Descargar PDFs</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               {job.status === 'failed' && progress && progress.failed_tasks > 0 && (
