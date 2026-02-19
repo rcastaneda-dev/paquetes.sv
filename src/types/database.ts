@@ -147,6 +147,7 @@ export interface DemandRow {
   distrito: string;
   zona: string;
   transporte: string;
+  fecha_inicio: string; // YYYY-MM-DD from schools table
   item: string; // 'CAJAS' | 'UNIFORMES' | 'ZAPATOS'
   tipo: string; // 'CAJAS', 'CAMISA BLANCA', 'ZAPATOS', etc.
   categoria: string; // grade name or size
@@ -161,5 +162,6 @@ export interface SchoolDemandGroup {
   distrito: string;
   zona: string;
   transporte: string;
+  fecha_inicio: string;
   rows: DemandRow[];
 }

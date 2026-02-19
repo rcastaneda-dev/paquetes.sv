@@ -11,7 +11,7 @@ export async function querySchoolDemand(params?: {
   let query = supabaseServer
     .from('school_demand')
     .select(
-      'school_codigo_ce, item, tipo, categoria, cantidad, schools!inner(nombre_ce, departamento, distrito, zona, transporte)'
+      'school_codigo_ce, item, tipo, categoria, cantidad, schools!inner(nombre_ce, departamento, distrito, zona, transporte, fecha_inicio)'
     )
     .order('school_codigo_ce');
 
@@ -32,6 +32,7 @@ export async function querySchoolDemand(params?: {
       distrito: string;
       zona: string;
       transporte: string;
+      fecha_inicio: string | null;
     };
     return {
       school_codigo_ce: row.school_codigo_ce,
@@ -40,6 +41,7 @@ export async function querySchoolDemand(params?: {
       distrito: school.distrito ?? '',
       zona: school.zona ?? '',
       transporte: school.transporte ?? '',
+      fecha_inicio: school.fecha_inicio ?? new Date().toISOString().split('T')[0],
       item: row.item,
       tipo: row.tipo,
       categoria: row.categoria,

@@ -25,9 +25,9 @@ export const AGREEMENT_FONT = {
   /** Subtitle, date, school block, footer (e.g. "TOTAL PIEZAS") */
   SUBTITLE_SCHOOL_FOOTER: 11,
   /** Table column headers (e.g. "TIPO", "CANTIDAD", "TALLA") */
-  COLUMN_HEADER: 10,
+  COLUMN_HEADER: 9,
   /** Table body and data rows */
-  BODY: 9,
+  BODY: 8,
 } as const;
 
 /** Line below school header for manual fill-in of start/end time when printed */
@@ -899,11 +899,7 @@ export function renderActaRecepcionZapatosSection(ctx: SectionRenderContext): vo
   doc.moveDown(0.5);
 
   doc.fontSize(AGREEMENT_FONT.BODY).font('Helvetica');
-  doc.text('Fecha: ________________________________', xStart);
-  doc.moveDown(0.3);
-  doc.text('Hora: ________________________________', xStart);
-  doc.moveDown(0.3);
-  doc.text('Bodega: ________________________________', xStart);
+  doc.text('Fecha: __________________________________  Hora: __________________________________  Bodega: __________________________________', xStart);
   doc.moveDown(1);
 
   // 3. Data table — aggregate shoe data by talla
@@ -1095,11 +1091,7 @@ export function renderActaRecepcionUniformesSection(ctx: SectionRenderContext): 
   doc.moveDown(0.5);
 
   doc.fontSize(AGREEMENT_FONT.BODY).font('Helvetica');
-  doc.text('Fecha: ________________________________', xStart);
-  doc.moveDown(0.3);
-  doc.text('Hora: ________________________________', xStart);
-  doc.moveDown(0.3);
-  doc.text('Bodega: ________________________________', xStart);
+  doc.text('Fecha: __________________________________  Hora: __________________________________  Bodega: __________________________________', xStart);
   doc.moveDown(1);
 
   // 3. Data table — aggregate uniform data by tipo/talla
@@ -1407,11 +1399,7 @@ export function renderActaRecepcionCajasSection(ctx: SectionRenderContext): void
   doc.moveDown(0.5);
 
   doc.fontSize(AGREEMENT_FONT.BODY).font('Helvetica');
-  doc.text('Fecha: ________________________________', actaXStart);
-  doc.moveDown(0.3);
-  doc.text('Hora: ________________________________', actaXStart);
-  doc.moveDown(0.3);
-  doc.text('Bodega: ________________________________', actaXStart);
+  doc.text('Fecha: __________________________________  Hora: __________________________________  Bodega: __________________________________', actaXStart);
   doc.moveDown(1);
 
   // 3. Data table — aggregate cajas by grade

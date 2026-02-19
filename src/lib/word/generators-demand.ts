@@ -30,6 +30,13 @@ import type { DemandRow, SchoolDemandGroup } from '@/types/database';
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
+/** Convert YYYY-MM-DD to DD-MM-YYYY for display */
+function formatDate(isoDate: string): string {
+  const parts = isoDate.split('-');
+  if (parts.length === 3) return `${parts[2]}-${parts[1]}-${parts[0]}`;
+  return isoDate;
+}
+
 function groupDemandBySchool(rows: DemandRow[]): SchoolDemandGroup[] {
   const map = new Map<string, SchoolDemandGroup>();
 
@@ -42,6 +49,7 @@ function groupDemandBySchool(rows: DemandRow[]): SchoolDemandGroup[] {
         distrito: row.distrito,
         zona: row.zona,
         transporte: row.transporte,
+        fecha_inicio: row.fecha_inicio,
         rows: [],
       });
     }
@@ -123,16 +131,13 @@ function createPreTableFields(): Paragraph[] {
       ],
     }),
     new Paragraph({
-      spacing: { after: 60 },
-      children: [new TextRun({ text: 'Fecha: ________________________________', ...fieldStyle })],
-    }),
-    new Paragraph({
-      spacing: { after: 60 },
-      children: [new TextRun({ text: 'Hora: ________________________________', ...fieldStyle })],
-    }),
-    new Paragraph({
       spacing: { after: 200 },
-      children: [new TextRun({ text: 'Bodega: ________________________________', ...fieldStyle })],
+      children: [
+        new TextRun({
+          text: 'Fecha: __________________________________  Hora: __________________________________  Bodega: __________________________________',
+          ...fieldStyle,
+        }),
+      ],
     }),
   ];
 }
@@ -214,7 +219,7 @@ function headerCell(text: string, width: number): TableCell {
     children: [
       new Paragraph({
         alignment: AlignmentType.CENTER,
-        children: [new TextRun({ text, bold: true, size: 20, font: 'Arial' })],
+        children: [new TextRun({ text, bold: true, size: 18, font: 'Arial' })],
       }),
     ],
   });
@@ -227,7 +232,7 @@ function dataCell(text: string, width: number, bold = false): TableCell {
     children: [
       new Paragraph({
         alignment: AlignmentType.CENTER,
-        children: [new TextRun({ text, bold, size: 18, font: 'Arial' })],
+        children: [new TextRun({ text, bold, size: 16, font: 'Arial' })],
       }),
     ],
   });
@@ -542,13 +547,20 @@ function createComandaSchoolHeader(school: SchoolDemandGroup): Paragraph[] {
   ];
 }
 
-function createFechaDespachoLine(): Paragraph {
+function createFechaDespachoLine(formattedDate: string): Paragraph {
   return new Paragraph({
     alignment: AlignmentType.CENTER,
     spacing: { after: 300 },
     children: [
       new TextRun({
-        text: 'Fecha de despacho: ___________________  Fecha entrega C.E.: ___________________',
+        text: 'Fecha de despacho: ___________________  Fecha entrega C.E.: ',
+        size: 22,
+        font: 'Arial',
+      }),
+      new TextRun({
+        text: ` ${formattedDate}`,
+        bold: true,
+        underline: {},
         size: 22,
         font: 'Arial',
       }),
@@ -609,7 +621,7 @@ function buildComandaCajasSection(school: SchoolDemandGroup): (Paragraph | Table
 
   elements.push(
     createTitleParagraph('DETALLE DE PROGRAMACIÓN DE CAJAS FALTANTES'),
-    createFechaDespachoLine(),
+    createFechaDespachoLine(formatDate(school.fecha_inicio)),
     ...createComandaSchoolHeader(school),
     table
   );
@@ -665,7 +677,7 @@ function buildComandaUniformesSection(school: SchoolDemandGroup): (Paragraph | T
 
   elements.push(
     createTitleParagraph('FICHA DE DISTRIBUCION POR ESCUELA (UNIFORMES) FALTANTES'),
-    createFechaDespachoLine(),
+    createFechaDespachoLine(formatDate(school.fecha_inicio)),
     ...createComandaSchoolHeader(school),
     table,
     new Paragraph({
@@ -724,7 +736,7 @@ function buildComandaZapatosSection(school: SchoolDemandGroup): (Paragraph | Tab
 
   elements.push(
     createTitleParagraph('FICHA DE DISTRIBUCION POR ESCUELA (ZAPATOS) FALTANTES'),
-    createFechaDespachoLine(),
+    createFechaDespachoLine(formatDate(school.fecha_inicio)),
     ...createComandaSchoolHeader(school),
     table,
     new Paragraph({

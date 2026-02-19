@@ -18,6 +18,8 @@ import {
   CAJAS_PAGE_OPTIONS,
   FICHA_UNIFORMES_PAGE_OPTIONS,
   FICHA_ZAPATOS_PAGE_OPTIONS,
+  drawFechaDespachoEntregaLine,
+  formatDateForTitle,
 } from './agreement/sections';
 
 // Page options for Cajas — same as other acta portrait layouts
@@ -44,6 +46,7 @@ function groupDemandBySchool(rows: DemandRow[]): SchoolDemandGroup[] {
         distrito: row.distrito,
         zona: row.zona,
         transporte: row.transporte,
+        fecha_inicio: row.fecha_inicio,
         rows: [],
       });
     }
@@ -66,11 +69,7 @@ function drawPreTableFields(doc: PDFDocumentInstance, xStart: number): void {
   doc.moveDown(0.5);
 
   doc.fontSize(AGREEMENT_FONT.BODY).font('Helvetica');
-  doc.text('Fecha: ________________________________', xStart);
-  doc.moveDown(0.3);
-  doc.text('Hora: ________________________________', xStart);
-  doc.moveDown(0.3);
-  doc.text('Bodega: ________________________________', xStart);
+  doc.text('Fecha: __________________________________  Hora: __________________________________  Bodega: __________________________________', xStart);
   doc.moveDown(1);
 }
 
@@ -571,13 +570,9 @@ function drawComandaTitleAndSchoolHeader(
 
   doc.fontSize(AGREEMENT_FONT.TITLE).font('Helvetica-Bold').text(title, { align: 'center' });
 
-  // Fecha de despacho / Fecha entrega (blanks for manual fill-in)
-  doc
-    .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
-    .font('Helvetica')
-    .text('Fecha de despacho: ___________________  Fecha entrega C.E.: ___________________', {
-      align: 'center',
-    });
+  // Fecha de despacho / Fecha entrega C.E. (date value rendered bold+underlined)
+  const formattedDate = formatDateForTitle(school.fecha_inicio);
+  drawFechaDespachoEntregaLine(doc, formattedDate);
   doc.moveDown(2);
 
   // School header

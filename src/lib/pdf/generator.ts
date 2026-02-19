@@ -109,7 +109,7 @@ export function generateStudentReportPDF(options: PDFGeneratorOptions): PDFDocum
 
   // Helper to draw table header
   const drawHeader = (y: number) => {
-    doc.fontSize(10).font('Helvetica-Bold');
+    doc.fontSize(9).font('Helvetica-Bold');
 
     let x = 50;
 
@@ -190,16 +190,16 @@ export function generateStudentReportPDF(options: PDFGeneratorOptions): PDFDocum
 
   const drawStudentRow = (student: StudentReportRow, displayIndex: number) => {
     // Calculate required height for this row based on longest text
-    doc.font('Helvetica').fontSize(10);
+    doc.font('Helvetica').fontSize(8);
     const nameHeight = calculateTextHeight(
       student.nombre_estudiante || '',
       columnWidths.name - 10,
-      10
+      8
     );
     const pantsHeight = calculateTextHeight(
       student.pantalon_falda || 'N/A',
       columnWidths.pants - 10,
-      10
+      8
     );
 
     // Use maximum height needed, with minimum of 25 and padding
@@ -265,7 +265,7 @@ export function generateStudentReportPDF(options: PDFGeneratorOptions): PDFDocum
     currentY += dynamicRowHeight;
   };
 
-  doc.font('Helvetica').fontSize(10);
+  doc.font('Helvetica').fontSize(8);
 
   for (let g = 0; g < gradeKeys.length; g++) {
     const grade = gradeKeys[g];
@@ -281,12 +281,12 @@ export function generateStudentReportPDF(options: PDFGeneratorOptions): PDFDocum
 
     drawGradeTitle(grade);
     currentY = drawHeader(currentY);
-    doc.font('Helvetica').fontSize(10);
+    doc.font('Helvetica').fontSize(8);
 
     for (let i = 0; i < gradeStudents.length; i++) {
       // Pre-calculate row height to check if we need a new page
       const student = gradeStudents[i];
-      doc.font('Helvetica').fontSize(10);
+      doc.font('Helvetica').fontSize(8);
       const nameHeight = doc.heightOfString(student.nombre_estudiante || '', {
         width: columnWidths.name - 10,
       });
@@ -301,7 +301,7 @@ export function generateStudentReportPDF(options: PDFGeneratorOptions): PDFDocum
         ensureSpace(48 + rowHeight);
         drawGradeTitle(grade);
         currentY = drawHeader(currentY);
-        doc.font('Helvetica').fontSize(10);
+        doc.font('Helvetica').fontSize(8);
       }
 
       drawStudentRow(student, i + 1);
@@ -374,7 +374,7 @@ export function generateStudentLabelsPDF(options: PDFGeneratorOptions): PDFDocum
 
   // Helper to draw table header for labels
   const drawHeader = (y: number) => {
-    doc.fontSize(10).font('Helvetica-Bold');
+    doc.fontSize(9).font('Helvetica-Bold');
 
     let x = 50;
 
@@ -442,12 +442,12 @@ export function generateStudentLabelsPDF(options: PDFGeneratorOptions): PDFDocum
 
   const drawStudentRow = (student: StudentReportRow, displayIndex: number) => {
     // Calculate required height for this row based on longest text
-    doc.font('Helvetica').fontSize(10);
-    const schoolNameHeight = calculateTextHeight(schoolName, columnWidths.escuela - 10, 10);
+    doc.font('Helvetica').fontSize(8);
+    const schoolNameHeight = calculateTextHeight(schoolName, columnWidths.escuela - 10, 8);
     const studentNameHeight = calculateTextHeight(
       student.nombre_estudiante || '',
       columnWidths.nombre - 10,
-      10
+      8
     );
 
     // Use maximum height needed, with minimum of 25 and padding
@@ -488,7 +488,7 @@ export function generateStudentLabelsPDF(options: PDFGeneratorOptions): PDFDocum
     currentY += dynamicRowHeight;
   };
 
-  doc.font('Helvetica').fontSize(10);
+  doc.font('Helvetica').fontSize(8);
 
   const labelHeight = rowHeight + rowHeight; // Header + data row
   const labelSpacing = rowHeight; // One blank line between labels
@@ -510,7 +510,7 @@ export function generateStudentLabelsPDF(options: PDFGeneratorOptions): PDFDocum
     for (let i = 0; i < gradeStudents.length; i++) {
       // Pre-calculate row height to check if we have space
       const student = gradeStudents[i];
-      doc.font('Helvetica').fontSize(10);
+      doc.font('Helvetica').fontSize(8);
       const schoolNameHeight = doc.heightOfString(schoolName, {
         width: columnWidths.escuela - 10,
       });
@@ -530,7 +530,7 @@ export function generateStudentLabelsPDF(options: PDFGeneratorOptions): PDFDocum
 
       // Draw header for this label
       currentY = drawHeader(currentY);
-      doc.font('Helvetica').fontSize(10);
+      doc.font('Helvetica').fontSize(8);
 
       // Draw student row
       drawStudentRow(student, i + 1);
