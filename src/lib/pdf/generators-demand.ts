@@ -31,7 +31,7 @@ const ACTA_RECEPCION_CAJAS_PAGE_OPTIONS = {
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Group flat DemandRow[] into SchoolDemandGroup[] sorted by total descending */
+/** Group flat DemandRow[] into SchoolDemandGroup[] sorted by distrito asc, then total demand desc */
 function groupDemandBySchool(rows: DemandRow[]): SchoolDemandGroup[] {
   const map = new Map<string, SchoolDemandGroup>();
 
@@ -51,6 +51,8 @@ function groupDemandBySchool(rows: DemandRow[]): SchoolDemandGroup[] {
   }
 
   return Array.from(map.values()).sort((a, b) => {
+    const districtCompare = a.distrito.localeCompare(b.distrito, 'es');
+    if (districtCompare !== 0) return districtCompare;
     const totalA = a.rows.reduce((s, r) => s + r.cantidad, 0);
     const totalB = b.rows.reduce((s, r) => s + r.cantidad, 0);
     return totalB - totalA;

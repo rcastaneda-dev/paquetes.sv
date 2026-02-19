@@ -1,4 +1,4 @@
-## Paquetes.sv
+## paquetes.sv
 
 Sistema para **consultar estudiantes** (por escuela/grado/fecha) y **generar PDFs/ZIPs** de reportes a escala usando **Next.js 14 + Supabase**.
 
@@ -35,8 +35,8 @@ Sistema para **consultar estudiantes** (por escuela/grado/fecha) y **generar PDF
 
 #### Actas de recepción (portrait, por escuela)
 
-| Tipo                        | Descripción                                           |
-| --------------------------- | ----------------------------------------------------- |
+| Tipo                         | Descripción                                          |
+| ---------------------------- | ---------------------------------------------------- |
 | **Acta Recepción Uniformes** | TIPO/TALLA, CANTIDAD, COMENTARIOS + datos transporte |
 | **Acta Recepción Zapatos**   | TALLA, CANTIDAD, COMENTARIOS + datos transporte      |
 
@@ -90,7 +90,7 @@ Todos los PDFs de acuerdos incluyen una línea de registro manual: `HORA DE INIC
 
 | Endpoint                                              | Método | Descripción                                  |
 | ----------------------------------------------------- | ------ | -------------------------------------------- |
-| `/api/bulk/jobs`                                      | POST   | Crear bulk job (por región)                  |
+| `/api/bulk/jobs`                                      | POST   | Crear bulk job                               |
 | `/api/bulk/jobs`                                      | GET    | Listar jobs (paginado)                       |
 | `/api/bulk/jobs`                                      | DELETE | Borrar jobs antiguos (`?scope=past`)         |
 | `/api/bulk/jobs/category`                             | POST   | Crear job de categorías (por `fecha_inicio`) |
@@ -109,19 +109,19 @@ Todos los PDFs de acuerdos incluyen una línea de registro manual: `HORA DE INIC
 
 #### Estudiantes y reportes
 
-| Endpoint                     | Método | Descripción                                            |
-| ---------------------------- | ------ | ------------------------------------------------------ |
-| `/api/students/query`        | GET    | Consultar estudiantes (escuela/grado/depto/paginación) |
-| `/api/students/print`        | GET    | Generar PDF de tallas (on-demand)                      |
-| `/api/students/print-labels` | GET    | Generar PDF de etiquetas (on-demand)                   |
-| `/api/reports/cajas`         | GET    | PDF de Cajas                                           |
-| `/api/reports/camisas`       | GET    | PDF de Camisas                                         |
-| `/api/reports/pantalones`    | GET    | PDF de Pantalones                                      |
-| `/api/reports/zapatos`       | GET    | PDF de Zapatos                                         |
-| `/api/reports/acta-recepcion-uniformes` | GET | Acta de Recepción (Uniformes)                  |
-| `/api/reports/acta-recepcion-zapatos`  | GET | Acta de Recepción (Zapatos)                    |
-| `/api/schools/search`        | GET    | Autocompletado de escuelas                             |
-| `/api/grades`                | GET    | Grados disponibles                                     |
+| Endpoint                                | Método | Descripción                                            |
+| --------------------------------------- | ------ | ------------------------------------------------------ |
+| `/api/students/query`                   | GET    | Consultar estudiantes (escuela/grado/depto/paginación) |
+| `/api/students/print`                   | GET    | Generar PDF de tallas (on-demand)                      |
+| `/api/students/print-labels`            | GET    | Generar PDF de etiquetas (on-demand)                   |
+| `/api/reports/cajas`                    | GET    | PDF de Cajas                                           |
+| `/api/reports/camisas`                  | GET    | PDF de Camisas                                         |
+| `/api/reports/pantalones`               | GET    | PDF de Pantalones                                      |
+| `/api/reports/zapatos`                  | GET    | PDF de Zapatos                                         |
+| `/api/reports/acta-recepcion-uniformes` | GET    | Acta de Recepción (Uniformes)                          |
+| `/api/reports/acta-recepcion-zapatos`   | GET    | Acta de Recepción (Zapatos)                            |
+| `/api/schools/search`                   | GET    | Autocompletado de escuelas                             |
+| `/api/grades`                           | GET    | Grados disponibles                                     |
 
 #### Worker endpoints (requieren Bearer auth)
 
@@ -133,16 +133,16 @@ Todos los PDFs de acuerdos incluyen una línea de registro manual: `HORA DE INIC
 
 #### Demand pipeline (datos normalizados)
 
-| Endpoint                                         | Método | Descripción                                    |
-| ------------------------------------------------ | ------ | ---------------------------------------------- |
-| `/api/staging/demand`                            | POST   | Upload CSV normalizado (truncate/insert/migrate)|
-| `/api/reports/demand/acta-cajas`                 | GET    | Acta de Recepción Cajas (PDF) desde demand     |
-| `/api/reports/demand/acta-uniformes`             | GET    | Acta de Recepción Uniformes (PDF) desde demand |
-| `/api/reports/demand/acta-zapatos`               | GET    | Acta de Recepción Zapatos (PDF) desde demand   |
-| `/api/reports/demand/acta-cajas-word`            | GET    | Acta de Recepción Cajas (Word) desde demand    |
-| `/api/reports/demand/acta-uniformes-word`        | GET    | Acta de Recepción Uniformes (Word) desde demand|
-| `/api/reports/demand/acta-zapatos-word`          | GET    | Acta de Recepción Zapatos (Word) desde demand  |
-| `/api/reports/demand/consolidado-excel`          | GET    | Consolidado por escuela (Excel) desde demand   |
+| Endpoint                                  | Método | Descripción                                      |
+| ----------------------------------------- | ------ | ------------------------------------------------ |
+| `/api/staging/demand`                     | POST   | Upload CSV normalizado (truncate/insert/migrate) |
+| `/api/reports/demand/acta-cajas`          | GET    | Acta de Recepción Cajas (PDF) desde demand       |
+| `/api/reports/demand/acta-uniformes`      | GET    | Acta de Recepción Uniformes (PDF) desde demand   |
+| `/api/reports/demand/acta-zapatos`        | GET    | Acta de Recepción Zapatos (PDF) desde demand     |
+| `/api/reports/demand/acta-cajas-word`     | GET    | Acta de Recepción Cajas (Word) desde demand      |
+| `/api/reports/demand/acta-uniformes-word` | GET    | Acta de Recepción Uniformes (Word) desde demand  |
+| `/api/reports/demand/acta-zapatos-word`   | GET    | Acta de Recepción Zapatos (Word) desde demand    |
+| `/api/reports/demand/consolidado-excel`   | GET    | Consolidado por escuela (Excel) desde demand     |
 
 ### Estructura
 

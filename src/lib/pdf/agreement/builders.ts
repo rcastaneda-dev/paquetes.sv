@@ -286,10 +286,13 @@ export function calculateZapatosTotalPiezas(school: SchoolGroup): number {
 }
 
 /**
- * Sort schools by their calculated totals in descending order
+ * Sort schools by distrito asc, then by section total desc within each distrito
  */
 function sortSchoolsByTotal(schools: SchoolGroup[], section: AgreementSectionType): SchoolGroup[] {
   return schools.sort((a, b) => {
+    const districtCompare = a.distrito.localeCompare(b.distrito, 'es');
+    if (districtCompare !== 0) return districtCompare;
+
     let totalA = 0;
     let totalB = 0;
 
@@ -304,7 +307,6 @@ function sortSchoolsByTotal(schools: SchoolGroup[], section: AgreementSectionTyp
       totalB = calculateZapatosTotalPiezas(b);
     }
 
-    // Sort descending (highest first)
     return totalB - totalA;
   });
 }
@@ -321,7 +323,6 @@ export function buildConsolidatedPdf(options: {
   const { fechaInicio, students, section } = options;
   const schools = groupBySchool(students);
 
-  // Sort schools by their totals in descending order
   const sortedSchools = sortSchoolsByTotal(schools, section);
 
   const pageOptions = PAGE_OPTIONS_BY_SECTION[section];

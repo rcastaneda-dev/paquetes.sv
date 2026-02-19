@@ -12,6 +12,7 @@ import type { DemandRow } from '@/types/database';
 interface SchoolTotals {
   codigo_ce: string;
   nombre_ce: string;
+  distrito: string;
   cajas: number;
   uniformes: number;
   zapatos: number;
@@ -31,6 +32,7 @@ export async function generateConsolidadoDemandExcel(demandRows: DemandRow[]): P
       schoolMap.set(row.school_codigo_ce, {
         codigo_ce: row.school_codigo_ce,
         nombre_ce: row.nombre_ce,
+        distrito: row.distrito,
         cajas: 0,
         uniformes: 0,
         zapatos: 0,
@@ -47,12 +49,15 @@ export async function generateConsolidadoDemandExcel(demandRows: DemandRow[]): P
     }
   }
 
-  // Calculate totals and sort descending
   const schools = Array.from(schoolMap.values()).map(s => ({
     ...s,
     total: s.cajas + s.uniformes + s.zapatos,
   }));
-  schools.sort((a, b) => b.total - a.total);
+  schools.sort((a, b) => {
+    const districtCompare = a.distrito.localeCompare(b.distrito, 'es');
+    if (districtCompare !== 0) return districtCompare;
+    return b.total - a.total;
+  });
 
   // Build workbook
   const workbook = new ExcelJS.Workbook();
