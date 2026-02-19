@@ -772,16 +772,16 @@ export default function JobDetailPage() {
                   { key: 'ficha_uniformes', label: 'Comanda Uniformes' },
                   { key: 'ficha_zapatos', label: 'Comanda Zapatos' },
                   {
-                    key: 'acta_recepcion_zapatos',
-                    label: 'Consolidado Actas de Recepcion (Zapatos)',
+                    key: 'acta_recepcion_cajas',
+                    label: 'Consolidado Actas de Recepcion (Cajas)',
                   },
                   {
                     key: 'acta_recepcion_uniformes',
                     label: 'Consolidado Actas de Recepcion (Uniformes)',
                   },
                   {
-                    key: 'acta_recepcion_cajas',
-                    label: 'Consolidado Actas de Recepcion (Cajas)',
+                    key: 'acta_recepcion_zapatos',
+                    label: 'Consolidado Actas de Recepcion (Zapatos)',
                   },
                 ].map(({ key, label }) => {
                   const isDownloading = downloadingConsolidated[key];

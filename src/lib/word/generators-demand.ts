@@ -76,7 +76,7 @@ function createTitleParagraph(title: string): Paragraph {
   return new Paragraph({
     alignment: AlignmentType.CENTER,
     spacing: { after: 200 },
-    children: [new TextRun({ text: title, bold: true, size: 26, font: 'Arial' })],
+    children: [new TextRun({ text: title, bold: true, size: 24, font: 'Arial' })],
   });
 }
 
@@ -90,7 +90,7 @@ function createSchoolHeader(school: SchoolDemandGroup): Paragraph[] {
         new TextRun({
           text: school.nombre_ce.toUpperCase(),
           bold: true,
-          size: 22,
+          size: 20,
           font: 'Arial',
         }),
       ],
@@ -101,7 +101,7 @@ function createSchoolHeader(school: SchoolDemandGroup): Paragraph[] {
         new TextRun({
           text: `CODIGO: ${school.codigo_ce.toUpperCase()}`,
           bold: true,
-          size: 22,
+          size: 20,
           font: 'Arial',
         }),
       ],
@@ -113,7 +113,7 @@ function createSchoolHeader(school: SchoolDemandGroup): Paragraph[] {
         new TextRun({
           text: `DEPARTAMENTO: ${departamento} - DISTRITO: ${distrito}`,
           bold: true,
-          size: 22,
+          size: 20,
           font: 'Arial',
         }),
       ],
@@ -127,7 +127,7 @@ function createPreTableFields(): Paragraph[] {
     new Paragraph({
       spacing: { after: 100 },
       children: [
-        new TextRun({ text: 'DATOS DE LOS PRODUCTOS', bold: true, size: 22, font: 'Arial' }),
+        new TextRun({ text: 'DATOS DE LOS PRODUCTOS', bold: true, size: 20, font: 'Arial' }),
       ],
     }),
     new Paragraph({
@@ -142,66 +142,67 @@ function createPreTableFields(): Paragraph[] {
   ];
 }
 
-function createTransportFooter(): Paragraph[] {
-  const fieldStyle = { size: 18, font: 'Arial' };
+const NO_BORDERS = {
+  top: { style: BorderStyle.NONE, size: 0 },
+  bottom: { style: BorderStyle.NONE, size: 0 },
+  left: { style: BorderStyle.NONE, size: 0 },
+  right: { style: BorderStyle.NONE, size: 0 },
+};
+
+function createTransportFooter(): (Paragraph | Table)[] {
+  const fieldStyle = { size: 16, font: 'Arial' } as const;
+  const COL_LEFT = 5580;
+  const COL_RIGHT = 5580;
+
+  const rows: [string, string][] = [
+    ['Motorista: ____________________________', 'Encargado del Despacho: _______________'],
+    ['Placa: ________________________________', 'Firma del Encargado: __________________'],
+    ['Telefono: _____________________________', 'Encargado del C.E.: ___________________'],
+    ['Firma Motorista: ______________________', 'Firma: ________________________________'],
+  ];
+
+  const tableRows = rows.map(
+    ([left, right]) =>
+      new TableRow({
+        children: [
+          new TableCell({
+            width: { size: COL_LEFT, type: WidthType.DXA },
+            borders: NO_BORDERS,
+            children: [
+              new Paragraph({
+                spacing: { after: 350 },
+                children: [new TextRun({ text: left, ...fieldStyle })],
+              }),
+            ],
+          }),
+          new TableCell({
+            width: { size: COL_RIGHT, type: WidthType.DXA },
+            borders: NO_BORDERS,
+            children: [
+              new Paragraph({
+                spacing: { after: 350 },
+                children: [new TextRun({ text: right, ...fieldStyle })],
+              }),
+            ],
+          }),
+        ],
+      })
+  );
+
+  const table = new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    layout: TableLayoutType.FIXED,
+    rows: tableRows,
+  });
+
   return [
     new Paragraph({
       spacing: { before: 400, after: 100 },
       children: [
-        new TextRun({ text: 'DATOS DEL TRANSPORTE', bold: true, size: 22, font: 'Arial' }),
+        new TextRun({ text: 'DATOS DEL TRANSPORTE', bold: true, size: 20, font: 'Arial' }),
       ],
     }),
-    new Paragraph({
-      spacing: { after: 60 },
-      children: [
-        new TextRun({
-          text: 'Nombre del conductor: ________________________________',
-          ...fieldStyle,
-        }),
-      ],
-    }),
-    new Paragraph({
-      spacing: { after: 60 },
-      children: [
-        new TextRun({ text: 'Número de placa: ________________________________', ...fieldStyle }),
-      ],
-    }),
-    new Paragraph({
-      spacing: { after: 60 },
-      children: [
-        new TextRun({
-          text: 'Número de contacto: ________________________________',
-          ...fieldStyle,
-        }),
-      ],
-    }),
-    new Paragraph({
-      spacing: { after: 60 },
-      children: [
-        new TextRun({
-          text: 'Firma del conductor: ________________________________',
-          ...fieldStyle,
-        }),
-      ],
-    }),
-    new Paragraph({
-      spacing: { after: 60 },
-      children: [
-        new TextRun({
-          text: 'Firma y Nombre del Encargado del Despacho: ________________________________',
-          ...fieldStyle,
-        }),
-      ],
-    }),
-    new Paragraph({
-      spacing: { after: 60 },
-      children: [
-        new TextRun({
-          text: 'Firma y Nombre del Encargado del Centro Educativo: ________________________________',
-          ...fieldStyle,
-        }),
-      ],
-    }),
+    table,
   ];
 }
 
@@ -506,7 +507,7 @@ function createComandaSchoolHeader(school: SchoolDemandGroup): Paragraph[] {
   const distrito = (school.distrito || 'N/A').toUpperCase();
   const zona = (school.zona || 'N/A').toUpperCase();
   const transporte = (school.transporte || 'N/A').toUpperCase();
-  const headerStyle = { bold: true, size: 22, font: 'Arial' } as const;
+  const headerStyle = { bold: true, size: 20, font: 'Arial' } as const;
   return [
     new Paragraph({
       alignment: AlignmentType.CENTER,
@@ -539,7 +540,7 @@ function createComandaSchoolHeader(school: SchoolDemandGroup): Paragraph[] {
       children: [
         new TextRun({
           text: 'HORA DE INICIO:  ___________________ HORA DE FINALIZACION: ___________________',
-          size: 22,
+          size: 20,
           font: 'Arial',
         }),
       ],
@@ -554,14 +555,14 @@ function createFechaDespachoLine(formattedDate: string): Paragraph {
     children: [
       new TextRun({
         text: 'Fecha de despacho: ___________________  Fecha entrega C.E.: ',
-        size: 22,
+        size: 20,
         font: 'Arial',
       }),
       new TextRun({
         text: ` ${formattedDate}`,
         bold: true,
         underline: {},
-        size: 22,
+        size: 20,
         font: 'Arial',
       }),
     ],
@@ -569,7 +570,7 @@ function createFechaDespachoLine(formattedDate: string): Paragraph {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Comanda Cajas Word (landscape)
+// Comanda Cajas Word (portrait)
 // ─────────────────────────────────────────────────────────────────────────────
 
 function buildComandaCajasSection(school: SchoolDemandGroup): (Paragraph | Table)[] {
@@ -579,9 +580,9 @@ function buildComandaCajasSection(school: SchoolDemandGroup): (Paragraph | Table
 
   const totalCantidad = cajasRows.reduce((sum, r) => sum + r.cantidad, 0);
 
-  const COL1 = 1600; // NO
-  const COL2 = 9560; // GRADO
-  const COL3 = 3600; // CANTIDAD
+  const COL1 = 1200; // NO
+  const COL2 = 7160; // GRADO
+  const COL3 = 2800; // CANTIDAD
 
   const tableRows = [
     new TableRow({
@@ -683,7 +684,7 @@ function buildComandaUniformesSection(school: SchoolDemandGroup): (Paragraph | T
     new Paragraph({
       spacing: { before: 200 },
       children: [
-        new TextRun({ text: `TOTAL PIEZAS: ${totalPiezas}`, bold: true, size: 22, font: 'Arial' }),
+        new TextRun({ text: `TOTAL PIEZAS: ${totalPiezas}`, bold: true, size: 20, font: 'Arial' }),
       ],
     })
   );
@@ -742,7 +743,7 @@ function buildComandaZapatosSection(school: SchoolDemandGroup): (Paragraph | Tab
     new Paragraph({
       spacing: { before: 200 },
       children: [
-        new TextRun({ text: `TOTAL PIEZAS: ${totalPiezas}`, bold: true, size: 22, font: 'Arial' }),
+        new TextRun({ text: `TOTAL PIEZAS: ${totalPiezas}`, bold: true, size: 20, font: 'Arial' }),
       ],
     })
   );
@@ -781,9 +782,9 @@ async function buildComandaWord(
   return Buffer.from(await Packer.toBuffer(doc));
 }
 
-/** Generate Comanda de Cajas Word document from demand data (landscape) */
+/** Generate Comanda de Cajas Word document from demand data (portrait) */
 export async function generateComandaCajasWord(demandRows: DemandRow[]): Promise<Buffer> {
-  return buildComandaWord(demandRows, buildComandaCajasSection, 'CAJAS', true);
+  return buildComandaWord(demandRows, buildComandaCajasSection, 'CAJAS', false);
 }
 
 /** Generate Comanda de Uniformes Word document from demand data (portrait) */

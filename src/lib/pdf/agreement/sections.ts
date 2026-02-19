@@ -21,9 +21,9 @@ import type { PDFDocumentInstance, SchoolGroup, SectionRenderContext } from './t
 
 export const AGREEMENT_FONT = {
   /** Main report title (e.g. "DETALLE DE PROGRAMACIÓN DE CAJAS") */
-  TITLE: 13,
+  TITLE: 12,
   /** Subtitle, date, school block, footer (e.g. "TOTAL PIEZAS") */
-  SUBTITLE_SCHOOL_FOOTER: 11,
+  SUBTITLE_SCHOOL_FOOTER: 10,
   /** Table column headers (e.g. "TIPO", "CANTIDAD", "TALLA") */
   COLUMN_HEADER: 9,
   /** Table body and data rows */
@@ -68,8 +68,8 @@ export function drawFechaDespachoEntregaLine(
 
 export const CAJAS_PAGE_OPTIONS = {
   size: 'LETTER' as const,
-  layout: 'landscape' as const,
-  margins: { top: 40, bottom: 40, left: 30, right: 30 },
+  layout: 'portrait' as const,
+  margins: { top: 40, bottom: 40, left: 40, right: 40 },
 };
 
 export const FICHA_UNIFORMES_PAGE_OPTIONS = {
@@ -207,13 +207,55 @@ export function drawSchoolHeaderBlock(options: SchoolHeaderBlockOptions): number
   return doc.y + 8;
 }
 
+/** Draw two-column transport/signature footer with extra interline spacing */
+export function drawTransportFooter(doc: PDFDocumentInstance, xStart: number): void {
+  const rightMargin = doc.page.margins?.right ?? xStart;
+  const availableWidth = doc.page.width - xStart - rightMargin;
+  const colGap = 20;
+  const colWidth = (availableWidth - colGap) / 2;
+  const leftX = xStart;
+  const rightX = xStart + colWidth + colGap;
+  const lineSpacing = 25;
+
+  doc.fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER).font('Helvetica-Bold');
+  doc.text('DATOS DEL TRANSPORTE', leftX, doc.y, { align: 'left' });
+  let currentY = doc.y + 10;
+
+  doc.fontSize(AGREEMENT_FONT.BODY).font('Helvetica');
+  const underscoreW = doc.widthOfString('_');
+
+  const rows: [string, string][] = [
+    ['Motorista: ', 'Encargado del Despacho: '],
+    ['Placa: ', 'Firma del Encargado: '],
+    ['Telefono: ', 'Encargado del C.E.: '],
+    ['Firma Motorista: ', 'Firma: '],
+  ];
+
+  for (const [leftLabel, rightLabel] of rows) {
+    const leftFill = Math.floor((colWidth - doc.widthOfString(leftLabel)) / underscoreW);
+    const rightFill = Math.floor((colWidth - doc.widthOfString(rightLabel)) / underscoreW);
+
+    doc.text(leftLabel + '_'.repeat(Math.max(0, leftFill)), leftX, currentY, {
+      width: colWidth,
+      lineBreak: false,
+    });
+    doc.text(rightLabel + '_'.repeat(Math.max(0, rightFill)), rightX, currentY, {
+      width: colWidth,
+      lineBreak: false,
+    });
+    currentY += lineSpacing;
+  }
+
+  doc.y = currentY;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Section renderers
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * Render the "DETALLE DE PROGRAMACIÓN DE CAJAS" section for a single school.
- * Layout: LETTER landscape.
+ * Layout: LETTER portrait.
  */
 export function renderCajasSection(ctx: SectionRenderContext): void {
   const { doc, school, fechaInicio, addPage: shouldAddPage } = ctx;
@@ -288,8 +330,8 @@ export function renderCajasSection(ctx: SectionRenderContext): void {
   const grades = Array.from(gradeMap.keys()).sort();
 
   // Define table structure (fixed column widths)
-  // Total available width: 792pt (landscape) - 60pt (margins) = 732pt
-  const colWidths = [80, 240, 137, 137, 138];
+  // Total available width: 612pt (portrait) - 80pt (margins) = 532pt
+  const colWidths = [50, 180, 100, 100, 102];
   const colHeaders = ['NO', 'GRADO', 'CAJAS HOMBRES', 'CAJAS MUJERES', 'CAJAS TOTALES'];
   const headerHeight = 30;
   const pageBottomMargin = 40; // Reserve space at bottom of page
@@ -297,7 +339,7 @@ export function renderCajasSection(ctx: SectionRenderContext): void {
   // Helper function to draw table header
   const drawTableHeader = (yPos: number): number => {
     doc.fontSize(AGREEMENT_FONT.COLUMN_HEADER).font('Helvetica-Bold');
-    let x = 30;
+    let x = 40;
     for (let i = 0; i < colHeaders.length; i++) {
       doc.rect(x, yPos, colWidths[i], headerHeight).stroke();
       doc.text(colHeaders[i], x + 4, yPos + 8, {
@@ -351,7 +393,7 @@ export function renderCajasSection(ctx: SectionRenderContext): void {
     // Check if we need a new page before drawing this row
     currentY = checkPageBreak(rowHeight);
 
-    let x = 30;
+    let x = 40;
     const rowData = [
       rowIndex.toString(),
       grade,
@@ -386,7 +428,7 @@ export function renderCajasSection(ctx: SectionRenderContext): void {
   const schoolTotalBoxesM = gradeLevelBoxes.reduce((sum, b) => sum + b.mujeres, 0);
   const schoolTotalBoxes = schoolTotalBoxesH + schoolTotalBoxesM;
 
-  let x = 30;
+  let x = 40;
   const summaryData = [
     '',
     'SUBTOTAL',
@@ -1012,31 +1054,8 @@ export function renderActaRecepcionZapatosSection(ctx: SectionRenderContext): vo
   currentY += actaRowHeight;
   doc.y = currentY;
   doc.moveDown(2);
-  currentY = doc.y;
 
-  // 4. Footer: two-column layout
-  const footerLeftX = xStart;
-
-  // Left column: DATOS DEL TRANSPORTE
-  doc.fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER).font('Helvetica-Bold');
-  doc.text('DATOS DEL TRANSPORTE', footerLeftX, currentY, { align: 'left' });
-  const footerStartY = doc.y + 6;
-
-  doc.fontSize(AGREEMENT_FONT.BODY).font('Helvetica');
-  doc.text('Nombre del conductor: ________________________________', footerLeftX, footerStartY);
-  doc.text('Número de placa: ________________________________', footerLeftX, doc.y + 5);
-  doc.text('Número de contacto: ________________________________', footerLeftX, doc.y + 5);
-  doc.text('Firma del conductor: ________________________________', footerLeftX, doc.y + 5);
-  doc.text(
-    'Firma y Nombre del Encargado del Despacho: ________________________________',
-    footerLeftX,
-    doc.y + 5
-  );
-  doc.text(
-    'Firma y Nombre del Encargado del Centro Educativo: ________________________________',
-    footerLeftX,
-    doc.y + 5
-  );
+  drawTransportFooter(doc, xStart);
 }
 
 /**
@@ -1321,30 +1340,8 @@ export function renderActaRecepcionUniformesSection(ctx: SectionRenderContext): 
   currentY += actaRowHeight;
   doc.y = currentY;
   doc.moveDown(2);
-  currentY = doc.y;
 
-  // 4. Footer: DATOS DEL TRANSPORTE + signature fields
-  const footerLeftX = xStart;
-
-  doc.fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER).font('Helvetica-Bold');
-  doc.text('DATOS DEL TRANSPORTE', footerLeftX, currentY, { align: 'left' });
-  const footerStartY = doc.y + 6;
-
-  doc.fontSize(AGREEMENT_FONT.BODY).font('Helvetica');
-  doc.text('Nombre del conductor: ________________________________', footerLeftX, footerStartY);
-  doc.text('Número de placa: ________________________________', footerLeftX, doc.y + 5);
-  doc.text('Número de contacto: ________________________________', footerLeftX, doc.y + 5);
-  doc.text('Firma del conductor: ________________________________', footerLeftX, doc.y + 5);
-  doc.text(
-    'Firma y Nombre del Encargado del Despacho: ________________________________',
-    footerLeftX,
-    doc.y + 5
-  );
-  doc.text(
-    'Firma y Nombre del Encargado del Centro Educativo: ________________________________',
-    footerLeftX,
-    doc.y + 5
-  );
+  drawTransportFooter(doc, xStart);
 }
 
 /**
@@ -1508,32 +1505,6 @@ export function renderActaRecepcionCajasSection(ctx: SectionRenderContext): void
   currentY += actaRowHeight;
   doc.y = currentY;
   doc.moveDown(2);
-  currentY = doc.y;
 
-  // 4. Footer: DATOS DEL TRANSPORTE + signature fields
-  const actaFooterLeftX = actaXStart;
-
-  doc.fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER).font('Helvetica-Bold');
-  doc.text('DATOS DEL TRANSPORTE', actaFooterLeftX, currentY, { align: 'left' });
-  const actaFooterStartY = doc.y + 6;
-
-  doc.fontSize(AGREEMENT_FONT.BODY).font('Helvetica');
-  doc.text(
-    'Nombre del conductor: ________________________________',
-    actaFooterLeftX,
-    actaFooterStartY
-  );
-  doc.text('Número de placa: ________________________________', actaFooterLeftX, doc.y + 5);
-  doc.text('Número de contacto: ________________________________', actaFooterLeftX, doc.y + 5);
-  doc.text('Firma del conductor: ________________________________', actaFooterLeftX, doc.y + 5);
-  doc.text(
-    'Firma y Nombre del Encargado del Despacho: ________________________________',
-    actaFooterLeftX,
-    doc.y + 5
-  );
-  doc.text(
-    'Firma y Nombre del Encargado del Centro Educativo: ________________________________',
-    actaFooterLeftX,
-    doc.y + 5
-  );
+  drawTransportFooter(doc, actaXStart);
 }

@@ -77,8 +77,8 @@ export function generateStudentReportPDF(options: PDFGeneratorOptions): PDFDocum
 
   const drawDocumentHeader = () => {
     addLogoToPage(doc, doc.page.width);
-    doc.fontSize(18).text(`Escuela: ${schoolName}`, { align: 'left' });
-    doc.fontSize(18).text(`Código: ${codigo_ce}`, { align: 'left' });
+    doc.fontSize(17).text(`Escuela: ${schoolName}`, { align: 'left' });
+    doc.fontSize(17).text(`Código: ${codigo_ce}`, { align: 'left' });
     doc.moveDown(2);
   };
 
@@ -176,7 +176,7 @@ export function generateStudentReportPDF(options: PDFGeneratorOptions): PDFDocum
   );
 
   const drawGradeTitle = (grade: string) => {
-    doc.font('Helvetica-Bold').fontSize(16);
+    doc.font('Helvetica-Bold').fontSize(15);
 
     doc.text(`Grado: ${grade}`, 50, currentY, { align: 'left' });
     currentY = doc.y + 2;
@@ -311,9 +311,9 @@ export function generateStudentReportPDF(options: PDFGeneratorOptions): PDFDocum
   // Final summary (rendered once, at the end of the file)
   currentY += 18;
   ensureSpace(70);
-  doc.font('Helvetica-Bold').fontSize(12).text('Resumen', 50, currentY, { align: 'left' });
+  doc.font('Helvetica-Bold').fontSize(11).text('Resumen', 50, currentY, { align: 'left' });
   currentY = doc.y + 6;
-  doc.font('Helvetica').fontSize(14);
+  doc.font('Helvetica').fontSize(13);
   doc.text(`Grados: ${gradeKeys.length}`, 50, currentY, { align: 'left' });
   currentY = doc.y + 2;
   doc.text(`Estudiantes: ${students.length}`, 50, currentY, { align: 'left' });
@@ -345,8 +345,8 @@ export function generateStudentLabelsPDF(options: PDFGeneratorOptions): PDFDocum
 
   const drawDocumentHeader = () => {
     addLogoToPage(doc, doc.page.width);
-    doc.fontSize(18).text(`Escuela: ${schoolName}`, { align: 'left' });
-    doc.fontSize(18).text(`Código: ${codigo_ce}`, { align: 'left' });
+    doc.fontSize(17).text(`Escuela: ${schoolName}`, { align: 'left' });
+    doc.fontSize(17).text(`Código: ${codigo_ce}`, { align: 'left' });
     doc.moveDown(2);
   };
 
@@ -429,7 +429,7 @@ export function generateStudentLabelsPDF(options: PDFGeneratorOptions): PDFDocum
   );
 
   const drawGradeTitle = (grade: string) => {
-    doc.font('Helvetica-Bold').fontSize(16);
+    doc.font('Helvetica-Bold').fontSize(15);
 
     doc.text(`Grado: ${grade}`, 50, currentY, { align: 'left' });
     currentY = doc.y + 2;
@@ -543,9 +543,9 @@ export function generateStudentLabelsPDF(options: PDFGeneratorOptions): PDFDocum
   // Final summary (rendered once, at the end of the file)
   currentY += 18;
   ensureSpace(70);
-  doc.font('Helvetica-Bold').fontSize(12).text('Resumen', 50, currentY, { align: 'left' });
+  doc.font('Helvetica-Bold').fontSize(11).text('Resumen', 50, currentY, { align: 'left' });
   currentY = doc.y + 6;
-  doc.font('Helvetica').fontSize(14);
+  doc.font('Helvetica').fontSize(13);
   doc.text(`Grados: ${gradeKeys.length}`, 50, currentY, { align: 'left' });
   currentY = doc.y + 2;
   doc.text(`Estudiantes: ${students.length}`, 50, currentY, { align: 'left' });

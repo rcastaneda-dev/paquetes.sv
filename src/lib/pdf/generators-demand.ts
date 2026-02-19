@@ -19,6 +19,7 @@ import {
   FICHA_UNIFORMES_PAGE_OPTIONS,
   FICHA_ZAPATOS_PAGE_OPTIONS,
   drawFechaDespachoEntregaLine,
+  drawTransportFooter,
   formatDateForTitle,
 } from './agreement/sections';
 
@@ -71,31 +72,6 @@ function drawPreTableFields(doc: PDFDocumentInstance, xStart: number): void {
   doc.fontSize(AGREEMENT_FONT.BODY).font('Helvetica');
   doc.text('Fecha: __________________________________  Hora: __________________________________  Bodega: __________________________________', xStart);
   doc.moveDown(1);
-}
-
-/** Draw the transport/signature footer */
-function drawTransportFooter(doc: PDFDocumentInstance, xStart: number): void {
-  const footerLeftX = xStart;
-
-  doc.fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER).font('Helvetica-Bold');
-  doc.text('DATOS DEL TRANSPORTE', footerLeftX, doc.y, { align: 'left' });
-  const footerStartY = doc.y + 6;
-
-  doc.fontSize(AGREEMENT_FONT.BODY).font('Helvetica');
-  doc.text('Nombre del conductor: ________________________________', footerLeftX, footerStartY);
-  doc.text('Número de placa: ________________________________', footerLeftX, doc.y + 5);
-  doc.text('Número de contacto: ________________________________', footerLeftX, doc.y + 5);
-  doc.text('Firma del conductor: ________________________________', footerLeftX, doc.y + 5);
-  doc.text(
-    'Firma y Nombre del Encargado del Despacho: ________________________________',
-    footerLeftX,
-    doc.y + 5
-  );
-  doc.text(
-    'Firma y Nombre del Encargado del Centro Educativo: ________________________________',
-    footerLeftX,
-    doc.y + 5
-  );
 }
 
 /** Draw title + school header (centered) */
@@ -608,7 +584,7 @@ function drawComandaTitleAndSchoolHeader(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Comanda Cajas PDF (landscape)
+// Comanda Cajas PDF (portrait)
 // ─────────────────────────────────────────────────────────────────────────────
 
 function renderComandaCajasSchool(
@@ -630,15 +606,15 @@ function renderComandaCajasSchool(
 
   let currentY = doc.y;
 
-  // Table layout (landscape: 792pt - 60pt margins = 732pt)
-  const colWidths = [80, 440, 212];
+  // Table layout (portrait: 612pt - 80pt margins = 532pt)
+  const colWidths = [60, 320, 152];
   const colHeaders = ['NO', 'GRADO', 'CANTIDAD'];
   const headerHeight = 30;
   const pageBottomMargin = 40;
 
   const drawTableHeader = (yPos: number): number => {
     doc.fontSize(AGREEMENT_FONT.COLUMN_HEADER).font('Helvetica-Bold');
-    let x = 30;
+    let x = 40;
     for (let i = 0; i < colHeaders.length; i++) {
       doc.rect(x, yPos, colWidths[i], headerHeight).stroke();
       doc.text(colHeaders[i], x + 4, yPos + 8, {
@@ -690,7 +666,7 @@ function renderComandaCajasSchool(
 
     currentY = checkPageBreak(rowHeight);
 
-    let x = 30;
+    let x = 40;
     const rowData = [rowIndex.toString(), row.categoria, row.cantidad.toString()];
 
     for (let i = 0; i < rowData.length; i++) {
@@ -713,7 +689,7 @@ function renderComandaCajasSchool(
   currentY = checkPageBreak(summaryRowHeight);
 
   doc.font('Helvetica-Bold').fontSize(AGREEMENT_FONT.BODY);
-  let x = 30;
+  let x = 40;
   const summaryData = ['', 'SUBTOTAL', totalCantidad.toString()];
 
   for (let i = 0; i < summaryData.length; i++) {
@@ -937,7 +913,7 @@ function renderComandaZapatosSchool(
 
 /**
  * Generate Comanda de Cajas PDF from demand data.
- * Landscape layout, one page per school, sorted by total descending.
+ * Portrait layout, one page per school, sorted by total descending.
  */
 export function generateComandaCajasPDFFromDemand(demandRows: DemandRow[]): PDFDocumentInstance {
   const schools = groupDemandBySchool(demandRows).filter(
