@@ -104,7 +104,10 @@ function drawPreTableFields(doc: PDFDocumentInstance, xStart: number): void {
   doc.moveDown(0.5);
 
   doc.fontSize(AGREEMENT_FONT.BODY).font('Helvetica');
-  doc.text('Fecha: __________________________________  Hora: __________________________________  Bodega: __________________________________', xStart);
+  doc.text(
+    'Fecha: __________________________________  Hora: __________________________________  Bodega: __________________________________',
+    xStart
+  );
   doc.moveDown(1);
 }
 
@@ -785,22 +788,22 @@ function renderComandaUniformesSchool(
   const xStart = 40;
   const cantidadColWidth = 100;
   const tipoTallaColWidth = doc.page.width - 80 - cantidadColWidth;
-  const headerHeight = 20;
-  const rowHeight = 16;
+  const headerHeight = 17;
+  const rowHeight = 11;
 
   // Draw table header
   doc.fontSize(AGREEMENT_FONT.COLUMN_HEADER).font('Helvetica-Bold');
   let x = xStart;
 
   doc.rect(x, currentY, tipoTallaColWidth, headerHeight).stroke();
-  doc.text('TIPO/TALLA', x + 5, currentY + 6, {
+  doc.text('TIPO/TALLA', x + 5, currentY + 4, {
     width: tipoTallaColWidth - 10,
     align: 'center',
   });
   x += tipoTallaColWidth;
 
   doc.rect(x, currentY, cantidadColWidth, headerHeight).stroke();
-  doc.text('CANTIDAD', x + 5, currentY + 6, {
+  doc.text('CANTIDAD', x + 5, currentY + 4, {
     width: cantidadColWidth - 10,
     align: 'center',
   });
@@ -835,14 +838,14 @@ function renderComandaUniformesSchool(
     x = xStart;
 
     doc.rect(x, currentY, tipoTallaColWidth, rowHeight).stroke();
-    doc.text(label, x + 5, currentY + 4, {
+    doc.text(label, x + 5, currentY + 1, {
       width: tipoTallaColWidth - 10,
       align: 'center',
     });
     x += tipoTallaColWidth;
 
     doc.rect(x, currentY, cantidadColWidth, rowHeight).stroke();
-    doc.text(row.cantidad.toString(), x + 5, currentY + 4, {
+    doc.text(row.cantidad.toString(), x + 5, currentY + 1, {
       width: cantidadColWidth - 10,
       align: 'center',
     });
