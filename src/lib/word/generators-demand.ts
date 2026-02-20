@@ -272,7 +272,7 @@ function emptyCell(width: number): TableCell {
 // Cajas Word
 // ─────────────────────────────────────────────────────────────────────────────
 
-function buildCajasSection(school: SchoolDemandGroup): (Paragraph | Table)[] {
+function buildCajasSection(school: SchoolDemandGroup, faltantes: boolean): (Paragraph | Table)[] {
   const cajasRows = school.rows
     .filter(r => r.item === 'CAJAS')
     .sort((a, b) => a.categoria.localeCompare(b.categoria));
@@ -327,7 +327,7 @@ function buildCajasSection(school: SchoolDemandGroup): (Paragraph | Table)[] {
   }
 
   elements.push(
-    createTitleParagraph('ACTA DE RECEPCIÓN (CAJAS) FALTANTES'),
+    createTitleParagraph('ACTA DE RECEPCIÓN (CAJAS)' + (faltantes ? ' FALTANTES' : '')),
     ...createSchoolHeader(school),
     ...createPreTableFields(),
     table,
@@ -341,7 +341,7 @@ function buildCajasSection(school: SchoolDemandGroup): (Paragraph | Table)[] {
 // Uniformes Word
 // ─────────────────────────────────────────────────────────────────────────────
 
-function buildUniformesSection(school: SchoolDemandGroup): (Paragraph | Table)[] {
+function buildUniformesSection(school: SchoolDemandGroup, faltantes: boolean): (Paragraph | Table)[] {
   const uniformeRows = school.rows
     .filter(r => r.item === 'UNIFORMES')
     .sort((a, b) => {
@@ -400,7 +400,7 @@ function buildUniformesSection(school: SchoolDemandGroup): (Paragraph | Table)[]
   }
 
   elements.push(
-    createTitleParagraph('ACTA DE RECEPCIÓN (UNIFORMES) FALTANTES'),
+    createTitleParagraph('ACTA DE RECEPCIÓN (UNIFORMES)' + (faltantes ? ' FALTANTES' : '')),
     ...createSchoolHeader(school),
     ...createPreTableFields(),
     table,
@@ -414,7 +414,7 @@ function buildUniformesSection(school: SchoolDemandGroup): (Paragraph | Table)[]
 // Zapatos Word
 // ─────────────────────────────────────────────────────────────────────────────
 
-function buildZapatosSection(school: SchoolDemandGroup): (Paragraph | Table)[] {
+function buildZapatosSection(school: SchoolDemandGroup, faltantes: boolean): (Paragraph | Table)[] {
   const zapatosRows = school.rows
     .filter(r => r.item === 'ZAPATOS')
     .sort((a, b) => {
@@ -473,7 +473,7 @@ function buildZapatosSection(school: SchoolDemandGroup): (Paragraph | Table)[] {
   }
 
   elements.push(
-    createTitleParagraph('ACTA DE RECEPCIÓN (ZAPATOS) FALTANTES'),
+    createTitleParagraph('ACTA DE RECEPCIÓN (ZAPATOS)' + (faltantes ? ' FALTANTES' : '')),
     ...createSchoolHeader(school),
     ...createPreTableFields(),
     table,
@@ -487,12 +487,13 @@ function buildZapatosSection(school: SchoolDemandGroup): (Paragraph | Table)[] {
 // Public generator functions
 // ─────────────────────────────────────────────────────────────────────────────
 
-type SectionBuilder = (school: SchoolDemandGroup) => (Paragraph | Table)[];
+type SectionBuilder = (school: SchoolDemandGroup, faltantes: boolean) => (Paragraph | Table)[];
 
 async function buildDemandWord(
   demandRows: DemandRow[],
   sectionBuilder: SectionBuilder,
-  itemType: string
+  itemType: string,
+  faltantes: boolean
 ): Promise<Buffer> {
   const schools = groupDemandBySchool(demandRows).filter(
     s => s.rows.filter(r => r.item === itemType).reduce((sum, r) => sum + r.cantidad, 0) > 0
@@ -506,7 +507,7 @@ async function buildDemandWord(
         margin: { top: 720, bottom: 720, left: 540, right: 540 },
       },
     },
-    children: sectionBuilder(school),
+    children: sectionBuilder(school, faltantes),
   }));
 
   const doc = new Document({ sections });
@@ -514,18 +515,27 @@ async function buildDemandWord(
 }
 
 /** Generate Acta de Recepción de Cajas Word document from demand data */
-export async function generateActaRecepcionCajasWord(demandRows: DemandRow[]): Promise<Buffer> {
-  return buildDemandWord(demandRows, buildCajasSection, 'CAJAS');
+export async function generateActaRecepcionCajasWord(
+  demandRows: DemandRow[],
+  options?: { faltantes?: boolean }
+): Promise<Buffer> {
+  return buildDemandWord(demandRows, buildCajasSection, 'CAJAS', options?.faltantes ?? true);
 }
 
 /** Generate Acta de Recepción de Uniformes Word document from demand data */
-export async function generateActaRecepcionUniformesWord(demandRows: DemandRow[]): Promise<Buffer> {
-  return buildDemandWord(demandRows, buildUniformesSection, 'UNIFORMES');
+export async function generateActaRecepcionUniformesWord(
+  demandRows: DemandRow[],
+  options?: { faltantes?: boolean }
+): Promise<Buffer> {
+  return buildDemandWord(demandRows, buildUniformesSection, 'UNIFORMES', options?.faltantes ?? true);
 }
 
 /** Generate Acta de Recepción de Zapatos Word document from demand data */
-export async function generateActaRecepcionZapatosWord(demandRows: DemandRow[]): Promise<Buffer> {
-  return buildDemandWord(demandRows, buildZapatosSection, 'ZAPATOS');
+export async function generateActaRecepcionZapatosWord(
+  demandRows: DemandRow[],
+  options?: { faltantes?: boolean }
+): Promise<Buffer> {
+  return buildDemandWord(demandRows, buildZapatosSection, 'ZAPATOS', options?.faltantes ?? true);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -603,7 +613,7 @@ function createFechaDespachoLine(formattedDate: string): Paragraph {
 // Comanda Cajas Word (portrait)
 // ─────────────────────────────────────────────────────────────────────────────
 
-function buildComandaCajasSection(school: SchoolDemandGroup): (Paragraph | Table)[] {
+function buildComandaCajasSection(school: SchoolDemandGroup, faltantes: boolean): (Paragraph | Table)[] {
   const cajasRows = school.rows
     .filter(r => r.item === 'CAJAS')
     .sort((a, b) => a.categoria.localeCompare(b.categoria));
@@ -654,7 +664,7 @@ function buildComandaCajasSection(school: SchoolDemandGroup): (Paragraph | Table
   }
 
   elements.push(
-    createTitleParagraph('DETALLE DE PROGRAMACIÓN DE CAJAS FALTANTES'),
+    createTitleParagraph('DETALLE DE PROGRAMACIÓN DE CAJAS' + (faltantes ? ' FALTANTES' : '')),
     createFechaDespachoLine(formatDate(school.fecha_inicio)),
     ...createComandaSchoolHeader(school),
     table
@@ -667,7 +677,7 @@ function buildComandaCajasSection(school: SchoolDemandGroup): (Paragraph | Table
 // Comanda Uniformes Word (portrait)
 // ─────────────────────────────────────────────────────────────────────────────
 
-function buildComandaUniformesSection(school: SchoolDemandGroup): (Paragraph | Table)[] {
+function buildComandaUniformesSection(school: SchoolDemandGroup, faltantes: boolean): (Paragraph | Table)[] {
   const uniformeRows = school.rows
     .filter(r => r.item === 'UNIFORMES')
     .sort((a, b) => {
@@ -713,7 +723,7 @@ function buildComandaUniformesSection(school: SchoolDemandGroup): (Paragraph | T
   }
 
   elements.push(
-    createTitleParagraph('FICHA DE DISTRIBUCION POR ESCUELA (UNIFORMES) FALTANTES'),
+    createTitleParagraph('FICHA DE DISTRIBUCION POR ESCUELA (UNIFORMES)' + (faltantes ? ' FALTANTES' : '')),
     createFechaDespachoLine(formatDate(school.fecha_inicio)),
     ...createComandaSchoolHeader(school),
     table,
@@ -732,7 +742,7 @@ function buildComandaUniformesSection(school: SchoolDemandGroup): (Paragraph | T
 // Comanda Zapatos Word (portrait)
 // ─────────────────────────────────────────────────────────────────────────────
 
-function buildComandaZapatosSection(school: SchoolDemandGroup): (Paragraph | Table)[] {
+function buildComandaZapatosSection(school: SchoolDemandGroup, faltantes: boolean): (Paragraph | Table)[] {
   const zapatosRows = school.rows
     .filter(r => r.item === 'ZAPATOS')
     .sort((a, b) => {
@@ -775,7 +785,7 @@ function buildComandaZapatosSection(school: SchoolDemandGroup): (Paragraph | Tab
   }
 
   elements.push(
-    createTitleParagraph('FICHA DE DISTRIBUCION POR ESCUELA (ZAPATOS) FALTANTES'),
+    createTitleParagraph('FICHA DE DISTRIBUCION POR ESCUELA (ZAPATOS)' + (faltantes ? ' FALTANTES' : '')),
     createFechaDespachoLine(formatDate(school.fecha_inicio)),
     ...createComandaSchoolHeader(school),
     table,
@@ -798,7 +808,8 @@ async function buildComandaWord(
   demandRows: DemandRow[],
   sectionBuilder: SectionBuilder,
   itemType: string,
-  landscape: boolean
+  landscape: boolean,
+  faltantes: boolean
 ): Promise<Buffer> {
   const schools = groupDemandBySchool(demandRows).filter(
     s => s.rows.filter(r => r.item === itemType).reduce((sum, r) => sum + r.cantidad, 0) > 0
@@ -814,7 +825,7 @@ async function buildComandaWord(
         margin: { top: 720, bottom: 720, left: 540, right: 540 },
       },
     },
-    children: sectionBuilder(school),
+    children: sectionBuilder(school, faltantes),
   }));
 
   const doc = new Document({ sections });
@@ -822,16 +833,25 @@ async function buildComandaWord(
 }
 
 /** Generate Comanda de Cajas Word document from demand data (portrait) */
-export async function generateComandaCajasWord(demandRows: DemandRow[]): Promise<Buffer> {
-  return buildComandaWord(demandRows, buildComandaCajasSection, 'CAJAS', false);
+export async function generateComandaCajasWord(
+  demandRows: DemandRow[],
+  options?: { faltantes?: boolean }
+): Promise<Buffer> {
+  return buildComandaWord(demandRows, buildComandaCajasSection, 'CAJAS', false, options?.faltantes ?? true);
 }
 
 /** Generate Comanda de Uniformes Word document from demand data (portrait) */
-export async function generateComandaUniformesWord(demandRows: DemandRow[]): Promise<Buffer> {
-  return buildComandaWord(demandRows, buildComandaUniformesSection, 'UNIFORMES', false);
+export async function generateComandaUniformesWord(
+  demandRows: DemandRow[],
+  options?: { faltantes?: boolean }
+): Promise<Buffer> {
+  return buildComandaWord(demandRows, buildComandaUniformesSection, 'UNIFORMES', false, options?.faltantes ?? true);
 }
 
 /** Generate Comanda de Zapatos Word document from demand data (portrait) */
-export async function generateComandaZapatosWord(demandRows: DemandRow[]): Promise<Buffer> {
-  return buildComandaWord(demandRows, buildComandaZapatosSection, 'ZAPATOS', false);
+export async function generateComandaZapatosWord(
+  demandRows: DemandRow[],
+  options?: { faltantes?: boolean }
+): Promise<Buffer> {
+  return buildComandaWord(demandRows, buildComandaZapatosSection, 'ZAPATOS', false, options?.faltantes ?? true);
 }

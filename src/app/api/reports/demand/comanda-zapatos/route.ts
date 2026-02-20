@@ -7,24 +7,26 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   try {
     const schoolCodigoCe = request.nextUrl.searchParams.get('school_codigo_ce') || undefined;
+    const faltantes = request.nextUrl.searchParams.get('faltantes') !== '0';
     const demandRows = await querySchoolDemand({ schoolCodigoCe });
 
     if (demandRows.length === 0) {
       return NextResponse.json({ error: 'No demand data found' }, { status: 404 });
     }
 
-    const pdfStream = generateComandaZapatosPDFFromDemand(demandRows);
+    const pdfStream = generateComandaZapatosPDFFromDemand(demandRows, { faltantes });
 
     const chunks: Buffer[] = [];
     for await (const chunk of pdfStream) {
       chunks.push(Buffer.from(chunk));
     }
     const pdfBuffer = Buffer.concat(chunks);
+    const suffix = faltantes ? '-faltantes' : '';
 
     return new NextResponse(pdfBuffer, {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': 'inline; filename="comanda-zapatos-faltantes.pdf"',
+        'Content-Disposition': `inline; filename="comanda-zapatos${suffix}.pdf"`,
         'Cache-Control': 'no-store',
       },
     });

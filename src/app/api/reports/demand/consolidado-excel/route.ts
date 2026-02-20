@@ -7,6 +7,7 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   try {
     const schoolCodigoCe = request.nextUrl.searchParams.get('school_codigo_ce') || undefined;
+    const faltantes = request.nextUrl.searchParams.get('faltantes') !== '0';
     const demandRows = await querySchoolDemand({ schoolCodigoCe });
 
     if (demandRows.length === 0) {
@@ -14,11 +15,12 @@ export async function GET(request: NextRequest) {
     }
 
     const buffer = await generateConsolidadoDemandExcel(demandRows);
+    const suffix = faltantes ? '-faltantes' : '';
 
     return new NextResponse(new Uint8Array(buffer), {
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'Content-Disposition': 'attachment; filename="consolidado-faltantes.xlsx"',
+        'Content-Disposition': `attachment; filename="consolidado${suffix}.xlsx"`,
         'Cache-Control': 'no-store',
       },
     });

@@ -96,6 +96,7 @@ const REPORTS: ReportConfig[] = [
 
 export default function DemandReportsPage() {
   const [schoolFilter, setSchoolFilter] = useState('');
+  const [includeFaltantes, setIncludeFaltantes] = useState(true);
   const [generating, setGenerating] = useState<string | null>(null);
 
   function handleGenerate(report: ReportConfig) {
@@ -103,6 +104,9 @@ export default function DemandReportsPage() {
     const params = new URLSearchParams();
     if (schoolFilter.trim()) {
       params.set('school_codigo_ce', schoolFilter.trim());
+    }
+    if (!includeFaltantes) {
+      params.set('faltantes', '0');
     }
     const url = params.toString() ? `${report.endpoint}?${params.toString()}` : report.endpoint;
     window.open(url, '_blank', 'noopener,noreferrer');
@@ -150,6 +154,27 @@ export default function DemandReportsPage() {
           <p className="mt-1 text-xs text-gray-500">
             Dejar vacío para generar reportes de todas las escuelas.
           </p>
+        </CardContent>
+      </Card>
+
+      <Card className="mb-6">
+        <CardContent className="pt-6">
+          <label className="flex cursor-pointer items-center gap-3">
+            <button
+              type="button"
+              role="switch"
+              aria-checked={includeFaltantes}
+              onClick={() => setIncludeFaltantes(v => !v)}
+              className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors ${includeFaltantes ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'}`}
+            >
+              <span
+                className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${includeFaltantes ? 'translate-x-5' : 'translate-x-0'}`}
+              />
+            </button>
+            <span className="text-sm font-medium">
+              Incluir etiqueta &quot;FALTANTES&quot; en el título
+            </span>
+          </label>
         </CardContent>
       </Card>
 

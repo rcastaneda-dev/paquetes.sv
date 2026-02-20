@@ -148,13 +148,14 @@ function drawTitleAndSchoolHeader(
 function renderActaCajasSchool(
   doc: PDFDocumentInstance,
   school: SchoolDemandGroup,
-  addPage: boolean
+  addPage: boolean,
+  faltantes: boolean
 ): void {
   if (addPage) {
     doc.addPage(ACTA_RECEPCION_CAJAS_PAGE_OPTIONS);
   }
 
-  const title = 'ACTA DE RECEPCIÓN (CAJAS) FALTANTES';
+  const title = 'ACTA DE RECEPCIÓN (CAJAS)' + (faltantes ? ' FALTANTES' : '');
   drawTitleAndSchoolHeader(doc, title, school);
 
   const xStart = 40;
@@ -246,13 +247,14 @@ function renderActaCajasSchool(
 function renderActaUniformesSchool(
   doc: PDFDocumentInstance,
   school: SchoolDemandGroup,
-  addPage: boolean
+  addPage: boolean,
+  faltantes: boolean
 ): void {
   if (addPage) {
     doc.addPage(ACTA_RECEPCION_UNIFORMES_PAGE_OPTIONS);
   }
 
-  const title = 'ACTA DE RECEPCIÓN (UNIFORMES) FALTANTES';
+  const title = 'ACTA DE RECEPCIÓN (UNIFORMES)' + (faltantes ? ' FALTANTES' : '');
   drawTitleAndSchoolHeader(doc, title, school);
 
   const xStart = 30;
@@ -398,13 +400,14 @@ function renderActaUniformesSchool(
 function renderActaZapatosSchool(
   doc: PDFDocumentInstance,
   school: SchoolDemandGroup,
-  addPage: boolean
+  addPage: boolean,
+  faltantes: boolean
 ): void {
   if (addPage) {
     doc.addPage(ACTA_RECEPCION_ZAPATOS_PAGE_OPTIONS);
   }
 
-  const title = 'ACTA DE RECEPCIÓN (ZAPATOS) FALTANTES';
+  const title = 'ACTA DE RECEPCIÓN (ZAPATOS)' + (faltantes ? ' FALTANTES' : '');
   drawTitleAndSchoolHeader(doc, title, school);
 
   const xStart = 40;
@@ -502,8 +505,10 @@ function renderActaZapatosSchool(
  * One page per school, sorted by total descending.
  */
 export function generateActaRecepcionCajasPDFFromDemand(
-  demandRows: DemandRow[]
+  demandRows: DemandRow[],
+  options?: { faltantes?: boolean }
 ): PDFDocumentInstance {
+  const faltantes = options?.faltantes ?? true;
   const schools = groupDemandBySchool(demandRows).filter(
     s => s.rows.filter(r => r.item === 'CAJAS').reduce((sum, r) => sum + r.cantidad, 0) > 0
   );
@@ -515,7 +520,7 @@ export function generateActaRecepcionCajasPDFFromDemand(
   const referenciaCodes: string[] = [];
   for (let i = 0; i < schools.length; i++) {
     const pagesBefore = doc.bufferedPageRange().count;
-    renderActaCajasSchool(doc, schools[i], i > 0);
+    renderActaCajasSchool(doc, schools[i], i > 0, faltantes);
     const pagesAfter = doc.bufferedPageRange().count;
     const pagesForSchool = i === 0 ? pagesAfter : pagesAfter - pagesBefore;
     const code = getSchoolReferencia(schools[i], 'CAJAS');
@@ -532,8 +537,10 @@ export function generateActaRecepcionCajasPDFFromDemand(
  * One section per school, sorted by total descending.
  */
 export function generateActaRecepcionUniformesPDFFromDemand(
-  demandRows: DemandRow[]
+  demandRows: DemandRow[],
+  options?: { faltantes?: boolean }
 ): PDFDocumentInstance {
+  const faltantes = options?.faltantes ?? true;
   const schools = groupDemandBySchool(demandRows).filter(
     s => s.rows.filter(r => r.item === 'UNIFORMES').reduce((sum, r) => sum + r.cantidad, 0) > 0
   );
@@ -545,7 +552,7 @@ export function generateActaRecepcionUniformesPDFFromDemand(
   const referenciaCodes: string[] = [];
   for (let i = 0; i < schools.length; i++) {
     const pagesBefore = doc.bufferedPageRange().count;
-    renderActaUniformesSchool(doc, schools[i], i > 0);
+    renderActaUniformesSchool(doc, schools[i], i > 0, faltantes);
     const pagesAfter = doc.bufferedPageRange().count;
     const pagesForSchool = i === 0 ? pagesAfter : pagesAfter - pagesBefore;
     const code = getSchoolReferencia(schools[i], 'UNIFORMES');
@@ -562,8 +569,10 @@ export function generateActaRecepcionUniformesPDFFromDemand(
  * One page per school, sorted by total descending.
  */
 export function generateActaRecepcionZapatosPDFFromDemand(
-  demandRows: DemandRow[]
+  demandRows: DemandRow[],
+  options?: { faltantes?: boolean }
 ): PDFDocumentInstance {
+  const faltantes = options?.faltantes ?? true;
   const schools = groupDemandBySchool(demandRows).filter(
     s => s.rows.filter(r => r.item === 'ZAPATOS').reduce((sum, r) => sum + r.cantidad, 0) > 0
   );
@@ -575,7 +584,7 @@ export function generateActaRecepcionZapatosPDFFromDemand(
   const referenciaCodes: string[] = [];
   for (let i = 0; i < schools.length; i++) {
     const pagesBefore = doc.bufferedPageRange().count;
-    renderActaZapatosSchool(doc, schools[i], i > 0);
+    renderActaZapatosSchool(doc, schools[i], i > 0, faltantes);
     const pagesAfter = doc.bufferedPageRange().count;
     const pagesForSchool = i === 0 ? pagesAfter : pagesAfter - pagesBefore;
     const code = getSchoolReferencia(schools[i], 'ZAPATOS');
@@ -645,13 +654,14 @@ function drawComandaTitleAndSchoolHeader(
 function renderComandaCajasSchool(
   doc: PDFDocumentInstance,
   school: SchoolDemandGroup,
-  addPage: boolean
+  addPage: boolean,
+  faltantes: boolean
 ): void {
   if (addPage) {
     doc.addPage(CAJAS_PAGE_OPTIONS);
   }
 
-  const title = 'DETALLE DE PROGRAMACIÓN DE CAJAS FALTANTES';
+  const title = 'DETALLE DE PROGRAMACIÓN DE CAJAS' + (faltantes ? ' FALTANTES' : '');
   drawComandaTitleAndSchoolHeader(doc, title, school);
 
   // Filter rows for CAJAS
@@ -764,13 +774,14 @@ function renderComandaCajasSchool(
 function renderComandaUniformesSchool(
   doc: PDFDocumentInstance,
   school: SchoolDemandGroup,
-  addPage: boolean
+  addPage: boolean,
+  faltantes: boolean
 ): void {
   if (addPage) {
     doc.addPage(FICHA_UNIFORMES_PAGE_OPTIONS);
   }
 
-  const title = 'FICHA DE DISTRIBUCION POR ESCUELA (UNIFORMES) FALTANTES';
+  const title = 'FICHA DE DISTRIBUCION POR ESCUELA (UNIFORMES)' + (faltantes ? ' FALTANTES' : '');
   drawComandaTitleAndSchoolHeader(doc, title, school);
 
   // Filter rows for UNIFORMES
@@ -867,13 +878,14 @@ function renderComandaUniformesSchool(
 function renderComandaZapatosSchool(
   doc: PDFDocumentInstance,
   school: SchoolDemandGroup,
-  addPage: boolean
+  addPage: boolean,
+  faltantes: boolean
 ): void {
   if (addPage) {
     doc.addPage(FICHA_ZAPATOS_PAGE_OPTIONS);
   }
 
-  const title = 'FICHA DE DISTRIBUCION POR ESCUELA (ZAPATOS) FALTANTES';
+  const title = 'FICHA DE DISTRIBUCION POR ESCUELA (ZAPATOS)' + (faltantes ? ' FALTANTES' : '');
   drawComandaTitleAndSchoolHeader(doc, title, school);
 
   // Filter rows for ZAPATOS
@@ -970,7 +982,11 @@ function renderComandaZapatosSchool(
  * Generate Comanda de Cajas PDF from demand data.
  * Portrait layout, one page per school, sorted by total descending.
  */
-export function generateComandaCajasPDFFromDemand(demandRows: DemandRow[]): PDFDocumentInstance {
+export function generateComandaCajasPDFFromDemand(
+  demandRows: DemandRow[],
+  options?: { faltantes?: boolean }
+): PDFDocumentInstance {
+  const faltantes = options?.faltantes ?? true;
   const schools = groupDemandBySchool(demandRows).filter(
     s => s.rows.filter(r => r.item === 'CAJAS').reduce((sum, r) => sum + r.cantidad, 0) > 0
   );
@@ -982,7 +998,7 @@ export function generateComandaCajasPDFFromDemand(demandRows: DemandRow[]): PDFD
   const referenciaCodes: string[] = [];
   for (let i = 0; i < schools.length; i++) {
     const pagesBefore = doc.bufferedPageRange().count;
-    renderComandaCajasSchool(doc, schools[i], i > 0);
+    renderComandaCajasSchool(doc, schools[i], i > 0, faltantes);
     const pagesAfter = doc.bufferedPageRange().count;
     const pagesForSchool = i === 0 ? pagesAfter : pagesAfter - pagesBefore;
     const code = getSchoolReferencia(schools[i], 'CAJAS');
@@ -999,8 +1015,10 @@ export function generateComandaCajasPDFFromDemand(demandRows: DemandRow[]): PDFD
  * Portrait layout, one section per school, sorted by total descending.
  */
 export function generateComandaUniformesPDFFromDemand(
-  demandRows: DemandRow[]
+  demandRows: DemandRow[],
+  options?: { faltantes?: boolean }
 ): PDFDocumentInstance {
+  const faltantes = options?.faltantes ?? true;
   const schools = groupDemandBySchool(demandRows).filter(
     s => s.rows.filter(r => r.item === 'UNIFORMES').reduce((sum, r) => sum + r.cantidad, 0) > 0
   );
@@ -1012,7 +1030,7 @@ export function generateComandaUniformesPDFFromDemand(
   const referenciaCodes: string[] = [];
   for (let i = 0; i < schools.length; i++) {
     const pagesBefore = doc.bufferedPageRange().count;
-    renderComandaUniformesSchool(doc, schools[i], i > 0);
+    renderComandaUniformesSchool(doc, schools[i], i > 0, faltantes);
     const pagesAfter = doc.bufferedPageRange().count;
     const pagesForSchool = i === 0 ? pagesAfter : pagesAfter - pagesBefore;
     const code = getSchoolReferencia(schools[i], 'UNIFORMES');
@@ -1028,7 +1046,11 @@ export function generateComandaUniformesPDFFromDemand(
  * Generate Comanda de Zapatos PDF from demand data.
  * Portrait layout, one page per school, sorted by total descending.
  */
-export function generateComandaZapatosPDFFromDemand(demandRows: DemandRow[]): PDFDocumentInstance {
+export function generateComandaZapatosPDFFromDemand(
+  demandRows: DemandRow[],
+  options?: { faltantes?: boolean }
+): PDFDocumentInstance {
+  const faltantes = options?.faltantes ?? true;
   const schools = groupDemandBySchool(demandRows).filter(
     s => s.rows.filter(r => r.item === 'ZAPATOS').reduce((sum, r) => sum + r.cantidad, 0) > 0
   );
@@ -1040,7 +1062,7 @@ export function generateComandaZapatosPDFFromDemand(demandRows: DemandRow[]): PD
   const referenciaCodes: string[] = [];
   for (let i = 0; i < schools.length; i++) {
     const pagesBefore = doc.bufferedPageRange().count;
-    renderComandaZapatosSchool(doc, schools[i], i > 0);
+    renderComandaZapatosSchool(doc, schools[i], i > 0, faltantes);
     const pagesAfter = doc.bufferedPageRange().count;
     const pagesForSchool = i === 0 ? pagesAfter : pagesAfter - pagesBefore;
     const code = getSchoolReferencia(schools[i], 'ZAPATOS');
