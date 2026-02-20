@@ -92,6 +92,24 @@ const REPORTS: ReportConfig[] = [
     format: 'xlsx',
     endpoint: '/api/reports/demand/consolidado-excel',
   },
+  {
+    label: 'Consolidado Excel',
+    sublabel: 'Excel',
+    format: 'xlsx',
+    endpoint: '/api/reports/demand/consolidado-excel-v2',
+  },
+  {
+    label: 'Prendas Acumulado Editable (V2)',
+    sublabel: 'Excel',
+    format: 'xlsx',
+    endpoint: '/api/reports/demand/prendas-excel-v2',
+  },
+  {
+    label: 'Cajas Acumulado Editable',
+    sublabel: 'Excel',
+    format: 'xlsx',
+    endpoint: '/api/reports/demand/cajas-excel',
+  },
 ];
 
 export default function DemandReportsPage() {
