@@ -4,10 +4,13 @@ import type { DemandRow } from '@/types/database';
 /**
  * Query school demand data, optionally filtered by school code.
  * Joins with schools table to include nombre_ce.
+ * Paginates to avoid PostgREST default 1000-row limit.
  */
 export async function querySchoolDemand(params?: {
   schoolCodigoCe?: string;
 }): Promise<DemandRow[]> {
+  const PAGE_SIZE = 1000;
+
   let query = supabaseServer
     .from('school_demand')
     .select(
@@ -19,13 +22,24 @@ export async function querySchoolDemand(params?: {
     query = query.eq('school_codigo_ce', params.schoolCodigoCe);
   }
 
-  const { data, error } = await query;
+  // Paginate to fetch all rows (PostgREST defaults to 1000 max)
+  let allData: Awaited<ReturnType<(typeof query)['range']>>['data'] extends infer T
+    ? NonNullable<T>
+    : never = [];
+  let offset = 0;
 
-  if (error) {
-    throw new Error(`Error querying school demand: ${error.message}`);
+  while (true) {
+    const { data, error } = await query.range(offset, offset + PAGE_SIZE - 1);
+    if (error) {
+      throw new Error(`Error querying school demand: ${error.message}`);
+    }
+    if (!data || data.length === 0) break;
+    allData = allData.concat(data);
+    if (data.length < PAGE_SIZE) break;
+    offset += PAGE_SIZE;
   }
 
-  return (data ?? []).map(row => {
+  return allData.map(row => {
     const school = row.schools as unknown as {
       nombre_ce: string;
       departamento: string;
@@ -46,7 +60,7 @@ export async function querySchoolDemand(params?: {
       tipo: row.tipo,
       categoria: row.categoria,
       cantidad: row.cantidad,
-      referencia: (row as Record<string, unknown>).referencia as string ?? '',
+      referencia: ((row as Record<string, unknown>).referencia as string) ?? '',
     };
   });
 }

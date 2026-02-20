@@ -35,8 +35,11 @@ BEGIN
         COALESCE(NULLIF(trim("TIPO_DE_VEHICULO"), ''), '')
     FROM public.staging_demand_raw
     WHERE NULLIF(trim("CODIGO"), '') IS NOT NULL
+    ORDER BY trim("CODIGO"),
+             ("NOMBRE DE CENTRO ESCOLAR" IS NULL OR trim("NOMBRE DE CENTRO ESCOLAR") = '') ASC
     ON CONFLICT (codigo_ce) DO UPDATE SET
-        nombre_ce    = EXCLUDED.nombre_ce,
+        nombre_ce    = CASE WHEN EXCLUDED.nombre_ce <> '' THEN EXCLUDED.nombre_ce
+                            ELSE schools.nombre_ce END,
         departamento = CASE WHEN EXCLUDED.departamento <> '' THEN EXCLUDED.departamento
                             ELSE schools.departamento END,
         distrito     = CASE WHEN EXCLUDED.distrito <> '' THEN EXCLUDED.distrito
