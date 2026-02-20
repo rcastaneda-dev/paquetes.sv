@@ -147,7 +147,12 @@ function computeCajasPerGrade(
       const counts = gradeMap.get(grade)!;
       const cajasHombres = counts.hombres === 0 ? 0 : Math.round(counts.hombres * 1.05);
       const cajasMujeres = counts.mujeres === 0 ? 0 : Math.round(counts.mujeres * 1.05);
-      return { grado: grade, hombres: cajasHombres, mujeres: cajasMujeres, total: cajasHombres + cajasMujeres };
+      return {
+        grado: grade,
+        hombres: cajasHombres,
+        mujeres: cajasMujeres,
+        total: cajasHombres + cajasMujeres,
+      };
     });
 }
 
@@ -250,9 +255,7 @@ export async function generateConsolidadoPivotExcelV2(
 // Generator 3: Consolidado Pivot (uniform types × sizes T4–T2X)
 // ─────────────────────────────────────────────────────────────────────────────
 
-export async function generateConsolidadoPivotExcel(
-  students: StudentQueryRow[]
-): Promise<Buffer> {
+export async function generateConsolidadoPivotExcel(students: StudentQueryRow[]): Promise<Buffer> {
   const schools = groupBySchool(students).sort(
     (a, b) => calculateUniformesTotalPiezas(b) - calculateUniformesTotalPiezas(a)
   );

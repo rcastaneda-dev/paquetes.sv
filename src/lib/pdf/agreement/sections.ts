@@ -202,7 +202,10 @@ export function drawSchoolHeaderBlock(options: SchoolHeaderBlockOptions): number
     .font('Helvetica-Bold')
     .text(`ZONA: ${zona} - TIPO DE VEHICULO: ${transporte}`, { align: 'center' });
 
-  doc.fontSize(AGREEMENT_FONT.COLUMN_HEADER).font('Helvetica').text(AGREEMENT_HORA_LINE, { align: 'center' });
+  doc
+    .fontSize(AGREEMENT_FONT.COLUMN_HEADER)
+    .font('Helvetica')
+    .text(AGREEMENT_HORA_LINE, { align: 'center' });
 
   return doc.y + 8;
 }
@@ -941,7 +944,10 @@ export function renderActaRecepcionZapatosSection(ctx: SectionRenderContext): vo
   doc.moveDown(0.5);
 
   doc.fontSize(AGREEMENT_FONT.BODY).font('Helvetica');
-  doc.text('Fecha: __________________________________  Hora: __________________________________  Bodega: __________________________________', xStart);
+  doc.text(
+    'Fecha: __________________________________  Hora: __________________________________  Bodega: __________________________________',
+    xStart
+  );
   doc.moveDown(1);
 
   // 3. Data table — aggregate shoe data by talla
@@ -1110,7 +1116,10 @@ export function renderActaRecepcionUniformesSection(ctx: SectionRenderContext): 
   doc.moveDown(0.5);
 
   doc.fontSize(AGREEMENT_FONT.BODY).font('Helvetica');
-  doc.text('Fecha: __________________________________  Hora: __________________________________  Bodega: __________________________________', xStart);
+  doc.text(
+    'Fecha: __________________________________  Hora: __________________________________  Bodega: __________________________________',
+    xStart
+  );
   doc.moveDown(1);
 
   // 3. Data table — aggregate uniform data by tipo/talla
@@ -1396,7 +1405,10 @@ export function renderActaRecepcionCajasSection(ctx: SectionRenderContext): void
   doc.moveDown(0.5);
 
   doc.fontSize(AGREEMENT_FONT.BODY).font('Helvetica');
-  doc.text('Fecha: __________________________________  Hora: __________________________________  Bodega: __________________________________', actaXStart);
+  doc.text(
+    'Fecha: __________________________________  Hora: __________________________________  Bodega: __________________________________',
+    actaXStart
+  );
   doc.moveDown(1);
 
   // 3. Data table — aggregate cajas by grade

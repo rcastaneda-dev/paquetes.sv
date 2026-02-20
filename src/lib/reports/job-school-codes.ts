@@ -37,4 +37,3 @@ export function resolveJobSchoolCodes(options: {
   const fromStudents = uniqueNormalizedSchoolCodes(options.studentSchoolCodes);
   return { codes: fromStudents, source: 'students' };
 }
-

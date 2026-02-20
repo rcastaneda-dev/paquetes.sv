@@ -78,21 +78,20 @@ export function UploadZone({
     }
   }, [disabled]);
 
-  const handleChangeFile = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      if (inputRef.current) {
-        inputRef.current.value = '';
-        inputRef.current.click();
-      }
-    },
-    []
-  );
+  const handleChangeFile = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (inputRef.current) {
+      inputRef.current.value = '';
+      inputRef.current.click();
+    }
+  }, []);
 
   const zoneClasses = [
     'relative flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 text-center transition-colors',
     disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer',
-    isDragOver && !disabled ? 'border-primary bg-primary/5' : 'border-input hover:border-primary/50',
+    isDragOver && !disabled
+      ? 'border-primary bg-primary/5'
+      : 'border-input hover:border-primary/50',
   ].join(' ');
 
   return (
@@ -144,7 +143,7 @@ export function UploadZone({
             </div>
             <div>
               <p className="text-pretty text-sm font-medium">{selectedFile.name}</p>
-              <p className="tabular-nums text-xs text-muted-foreground">
+              <p className="text-xs tabular-nums text-muted-foreground">
                 {formatFileSize(selectedFile.size)}
               </p>
             </div>
@@ -178,7 +177,9 @@ export function UploadZone({
             </div>
             <div>
               <p className="text-pretty text-sm font-medium">Arrastra tu archivo CSV aquí</p>
-              <p className="text-pretty text-xs text-muted-foreground">o haz clic para seleccionar</p>
+              <p className="text-pretty text-xs text-muted-foreground">
+                o haz clic para seleccionar
+              </p>
             </div>
           </div>
         )}

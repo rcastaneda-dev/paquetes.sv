@@ -194,8 +194,8 @@ export default function DemandStagingPage() {
           />
 
           <div className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-200">
-            <strong>Formato esperado:</strong> CSV con hasta 12 columnas ({ALL_COLUMNS.join(', ')}). Las
-            cantidades se usan tal cual — sin multiplicadores ni cálculos de vacíos.
+            <strong>Formato esperado:</strong> CSV con hasta 12 columnas ({ALL_COLUMNS.join(', ')}).
+            Las cantidades se usan tal cual — sin multiplicadores ni cálculos de vacíos.
           </div>
 
           <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">

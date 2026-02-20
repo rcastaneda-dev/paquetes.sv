@@ -1,11 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase/server';
 import type { StudentQueryRow } from '@/types/database';
-import {
-  generateCajasPivotExcel,
-  excelStoragePath,
-  EXCEL_FILENAMES,
-} from '@/lib/excel/generators';
+import { generateCajasPivotExcel, excelStoragePath, EXCEL_FILENAMES } from '@/lib/excel/generators';
 
 const FILENAME = EXCEL_FILENAMES.cajasPivot;
 const PAGE_SIZE = 1000;

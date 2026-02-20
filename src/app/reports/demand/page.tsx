@@ -93,7 +93,7 @@ const REPORTS: ReportConfig[] = [
     endpoint: '/api/reports/demand/consolidado-excel',
   },
   {
-    label: 'Consolidado Excel',
+    label: 'Consolidado Excel (Prendas+Cajas)',
     sublabel: 'Excel',
     format: 'xlsx',
     endpoint: '/api/reports/demand/consolidado-excel-v2',

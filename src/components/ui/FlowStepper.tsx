@@ -32,10 +32,9 @@ export function FlowStepper({ steps, currentStep }: FlowStepperProps) {
             isCurrent ? 'font-semibold text-foreground' : 'text-muted-foreground',
           ].join(' ');
 
-          const lineClasses = [
-            'mx-2 h-0.5 w-8 sm:w-12',
-            isPast ? 'bg-primary' : 'bg-input',
-          ].join(' ');
+          const lineClasses = ['mx-2 h-0.5 w-8 sm:w-12', isPast ? 'bg-primary' : 'bg-input'].join(
+            ' '
+          );
 
           const stepContent = (
             <div className="flex flex-col items-center">

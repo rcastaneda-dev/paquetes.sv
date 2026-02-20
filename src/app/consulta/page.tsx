@@ -53,10 +53,7 @@ export default function ConsultaPage() {
     return params;
   };
 
-  const handleGenerateReport = async (
-    endpoint: string,
-    setLoading: (v: boolean) => void
-  ) => {
+  const handleGenerateReport = async (endpoint: string, setLoading: (v: boolean) => void) => {
     if (!lastSearchFilters?.school_codigo_ce) return;
     setLoading(true);
     try {
@@ -237,9 +234,7 @@ export default function ConsultaPage() {
 
             {!canGenerateReports && (
               <div className="py-8 text-center text-muted-foreground">
-                <p className="text-pretty">
-                  Busca una escuela para generar reportes individuales.
-                </p>
+                <p className="text-pretty">Busca una escuela para generar reportes individuales.</p>
               </div>
             )}
           </CardContent>

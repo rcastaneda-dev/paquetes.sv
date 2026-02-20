@@ -123,43 +123,87 @@ export async function generateConsolidadoDemandExcel(demandRows: DemandRow[]): P
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Generator 2: Consolidado V2 (mirrors students' generateConsolidadoExcel)
-//   CODIGO | NOMBRE_CE | DEPARTAMENTO | DISTRITO | TOTAL DE UNIFORMES | TOTAL DE ZAPATOS | TOTAL DE CAJAS
+// Generator 2: Consolidado V2 — Prendas + Cajas combined
+//   CORRELATIVO | CODIGO_CE | NOMBRE_CE | DEPARTAMENTO | DISTRITO | TIPO_PRENDA | TALLA | CANTIDAD
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function generateConsolidadoDemandExcelV2(demandRows: DemandRow[]): Promise<Buffer> {
-  const schools = aggregateBySchool(demandRows);
+  const schoolOrder = aggregateBySchool(demandRows);
+  const schoolOrderMap = new Map(schoolOrder.map((s, i) => [s.codigo_ce, i]));
+
+  // Prendas rows (UNIFORMES + ZAPATOS): sort by school order → tipo → categoria
+  const sortedPrendas = demandRows
+    .filter(r => r.item === 'UNIFORMES' || r.item === 'ZAPATOS')
+    .sort((a, b) => {
+      const orderA = schoolOrderMap.get(a.school_codigo_ce) ?? Infinity;
+      const orderB = schoolOrderMap.get(b.school_codigo_ce) ?? Infinity;
+      if (orderA !== orderB) return orderA - orderB;
+      const tipoCompare = a.tipo.localeCompare(b.tipo, 'es');
+      if (tipoCompare !== 0) return tipoCompare;
+      return a.categoria.localeCompare(b.categoria, 'es');
+    });
+
+  // Cajas rows: sort by school order → categoria
+  const sortedCajas = demandRows
+    .filter(r => r.item === 'CAJAS')
+    .sort((a, b) => {
+      const orderA = schoolOrderMap.get(a.school_codigo_ce) ?? Infinity;
+      const orderB = schoolOrderMap.get(b.school_codigo_ce) ?? Infinity;
+      if (orderA !== orderB) return orderA - orderB;
+      return a.categoria.localeCompare(b.categoria, 'es');
+    });
 
   const workbook = new ExcelJS.Workbook();
-  const sheet = workbook.addWorksheet('Consolidado', {
+  const sheet = workbook.addWorksheet('Consolidado_Prendas_Cajas', {
     views: [{ state: 'frozen', ySplit: 1 }],
   });
 
   const headerRow = sheet.getRow(1);
   headerRow.values = [
-    'CODIGO',
+    'CORRELATIVO',
+    'CODIGO_CE',
     'NOMBRE_CE',
     'DEPARTAMENTO',
     'DISTRITO',
-    'TOTAL DE UNIFORMES',
-    'TOTAL DE ZAPATOS',
-    'TOTAL DE CAJAS',
+    'TIPO_PRENDA',
+    'TALLA',
+    'CANTIDAD',
   ];
   headerRow.font = { bold: true };
-  headerRow.alignment = { horizontal: 'left' };
+  headerRow.alignment = { horizontal: 'center' };
 
+  let correlativo = 1;
   let rowIndex = 2;
-  for (const school of schools) {
+
+  for (const r of sortedPrendas) {
     const row = sheet.getRow(rowIndex);
     row.values = [
-      school.codigo_ce,
-      school.nombre_ce,
-      school.departamento,
-      school.distrito,
-      school.uniformes,
-      school.zapatos,
-      school.cajas,
+      correlativo,
+      r.school_codigo_ce,
+      r.nombre_ce,
+      r.departamento,
+      r.distrito,
+      r.tipo,
+      r.categoria,
+      r.cantidad,
     ];
+    correlativo++;
+    rowIndex++;
+  }
+
+  for (const r of sortedCajas) {
+    const row = sheet.getRow(rowIndex);
+    row.values = [
+      correlativo,
+      r.school_codigo_ce,
+      r.nombre_ce,
+      r.departamento,
+      r.distrito,
+      'CAJAS',
+      r.categoria,
+      r.cantidad,
+    ];
+    correlativo++;
     rowIndex++;
   }
 
