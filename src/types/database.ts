@@ -152,6 +152,7 @@ export interface DemandRow {
   tipo: string; // 'CAJAS', 'CAMISA BLANCA', 'ZAPATOS', etc.
   categoria: string; // grade name or size
   cantidad: number;
+  referencia: string; // dispatch code (e.g. FALT-KIT-200226-001)
 }
 
 /** School group for demand-based reports (analogous to SchoolGroup for student-level) */

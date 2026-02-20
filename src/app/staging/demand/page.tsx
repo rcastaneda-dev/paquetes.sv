@@ -31,6 +31,7 @@ const ALL_COLUMNS = [
   'TIPO',
   'CATEGORIA',
   'CANTIDAD',
+  'REFERENCIA',
 ];
 
 const CHUNK_SIZE = 1000;
@@ -187,13 +188,13 @@ export default function DemandStagingPage() {
             disabled={isUploading}
             onFileSelect={setSelectedFile}
             selectedFile={selectedFile}
-            helpText="El archivo debe contener las 11 columnas requeridas"
+            helpText="El archivo debe contener las 12 columnas requeridas"
             sampleDownloadHref="/sample-demand.csv"
             sampleDownloadLabel="Descargar archivo de ejemplo"
           />
 
           <div className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-200">
-            <strong>Formato esperado:</strong> CSV con 11 columnas ({ALL_COLUMNS.join(', ')}). Las
+            <strong>Formato esperado:</strong> CSV con hasta 12 columnas ({ALL_COLUMNS.join(', ')}). Las
             cantidades se usan tal cual — sin multiplicadores ni cálculos de vacíos.
           </div>
 

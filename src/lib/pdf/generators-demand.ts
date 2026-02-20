@@ -8,7 +8,6 @@
 import PDFDocument from 'pdfkit';
 import type { DemandRow, SchoolDemandGroup } from '@/types/database';
 import type { PDFDocumentInstance } from './agreement/types';
-import { addPageNumbers } from './page-numbers';
 import {
   addLogoToPage,
   AGREEMENT_FONT,
@@ -61,6 +60,41 @@ function groupDemandBySchool(rows: DemandRow[]): SchoolDemandGroup[] {
     const totalB = b.rows.reduce((s, r) => s + r.cantidad, 0);
     return totalB - totalA;
   });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Referencia overlay helpers (mirrors stampPageOverlays in agreement/builders.ts)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Stamp referencia codes (top-left) and page numbers (bottom-center)
+ * on every buffered page using switchToPage.
+ */
+function stampDemandOverlays(doc: PDFDocumentInstance, referenciaCodes: string[]): void {
+  const range = doc.bufferedPageRange();
+  for (let i = range.start; i < range.start + range.count; i++) {
+    doc.switchToPage(i);
+    const idx = i - range.start;
+
+    // Referencia code — top-left
+    const code = referenciaCodes[idx];
+    if (code) {
+      doc.fontSize(8).font('Helvetica-Bold').fillColor('black');
+      doc.text(code, 30, 20, { lineBreak: false });
+    }
+
+    // Page number — bottom-center
+    const pageNum = `${idx + 1}`;
+    doc.fontSize(8).font('Helvetica').fillColor('black');
+    const tw = doc.widthOfString(pageNum);
+    doc.text(pageNum, (doc.page.width - tw) / 2, doc.page.height - 20, { lineBreak: false });
+  }
+}
+
+/** Get the referencia code for a school+item combination */
+function getSchoolReferencia(school: SchoolDemandGroup, itemType: string): string {
+  const row = school.rows.find(r => r.item === itemType && r.referencia);
+  return row?.referencia ?? '';
 }
 
 /** Draw the pre-table fields: DATOS DE LOS PRODUCTOS (Fecha, Hora, Bodega) */
@@ -475,11 +509,17 @@ export function generateActaRecepcionCajasPDFFromDemand(
     bufferPages: true,
   }) as PDFDocumentInstance;
 
+  const referenciaCodes: string[] = [];
   for (let i = 0; i < schools.length; i++) {
+    const pagesBefore = doc.bufferedPageRange().count;
     renderActaCajasSchool(doc, schools[i], i > 0);
+    const pagesAfter = doc.bufferedPageRange().count;
+    const pagesForSchool = i === 0 ? pagesAfter : pagesAfter - pagesBefore;
+    const code = getSchoolReferencia(schools[i], 'CAJAS');
+    for (let p = 0; p < pagesForSchool; p++) referenciaCodes.push(code);
   }
 
-  addPageNumbers(doc);
+  stampDemandOverlays(doc, referenciaCodes);
   doc.end();
   return doc;
 }
@@ -499,11 +539,17 @@ export function generateActaRecepcionUniformesPDFFromDemand(
     bufferPages: true,
   }) as PDFDocumentInstance;
 
+  const referenciaCodes: string[] = [];
   for (let i = 0; i < schools.length; i++) {
+    const pagesBefore = doc.bufferedPageRange().count;
     renderActaUniformesSchool(doc, schools[i], i > 0);
+    const pagesAfter = doc.bufferedPageRange().count;
+    const pagesForSchool = i === 0 ? pagesAfter : pagesAfter - pagesBefore;
+    const code = getSchoolReferencia(schools[i], 'UNIFORMES');
+    for (let p = 0; p < pagesForSchool; p++) referenciaCodes.push(code);
   }
 
-  addPageNumbers(doc);
+  stampDemandOverlays(doc, referenciaCodes);
   doc.end();
   return doc;
 }
@@ -523,11 +569,17 @@ export function generateActaRecepcionZapatosPDFFromDemand(
     bufferPages: true,
   }) as PDFDocumentInstance;
 
+  const referenciaCodes: string[] = [];
   for (let i = 0; i < schools.length; i++) {
+    const pagesBefore = doc.bufferedPageRange().count;
     renderActaZapatosSchool(doc, schools[i], i > 0);
+    const pagesAfter = doc.bufferedPageRange().count;
+    const pagesForSchool = i === 0 ? pagesAfter : pagesAfter - pagesBefore;
+    const code = getSchoolReferencia(schools[i], 'ZAPATOS');
+    for (let p = 0; p < pagesForSchool; p++) referenciaCodes.push(code);
   }
 
-  addPageNumbers(doc);
+  stampDemandOverlays(doc, referenciaCodes);
   doc.end();
   return doc;
 }
@@ -924,11 +976,17 @@ export function generateComandaCajasPDFFromDemand(demandRows: DemandRow[]): PDFD
     bufferPages: true,
   }) as PDFDocumentInstance;
 
+  const referenciaCodes: string[] = [];
   for (let i = 0; i < schools.length; i++) {
+    const pagesBefore = doc.bufferedPageRange().count;
     renderComandaCajasSchool(doc, schools[i], i > 0);
+    const pagesAfter = doc.bufferedPageRange().count;
+    const pagesForSchool = i === 0 ? pagesAfter : pagesAfter - pagesBefore;
+    const code = getSchoolReferencia(schools[i], 'CAJAS');
+    for (let p = 0; p < pagesForSchool; p++) referenciaCodes.push(code);
   }
 
-  addPageNumbers(doc);
+  stampDemandOverlays(doc, referenciaCodes);
   doc.end();
   return doc;
 }
@@ -948,11 +1006,17 @@ export function generateComandaUniformesPDFFromDemand(
     bufferPages: true,
   }) as PDFDocumentInstance;
 
+  const referenciaCodes: string[] = [];
   for (let i = 0; i < schools.length; i++) {
+    const pagesBefore = doc.bufferedPageRange().count;
     renderComandaUniformesSchool(doc, schools[i], i > 0);
+    const pagesAfter = doc.bufferedPageRange().count;
+    const pagesForSchool = i === 0 ? pagesAfter : pagesAfter - pagesBefore;
+    const code = getSchoolReferencia(schools[i], 'UNIFORMES');
+    for (let p = 0; p < pagesForSchool; p++) referenciaCodes.push(code);
   }
 
-  addPageNumbers(doc);
+  stampDemandOverlays(doc, referenciaCodes);
   doc.end();
   return doc;
 }
@@ -970,11 +1034,17 @@ export function generateComandaZapatosPDFFromDemand(demandRows: DemandRow[]): PD
     bufferPages: true,
   }) as PDFDocumentInstance;
 
+  const referenciaCodes: string[] = [];
   for (let i = 0; i < schools.length; i++) {
+    const pagesBefore = doc.bufferedPageRange().count;
     renderComandaZapatosSchool(doc, schools[i], i > 0);
+    const pagesAfter = doc.bufferedPageRange().count;
+    const pagesForSchool = i === 0 ? pagesAfter : pagesAfter - pagesBefore;
+    const code = getSchoolReferencia(schools[i], 'ZAPATOS');
+    for (let p = 0; p < pagesForSchool; p++) referenciaCodes.push(code);
   }
 
-  addPageNumbers(doc);
+  stampDemandOverlays(doc, referenciaCodes);
   doc.end();
   return doc;
 }

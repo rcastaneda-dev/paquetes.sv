@@ -11,7 +11,7 @@ export async function querySchoolDemand(params?: {
   let query = supabaseServer
     .from('school_demand')
     .select(
-      'school_codigo_ce, item, tipo, categoria, cantidad, schools!inner(nombre_ce, departamento, distrito, zona, transporte, fecha_inicio)'
+      'school_codigo_ce, item, tipo, categoria, cantidad, referencia, schools!inner(nombre_ce, departamento, distrito, zona, transporte, fecha_inicio)'
     )
     .order('school_codigo_ce');
 
@@ -46,6 +46,7 @@ export async function querySchoolDemand(params?: {
       tipo: row.tipo,
       categoria: row.categoria,
       cantidad: row.cantidad,
+      referencia: (row as Record<string, unknown>).referencia as string ?? '',
     };
   });
 }

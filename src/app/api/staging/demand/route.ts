@@ -28,6 +28,7 @@ const STAGING_COLUMNS = [
   'TIPO',
   'CATEGORIA',
   'CANTIDAD',
+  'REFERENCIA',
 ];
 
 /** Keep only keys that match staging table columns */

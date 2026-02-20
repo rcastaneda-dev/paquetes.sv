@@ -65,6 +65,25 @@ function groupDemandBySchool(rows: DemandRow[]): SchoolDemandGroup[] {
   });
 }
 
+/** Get the referencia code for a school+item and return a left-aligned paragraph (or null) */
+function createReferenciaParagraph(school: SchoolDemandGroup, itemType: string): Paragraph | null {
+  const row = school.rows.find(r => r.item === itemType && r.referencia);
+  const code = row?.referencia;
+  if (!code) return null;
+  return new Paragraph({
+    alignment: AlignmentType.LEFT,
+    spacing: { after: 0 },
+    children: [
+      new TextRun({
+        text: code,
+        bold: true,
+        size: 16, // 8pt in half-points
+        font: 'Arial',
+      }),
+    ],
+  });
+}
+
 function getLogoImageRun(): ImageRun | null {
   const logoPath = path.join(process.cwd(), 'public', 'goes_logo_2.png');
   if (!fs.existsSync(logoPath)) return null;
@@ -300,6 +319,9 @@ function buildCajasSection(school: SchoolDemandGroup): (Paragraph | Table)[] {
   const logo = getLogoImageRun();
   const elements: (Paragraph | Table)[] = [];
 
+  const refParagraph = createReferenciaParagraph(school, 'CAJAS');
+  if (refParagraph) elements.push(refParagraph);
+
   if (logo) {
     elements.push(new Paragraph({ alignment: AlignmentType.RIGHT, children: [logo] }));
   }
@@ -370,6 +392,9 @@ function buildUniformesSection(school: SchoolDemandGroup): (Paragraph | Table)[]
   const logo = getLogoImageRun();
   const elements: (Paragraph | Table)[] = [];
 
+  const refParagraph = createReferenciaParagraph(school, 'UNIFORMES');
+  if (refParagraph) elements.push(refParagraph);
+
   if (logo) {
     elements.push(new Paragraph({ alignment: AlignmentType.RIGHT, children: [logo] }));
   }
@@ -439,6 +464,9 @@ function buildZapatosSection(school: SchoolDemandGroup): (Paragraph | Table)[] {
 
   const logo = getLogoImageRun();
   const elements: (Paragraph | Table)[] = [];
+
+  const refParagraph = createReferenciaParagraph(school, 'ZAPATOS');
+  if (refParagraph) elements.push(refParagraph);
 
   if (logo) {
     elements.push(new Paragraph({ alignment: AlignmentType.RIGHT, children: [logo] }));
@@ -618,6 +646,9 @@ function buildComandaCajasSection(school: SchoolDemandGroup): (Paragraph | Table
   const logo = getLogoImageRun();
   const elements: (Paragraph | Table)[] = [];
 
+  const refParagraph = createReferenciaParagraph(school, 'CAJAS');
+  if (refParagraph) elements.push(refParagraph);
+
   if (logo) {
     elements.push(new Paragraph({ alignment: AlignmentType.RIGHT, children: [logo] }));
   }
@@ -673,6 +704,9 @@ function buildComandaUniformesSection(school: SchoolDemandGroup): (Paragraph | T
 
   const logo = getLogoImageRun();
   const elements: (Paragraph | Table)[] = [];
+
+  const refParagraph = createReferenciaParagraph(school, 'UNIFORMES');
+  if (refParagraph) elements.push(refParagraph);
 
   if (logo) {
     elements.push(new Paragraph({ alignment: AlignmentType.RIGHT, children: [logo] }));
@@ -732,6 +766,9 @@ function buildComandaZapatosSection(school: SchoolDemandGroup): (Paragraph | Tab
 
   const logo = getLogoImageRun();
   const elements: (Paragraph | Table)[] = [];
+
+  const refParagraph = createReferenciaParagraph(school, 'ZAPATOS');
+  if (refParagraph) elements.push(refParagraph);
 
   if (logo) {
     elements.push(new Paragraph({ alignment: AlignmentType.RIGHT, children: [logo] }));
