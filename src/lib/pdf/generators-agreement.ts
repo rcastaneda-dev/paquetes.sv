@@ -146,7 +146,7 @@ export function generateCamisasPDF(options: AgreementReportOptions): PDFDocument
   const sizeColWidth = 35;
   const totalColWidth = 50;
   const tipoColWidth = availableWidth - sizes.length * sizeColWidth - totalColWidth;
-  const headerHeight = 28;
+  const headerHeight = 25;
 
   for (let s = 0; s < schools.length; s++) {
     const school = schools[s];
@@ -190,7 +190,7 @@ export function generateCamisasPDF(options: AgreementReportOptions): PDFDocument
     let x = xStart;
 
     doc.rect(x, currentY, tipoColWidth, headerHeight).stroke();
-    doc.text('TIPO', x + 2, currentY + 8, {
+    doc.text('TIPO', x + 2, currentY + 7, {
       width: tipoColWidth - 4,
       align: 'center',
     });
@@ -198,7 +198,7 @@ export function generateCamisasPDF(options: AgreementReportOptions): PDFDocument
 
     for (const size of sizes) {
       doc.rect(x, currentY, sizeColWidth, headerHeight).stroke();
-      doc.text(size, x + 2, currentY + 8, {
+      doc.text(size, x + 2, currentY + 7, {
         width: sizeColWidth - 4,
         align: 'center',
       });
@@ -206,7 +206,7 @@ export function generateCamisasPDF(options: AgreementReportOptions): PDFDocument
     }
 
     doc.rect(x, currentY, totalColWidth, headerHeight).stroke();
-    doc.text('TOTAL', x + 2, currentY + 8, {
+    doc.text('TOTAL', x + 2, currentY + 7, {
       width: totalColWidth - 4,
       align: 'center',
     });
@@ -253,12 +253,12 @@ export function generateCamisasPDF(options: AgreementReportOptions): PDFDocument
       const tipoHeight = doc.heightOfString(tipo, {
         width: tipoColWidth - 4,
       });
-      const dynamicRowHeight = Math.max(20, tipoHeight + 8);
+      const dynamicRowHeight = Math.max(18, tipoHeight + 6);
 
       x = xStart;
 
       doc.rect(x, currentY, tipoColWidth, dynamicRowHeight).stroke();
-      doc.text(tipo, x + 2, currentY + 4, {
+      doc.text(tipo, x + 2, currentY + 3, {
         width: tipoColWidth - 4,
         align: 'center',
       });
@@ -268,7 +268,7 @@ export function generateCamisasPDF(options: AgreementReportOptions): PDFDocument
         const finalCount = filled[size] || 0;
         rowTotal += finalCount;
         doc.rect(x, currentY, sizeColWidth, dynamicRowHeight).stroke();
-        doc.text(finalCount > 0 ? finalCount.toString() : '', x + 2, currentY + 4, {
+        doc.text(finalCount > 0 ? finalCount.toString() : '', x + 2, currentY + 3, {
           width: sizeColWidth - 4,
           align: 'center',
         });
@@ -276,7 +276,7 @@ export function generateCamisasPDF(options: AgreementReportOptions): PDFDocument
       }
 
       doc.rect(x, currentY, totalColWidth, dynamicRowHeight).stroke();
-      doc.text(rowTotal.toString(), x + 2, currentY + 4, {
+      doc.text(rowTotal.toString(), x + 2, currentY + 3, {
         width: totalColWidth - 4,
         align: 'center',
       });
@@ -285,11 +285,11 @@ export function generateCamisasPDF(options: AgreementReportOptions): PDFDocument
     }
 
     doc.font('Helvetica-Bold').fontSize(AGREEMENT_FONT.BODY);
-    const summaryRowHeight = 20;
+    const summaryRowHeight = 18;
     x = xStart;
 
     doc.rect(x, currentY, tipoColWidth, summaryRowHeight).stroke();
-    doc.text('SUBTOTAL', x + 2, currentY + 4, {
+    doc.text('SUBTOTAL', x + 2, currentY + 3, {
       width: tipoColWidth - 4,
       align: 'center',
     });
@@ -305,7 +305,7 @@ export function generateCamisasPDF(options: AgreementReportOptions): PDFDocument
       grandTotal += sizeTotal;
 
       doc.rect(x, currentY, sizeColWidth, summaryRowHeight).stroke();
-      doc.text(sizeTotal > 0 ? sizeTotal.toString() : '', x + 2, currentY + 4, {
+      doc.text(sizeTotal > 0 ? sizeTotal.toString() : '', x + 2, currentY + 3, {
         width: sizeColWidth - 4,
         align: 'center',
       });
@@ -313,7 +313,7 @@ export function generateCamisasPDF(options: AgreementReportOptions): PDFDocument
     }
 
     doc.rect(x, currentY, totalColWidth, summaryRowHeight).stroke();
-    doc.text(grandTotal.toString(), x + 2, currentY + 4, {
+    doc.text(grandTotal.toString(), x + 2, currentY + 3, {
       width: totalColWidth - 4,
       align: 'center',
     });
@@ -355,7 +355,7 @@ export function generatePantalonesPDF(options: AgreementReportOptions): PDFDocum
   const sizeColWidth = 35;
   const totalColWidth = 50;
   const tipoPrendaColWidth = availableWidth - sizes.length * sizeColWidth - totalColWidth;
-  const headerHeight = 28;
+  const headerHeight = 25;
 
   for (let s = 0; s < schools.length; s++) {
     const school = schools[s];
@@ -399,7 +399,7 @@ export function generatePantalonesPDF(options: AgreementReportOptions): PDFDocum
     let x = xStart;
 
     doc.rect(x, currentY, tipoPrendaColWidth, headerHeight).stroke();
-    doc.text('TIPO PRENDA', x + 2, currentY + 8, {
+    doc.text('TIPO PRENDA', x + 2, currentY + 7, {
       width: tipoPrendaColWidth - 4,
       align: 'center',
     });
@@ -407,7 +407,7 @@ export function generatePantalonesPDF(options: AgreementReportOptions): PDFDocum
 
     for (const size of sizes) {
       doc.rect(x, currentY, sizeColWidth, headerHeight).stroke();
-      doc.text(size, x + 2, currentY + 8, {
+      doc.text(size, x + 2, currentY + 7, {
         width: sizeColWidth - 4,
         align: 'center',
       });
@@ -415,7 +415,7 @@ export function generatePantalonesPDF(options: AgreementReportOptions): PDFDocum
     }
 
     doc.rect(x, currentY, totalColWidth, headerHeight).stroke();
-    doc.text('TOTAL', x + 2, currentY + 8, {
+    doc.text('TOTAL', x + 2, currentY + 7, {
       width: totalColWidth - 4,
       align: 'center',
     });
@@ -462,12 +462,12 @@ export function generatePantalonesPDF(options: AgreementReportOptions): PDFDocum
       const tipoHeight = doc.heightOfString(tipo, {
         width: tipoPrendaColWidth - 4,
       });
-      const dynamicRowHeight = Math.max(20, tipoHeight + 8);
+      const dynamicRowHeight = Math.max(18, tipoHeight + 6);
 
       x = xStart;
 
       doc.rect(x, currentY, tipoPrendaColWidth, dynamicRowHeight).stroke();
-      doc.text(tipo, x + 2, currentY + 4, {
+      doc.text(tipo, x + 2, currentY + 3, {
         width: tipoPrendaColWidth - 4,
         align: 'center',
       });
@@ -477,7 +477,7 @@ export function generatePantalonesPDF(options: AgreementReportOptions): PDFDocum
         const finalCount = filled[size] || 0;
         rowTotal += finalCount;
         doc.rect(x, currentY, sizeColWidth, dynamicRowHeight).stroke();
-        doc.text(finalCount > 0 ? finalCount.toString() : '', x + 2, currentY + 4, {
+        doc.text(finalCount > 0 ? finalCount.toString() : '', x + 2, currentY + 3, {
           width: sizeColWidth - 4,
           align: 'center',
         });
@@ -485,7 +485,7 @@ export function generatePantalonesPDF(options: AgreementReportOptions): PDFDocum
       }
 
       doc.rect(x, currentY, totalColWidth, dynamicRowHeight).stroke();
-      doc.text(rowTotal.toString(), x + 2, currentY + 4, {
+      doc.text(rowTotal.toString(), x + 2, currentY + 3, {
         width: totalColWidth - 4,
         align: 'center',
       });
@@ -494,11 +494,11 @@ export function generatePantalonesPDF(options: AgreementReportOptions): PDFDocum
     }
 
     doc.font('Helvetica-Bold').fontSize(AGREEMENT_FONT.BODY);
-    const summaryRowHeight = 20;
+    const summaryRowHeight = 18;
     x = xStart;
 
     doc.rect(x, currentY, tipoPrendaColWidth, summaryRowHeight).stroke();
-    doc.text('SUBTOTAL', x + 2, currentY + 4, {
+    doc.text('SUBTOTAL', x + 2, currentY + 3, {
       width: tipoPrendaColWidth - 4,
       align: 'center',
     });
@@ -514,7 +514,7 @@ export function generatePantalonesPDF(options: AgreementReportOptions): PDFDocum
       grandTotal += sizeTotal;
 
       doc.rect(x, currentY, sizeColWidth, summaryRowHeight).stroke();
-      doc.text(sizeTotal > 0 ? sizeTotal.toString() : '', x + 2, currentY + 4, {
+      doc.text(sizeTotal > 0 ? sizeTotal.toString() : '', x + 2, currentY + 3, {
         width: sizeColWidth - 4,
         align: 'center',
       });
@@ -522,7 +522,7 @@ export function generatePantalonesPDF(options: AgreementReportOptions): PDFDocum
     }
 
     doc.rect(x, currentY, totalColWidth, summaryRowHeight).stroke();
-    doc.text(grandTotal.toString(), x + 2, currentY + 4, {
+    doc.text(grandTotal.toString(), x + 2, currentY + 3, {
       width: totalColWidth - 4,
       align: 'center',
     });
@@ -804,7 +804,7 @@ export function generateDayZapatosPDF(options: AgreementReportOptions): PDFDocum
       .text(`CODIGO: ${school.codigo_ce.toUpperCase()}`, { align: 'center' });
     drawFechaDespachoEntregaLine(doc, formattedDate);
     doc
-      .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+      .fontSize(AGREEMENT_FONT.COLUMN_HEADER)
       .font('Helvetica')
       .text(AGREEMENT_HORA_LINE, { align: 'center' });
     doc.moveDown(1);
@@ -853,8 +853,8 @@ export function generateDayZapatosPDF(options: AgreementReportOptions): PDFDocum
     const xStart = 40;
     const tallaColWidth = 350;
     const cantidadColWidth = 100;
-    const headerHeight = 25;
-    const rowHeight = 20;
+    const headerHeight = 22;
+    const rowHeight = 18;
 
     doc.fontSize(AGREEMENT_FONT.COLUMN_HEADER).font('Helvetica-Bold');
     let x = xStart;
@@ -1077,7 +1077,7 @@ export function generateDayUniformesPDF(options: AgreementReportOptions): PDFDoc
       .text(`CODIGO: ${school.codigo_ce.toUpperCase()}`, { align: 'center' });
     drawFechaDespachoEntregaLine(doc, formattedDate);
     doc
-      .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+      .fontSize(AGREEMENT_FONT.COLUMN_HEADER)
       .font('Helvetica')
       .text(AGREEMENT_HORA_LINE, { align: 'center' });
     doc.moveDown(1);
@@ -1195,21 +1195,21 @@ export function generateDayUniformesPDF(options: AgreementReportOptions): PDFDoc
     const xStart = 40;
     const tipoTallaColWidth = 350;
     const cantidadColWidth = 100;
-    const headerHeight = 25;
-    const rowHeight = 20;
+    const headerHeight = 20;
+    const rowHeight = 16;
 
     doc.fontSize(AGREEMENT_FONT.COLUMN_HEADER).font('Helvetica-Bold');
     let x = xStart;
 
     doc.rect(x, currentY, tipoTallaColWidth, headerHeight).stroke();
-    doc.text('TIPO/TALLA', x + 5, currentY + 7, {
+    doc.text('TIPO/TALLA', x + 5, currentY + 6, {
       width: tipoTallaColWidth - 10,
       align: 'left',
     });
     x += tipoTallaColWidth;
 
     doc.rect(x, currentY, cantidadColWidth, headerHeight).stroke();
-    doc.text('CANTIDAD', x + 5, currentY + 7, {
+    doc.text('CANTIDAD', x + 5, currentY + 6, {
       width: cantidadColWidth - 10,
       align: 'center',
     });
@@ -1223,14 +1223,14 @@ export function generateDayUniformesPDF(options: AgreementReportOptions): PDFDoc
       x = xStart;
 
       doc.rect(x, currentY, tipoTallaColWidth, rowHeight).stroke();
-      doc.text(item.tipo_talla, x + 5, currentY + 5, {
+      doc.text(item.tipo_talla, x + 5, currentY + 4, {
         width: tipoTallaColWidth - 10,
         align: 'left',
       });
       x += tipoTallaColWidth;
 
       doc.rect(x, currentY, cantidadColWidth, rowHeight).stroke();
-      doc.text(item.cantidad.toString(), x + 5, currentY + 5, {
+      doc.text(item.cantidad.toString(), x + 5, currentY + 4, {
         width: cantidadColWidth - 10,
         align: 'center',
       });

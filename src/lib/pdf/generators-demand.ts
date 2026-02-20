@@ -65,7 +65,7 @@ function groupDemandBySchool(rows: DemandRow[]): SchoolDemandGroup[] {
 
 /** Draw the pre-table fields: DATOS DE LOS PRODUCTOS (Fecha, Hora, Bodega) */
 function drawPreTableFields(doc: PDFDocumentInstance, xStart: number): void {
-  doc.fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER).font('Helvetica-Bold');
+  doc.fontSize(AGREEMENT_FONT.COLUMN_HEADER).font('Helvetica-Bold');
   doc.text('DATOS DE LOS PRODUCTOS', xStart, doc.y, { align: 'left' });
   doc.moveDown(0.5);
 
@@ -133,8 +133,8 @@ function renderActaCajasSchool(
   const gradoColWidth = 200;
   const cantidadColWidth = 80;
   const comentariosColWidth = doc.page.width - 60 - gradoColWidth - cantidadColWidth;
-  const headerHeight = 20;
-  const rowHeight = 14;
+  const headerHeight = 18;
+  const rowHeight = 12;
 
   const totalCantidad = cajasRows.reduce((sum, r) => sum + r.cantidad, 0);
 
@@ -235,8 +235,8 @@ function renderActaUniformesSchool(
   const tipoTallaColWidth = 200;
   const cantidadColWidth = 80;
   const comentariosColWidth = doc.page.width - 60 - tipoTallaColWidth - cantidadColWidth;
-  const headerHeight = 20;
-  const rowHeight = 14;
+  const headerHeight = 16;
+  const rowHeight = 10;
 
   const totalCantidad = uniformeRows.reduce((sum, r) => sum + r.cantidad, 0);
 
@@ -245,15 +245,15 @@ function renderActaUniformesSchool(
   let x = xStart;
 
   doc.rect(x, currentY, tipoTallaColWidth, headerHeight).stroke();
-  doc.text('TIPO/TALLA', x + 2, currentY + 5, { width: tipoTallaColWidth - 4, align: 'center' });
+  doc.text('TIPO/TALLA', x + 2, currentY + 4, { width: tipoTallaColWidth - 4, align: 'center' });
   x += tipoTallaColWidth;
 
   doc.rect(x, currentY, cantidadColWidth, headerHeight).stroke();
-  doc.text('CANTIDAD', x + 2, currentY + 5, { width: cantidadColWidth - 4, align: 'center' });
+  doc.text('CANTIDAD', x + 2, currentY + 4, { width: cantidadColWidth - 4, align: 'center' });
   x += cantidadColWidth;
 
   doc.rect(x, currentY, comentariosColWidth, headerHeight).stroke();
-  doc.text('COMENTARIOS/OBSERVACIONES', x + 2, currentY + 5, {
+  doc.text('COMENTARIOS/OBSERVACIONES', x + 2, currentY + 4, {
     width: comentariosColWidth - 4,
     align: 'center',
   });
@@ -292,19 +292,19 @@ function renderActaUniformesSchool(
       doc.fontSize(AGREEMENT_FONT.COLUMN_HEADER).font('Helvetica-Bold');
       x = xStart;
       doc.rect(x, currentY, tipoTallaColWidth, headerHeight).stroke();
-      doc.text('TIPO/TALLA', x + 2, currentY + 5, {
+      doc.text('TIPO/TALLA', x + 2, currentY + 4, {
         width: tipoTallaColWidth - 4,
         align: 'center',
       });
       x += tipoTallaColWidth;
       doc.rect(x, currentY, cantidadColWidth, headerHeight).stroke();
-      doc.text('CANTIDAD', x + 2, currentY + 5, {
+      doc.text('CANTIDAD', x + 2, currentY + 4, {
         width: cantidadColWidth - 4,
         align: 'center',
       });
       x += cantidadColWidth;
       doc.rect(x, currentY, comentariosColWidth, headerHeight).stroke();
-      doc.text('COMENTARIOS/OBSERVACIONES', x + 2, currentY + 5, {
+      doc.text('COMENTARIOS/OBSERVACIONES', x + 2, currentY + 4, {
         width: comentariosColWidth - 4,
         align: 'center',
       });
@@ -317,11 +317,11 @@ function renderActaUniformesSchool(
     x = xStart;
 
     doc.rect(x, currentY, tipoTallaColWidth, rowHeight).stroke();
-    doc.text(label, x + 2, currentY + 2, { width: tipoTallaColWidth - 4, align: 'center' });
+    doc.text(label, x + 2, currentY + 1, { width: tipoTallaColWidth - 4, align: 'center' });
     x += tipoTallaColWidth;
 
     doc.rect(x, currentY, cantidadColWidth, rowHeight).stroke();
-    doc.text(row.cantidad.toString(), x + 2, currentY + 2, {
+    doc.text(row.cantidad.toString(), x + 2, currentY + 1, {
       width: cantidadColWidth - 4,
       align: 'center',
     });
@@ -336,11 +336,11 @@ function renderActaUniformesSchool(
   x = xStart;
 
   doc.rect(x, currentY, tipoTallaColWidth, rowHeight).stroke();
-  doc.text('TOTAL', x + 2, currentY + 2, { width: tipoTallaColWidth - 4, align: 'center' });
+  doc.text('TOTAL', x + 2, currentY + 1, { width: tipoTallaColWidth - 4, align: 'center' });
   x += tipoTallaColWidth;
 
   doc.rect(x, currentY, cantidadColWidth, rowHeight).stroke();
-  doc.text(totalCantidad.toString(), x + 2, currentY + 2, {
+  doc.text(totalCantidad.toString(), x + 2, currentY + 1, {
     width: cantidadColWidth - 4,
     align: 'center',
   });
@@ -387,8 +387,8 @@ function renderActaZapatosSchool(
   const tallaColWidth = 60;
   const cantidadColWidth = 80;
   const comentariosColWidth = doc.page.width - 60 - tallaColWidth - cantidadColWidth;
-  const headerHeight = 20;
-  const rowHeight = 14;
+  const headerHeight = 18;
+  const rowHeight = 12;
 
   const totalCantidad = zapatosRows.reduce((sum, r) => sum + r.cantidad, 0);
 
@@ -576,7 +576,7 @@ function drawComandaTitleAndSchoolHeader(
     .text(`ZONA: ${zona} - TIPO DE VEHICULO: ${transporte}`, { align: 'center' });
 
   doc
-    .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+    .fontSize(AGREEMENT_FONT.COLUMN_HEADER)
     .font('Helvetica')
     .text(AGREEMENT_HORA_LINE, { align: 'center' });
 
@@ -733,22 +733,22 @@ function renderComandaUniformesSchool(
   const xStart = 40;
   const cantidadColWidth = 100;
   const tipoTallaColWidth = doc.page.width - 80 - cantidadColWidth;
-  const headerHeight = 25;
-  const rowHeight = 20;
+  const headerHeight = 20;
+  const rowHeight = 16;
 
   // Draw table header
   doc.fontSize(AGREEMENT_FONT.COLUMN_HEADER).font('Helvetica-Bold');
   let x = xStart;
 
   doc.rect(x, currentY, tipoTallaColWidth, headerHeight).stroke();
-  doc.text('TIPO/TALLA', x + 5, currentY + 7, {
+  doc.text('TIPO/TALLA', x + 5, currentY + 6, {
     width: tipoTallaColWidth - 10,
     align: 'center',
   });
   x += tipoTallaColWidth;
 
   doc.rect(x, currentY, cantidadColWidth, headerHeight).stroke();
-  doc.text('CANTIDAD', x + 5, currentY + 7, {
+  doc.text('CANTIDAD', x + 5, currentY + 6, {
     width: cantidadColWidth - 10,
     align: 'center',
   });
@@ -783,14 +783,14 @@ function renderComandaUniformesSchool(
     x = xStart;
 
     doc.rect(x, currentY, tipoTallaColWidth, rowHeight).stroke();
-    doc.text(label, x + 5, currentY + 5, {
+    doc.text(label, x + 5, currentY + 4, {
       width: tipoTallaColWidth - 10,
       align: 'center',
     });
     x += tipoTallaColWidth;
 
     doc.rect(x, currentY, cantidadColWidth, rowHeight).stroke();
-    doc.text(row.cantidad.toString(), x + 5, currentY + 5, {
+    doc.text(row.cantidad.toString(), x + 5, currentY + 4, {
       width: cantidadColWidth - 10,
       align: 'center',
     });
@@ -836,8 +836,8 @@ function renderComandaZapatosSchool(
   const xStart = 40;
   const cantidadColWidth = 100;
   const tallaColWidth = doc.page.width - 80 - cantidadColWidth;
-  const headerHeight = 25;
-  const rowHeight = 20;
+  const headerHeight = 22;
+  const rowHeight = 18;
 
   // Draw table header
   doc.fontSize(AGREEMENT_FONT.COLUMN_HEADER).font('Helvetica-Bold');

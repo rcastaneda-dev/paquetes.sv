@@ -220,6 +220,7 @@ function headerCell(text: string, width: number): TableCell {
     children: [
       new Paragraph({
         alignment: AlignmentType.CENTER,
+        spacing: { before: 20, after: 20 },
         children: [new TextRun({ text, bold: true, size: 18, font: 'Arial' })],
       }),
     ],
@@ -233,6 +234,7 @@ function dataCell(text: string, width: number, bold = false): TableCell {
     children: [
       new Paragraph({
         alignment: AlignmentType.CENTER,
+        spacing: { before: 10, after: 10 },
         children: [new TextRun({ text, bold, size: 16, font: 'Arial' })],
       }),
     ],

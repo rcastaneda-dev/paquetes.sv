@@ -202,7 +202,7 @@ export function drawSchoolHeaderBlock(options: SchoolHeaderBlockOptions): number
     .font('Helvetica-Bold')
     .text(`ZONA: ${zona} - TIPO DE VEHICULO: ${transporte}`, { align: 'center' });
 
-  doc.fontSize(fontSize).font('Helvetica').text(AGREEMENT_HORA_LINE, { align: 'center' });
+  doc.fontSize(AGREEMENT_FONT.COLUMN_HEADER).font('Helvetica').text(AGREEMENT_HORA_LINE, { align: 'center' });
 
   return doc.y + 8;
 }
@@ -217,7 +217,7 @@ export function drawTransportFooter(doc: PDFDocumentInstance, xStart: number): v
   const rightX = xStart + colWidth + colGap;
   const lineSpacing = 25;
 
-  doc.fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER).font('Helvetica-Bold');
+  doc.fontSize(AGREEMENT_FONT.COLUMN_HEADER).font('Helvetica-Bold');
   doc.text('DATOS DEL TRANSPORTE', leftX, doc.y, { align: 'left' });
   let currentY = doc.y + 10;
 
@@ -494,7 +494,7 @@ export function renderFichaUniformesSection(ctx: SectionRenderContext): void {
       align: 'center',
     });
   doc
-    .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+    .fontSize(AGREEMENT_FONT.COLUMN_HEADER)
     .font('Helvetica')
     .text(AGREEMENT_HORA_LINE, { align: 'center' });
 
@@ -619,22 +619,22 @@ export function renderFichaUniformesSection(ctx: SectionRenderContext): void {
   const xStart = 40;
   const cantidadColWidth = 100;
   const tipoTallaColWidth = doc.page.width - 80 - cantidadColWidth;
-  const headerHeight = 25;
-  const rowHeight = 20;
+  const headerHeight = 20;
+  const rowHeight = 16;
 
   // Draw table header
   doc.fontSize(AGREEMENT_FONT.COLUMN_HEADER).font('Helvetica-Bold');
   let x = xStart;
 
   doc.rect(x, currentY, tipoTallaColWidth, headerHeight).stroke();
-  doc.text('TIPO/TALLA', x + 5, currentY + 7, {
+  doc.text('TIPO/TALLA', x + 5, currentY + 6, {
     width: tipoTallaColWidth - 10,
     align: 'center',
   });
   x += tipoTallaColWidth;
 
   doc.rect(x, currentY, cantidadColWidth, headerHeight).stroke();
-  doc.text('CANTIDAD', x + 5, currentY + 7, {
+  doc.text('CANTIDAD', x + 5, currentY + 6, {
     width: cantidadColWidth - 10,
     align: 'center',
   });
@@ -649,14 +649,14 @@ export function renderFichaUniformesSection(ctx: SectionRenderContext): void {
     x = xStart;
 
     doc.rect(x, currentY, tipoTallaColWidth, rowHeight).stroke();
-    doc.text(item.tipo_talla, x + 5, currentY + 5, {
+    doc.text(item.tipo_talla, x + 5, currentY + 4, {
       width: tipoTallaColWidth - 10,
       align: 'center',
     });
     x += tipoTallaColWidth;
 
     doc.rect(x, currentY, cantidadColWidth, rowHeight).stroke();
-    doc.text(item.cantidad.toString(), x + 5, currentY + 5, {
+    doc.text(item.cantidad.toString(), x + 5, currentY + 4, {
       width: cantidadColWidth - 10,
       align: 'center',
     });
@@ -752,7 +752,7 @@ export function renderFichaZapatosSection(ctx: SectionRenderContext): void {
     .font('Helvetica-Bold')
     .text(`TIPO DE VEHICULO: ${transporte.toUpperCase()}`, { align: 'center' });
   doc
-    .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+    .fontSize(AGREEMENT_FONT.COLUMN_HEADER)
     .font('Helvetica')
     .text(AGREEMENT_HORA_LINE, { align: 'center' });
 
@@ -805,8 +805,8 @@ export function renderFichaZapatosSection(ctx: SectionRenderContext): void {
   const xStart = 40;
   const cantidadColWidth = 100;
   const tallaColWidth = doc.page.width - 80 - cantidadColWidth;
-  const headerHeight = 25;
-  const rowHeight = 20;
+  const headerHeight = 22;
+  const rowHeight = 18;
 
   // Draw table header
   doc.fontSize(AGREEMENT_FONT.COLUMN_HEADER).font('Helvetica-Bold');
@@ -936,7 +936,7 @@ export function renderActaRecepcionZapatosSection(ctx: SectionRenderContext): vo
 
   // 2. Pre-table: DATOS DE LOS PRODUCTOS
   const xStart = 40;
-  doc.fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER).font('Helvetica-Bold');
+  doc.fontSize(AGREEMENT_FONT.COLUMN_HEADER).font('Helvetica-Bold');
   doc.text('DATOS DE LOS PRODUCTOS', xStart, doc.y, { align: 'left' });
   doc.moveDown(0.5);
 
@@ -987,8 +987,8 @@ export function renderActaRecepcionZapatosSection(ctx: SectionRenderContext): vo
   const tallaColWidth = 60;
   const cantidadColWidth = 80;
   const comentariosColWidth = doc.page.width - 60 - tallaColWidth - cantidadColWidth;
-  const actaHeaderHeight = 20;
-  const actaRowHeight = 14;
+  const actaHeaderHeight = 18;
+  const actaRowHeight = 12;
 
   const totalCantidad = tallaRows.reduce((sum, r) => sum + r.cantidad, 0);
 
@@ -1105,7 +1105,7 @@ export function renderActaRecepcionUniformesSection(ctx: SectionRenderContext): 
 
   // 2. Pre-table: DATOS DE LOS PRODUCTOS
   const xStart = 30;
-  doc.fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER).font('Helvetica-Bold');
+  doc.fontSize(AGREEMENT_FONT.COLUMN_HEADER).font('Helvetica-Bold');
   doc.text('DATOS DE LOS PRODUCTOS', xStart, doc.y, { align: 'left' });
   doc.moveDown(0.5);
 
@@ -1225,8 +1225,8 @@ export function renderActaRecepcionUniformesSection(ctx: SectionRenderContext): 
   const tipoTallaColWidth = 200;
   const cantidadColWidth = 80;
   const comentariosColWidth = doc.page.width - 60 - tipoTallaColWidth - cantidadColWidth;
-  const actaHeaderHeight = 20;
-  const actaRowHeight = 14;
+  const actaHeaderHeight = 16;
+  const actaRowHeight = 10;
 
   const totalCantidad = itemCounts.reduce((sum, r) => sum + r.cantidad, 0);
 
@@ -1235,15 +1235,15 @@ export function renderActaRecepcionUniformesSection(ctx: SectionRenderContext): 
   let x = xStart;
 
   doc.rect(x, currentY, tipoTallaColWidth, actaHeaderHeight).stroke();
-  doc.text('TIPO/TALLA', x + 2, currentY + 5, { width: tipoTallaColWidth - 4, align: 'center' });
+  doc.text('TIPO/TALLA', x + 2, currentY + 4, { width: tipoTallaColWidth - 4, align: 'center' });
   x += tipoTallaColWidth;
 
   doc.rect(x, currentY, cantidadColWidth, actaHeaderHeight).stroke();
-  doc.text('CANTIDAD', x + 2, currentY + 5, { width: cantidadColWidth - 4, align: 'center' });
+  doc.text('CANTIDAD', x + 2, currentY + 4, { width: cantidadColWidth - 4, align: 'center' });
   x += cantidadColWidth;
 
   doc.rect(x, currentY, comentariosColWidth, actaHeaderHeight).stroke();
-  doc.text('COMENTARIOS/OBSERVACIONES', x + 2, currentY + 5, {
+  doc.text('COMENTARIOS/OBSERVACIONES', x + 2, currentY + 4, {
     width: comentariosColWidth - 4,
     align: 'center',
   });
@@ -1281,16 +1281,16 @@ export function renderActaRecepcionUniformesSection(ctx: SectionRenderContext): 
       doc.fontSize(AGREEMENT_FONT.COLUMN_HEADER).font('Helvetica-Bold');
       x = xStart;
       doc.rect(x, currentY, tipoTallaColWidth, actaHeaderHeight).stroke();
-      doc.text('TIPO/TALLA', x + 2, currentY + 5, {
+      doc.text('TIPO/TALLA', x + 2, currentY + 4, {
         width: tipoTallaColWidth - 4,
         align: 'center',
       });
       x += tipoTallaColWidth;
       doc.rect(x, currentY, cantidadColWidth, actaHeaderHeight).stroke();
-      doc.text('CANTIDAD', x + 2, currentY + 5, { width: cantidadColWidth - 4, align: 'center' });
+      doc.text('CANTIDAD', x + 2, currentY + 4, { width: cantidadColWidth - 4, align: 'center' });
       x += cantidadColWidth;
       doc.rect(x, currentY, comentariosColWidth, actaHeaderHeight).stroke();
-      doc.text('COMENTARIOS/OBSERVACIONES', x + 2, currentY + 5, {
+      doc.text('COMENTARIOS/OBSERVACIONES', x + 2, currentY + 4, {
         width: comentariosColWidth - 4,
         align: 'center',
       });
@@ -1302,14 +1302,14 @@ export function renderActaRecepcionUniformesSection(ctx: SectionRenderContext): 
     x = xStart;
 
     doc.rect(x, currentY, tipoTallaColWidth, actaRowHeight).stroke();
-    doc.text(row.tipo_talla, x + 2, currentY + 2, {
+    doc.text(row.tipo_talla, x + 2, currentY + 1, {
       width: tipoTallaColWidth - 4,
       align: 'center',
     });
     x += tipoTallaColWidth;
 
     doc.rect(x, currentY, cantidadColWidth, actaRowHeight).stroke();
-    doc.text(row.cantidad.toString(), x + 2, currentY + 2, {
+    doc.text(row.cantidad.toString(), x + 2, currentY + 1, {
       width: cantidadColWidth - 4,
       align: 'center',
     });
@@ -1325,11 +1325,11 @@ export function renderActaRecepcionUniformesSection(ctx: SectionRenderContext): 
   x = xStart;
 
   doc.rect(x, currentY, tipoTallaColWidth, actaRowHeight).stroke();
-  doc.text('TOTAL', x + 2, currentY + 2, { width: tipoTallaColWidth - 4, align: 'center' });
+  doc.text('TOTAL', x + 2, currentY + 1, { width: tipoTallaColWidth - 4, align: 'center' });
   x += tipoTallaColWidth;
 
   doc.rect(x, currentY, cantidadColWidth, actaRowHeight).stroke();
-  doc.text(totalCantidad.toString(), x + 2, currentY + 2, {
+  doc.text(totalCantidad.toString(), x + 2, currentY + 1, {
     width: cantidadColWidth - 4,
     align: 'center',
   });
@@ -1391,7 +1391,7 @@ export function renderActaRecepcionCajasSection(ctx: SectionRenderContext): void
 
   // 2. Pre-table: DATOS DE LOS PRODUCTOS
   const actaXStart = 40;
-  doc.fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER).font('Helvetica-Bold');
+  doc.fontSize(AGREEMENT_FONT.COLUMN_HEADER).font('Helvetica-Bold');
   doc.text('DATOS DE LOS PRODUCTOS', actaXStart, doc.y, { align: 'left' });
   doc.moveDown(0.5);
 
@@ -1438,8 +1438,8 @@ export function renderActaRecepcionCajasSection(ctx: SectionRenderContext): void
   const gradoColWidth = 200;
   const cantidadColWidth = 80;
   const comentariosColWidth = doc.page.width - 60 - gradoColWidth - cantidadColWidth;
-  const actaHeaderHeight = 20;
-  const actaRowHeight = 14;
+  const actaHeaderHeight = 18;
+  const actaRowHeight = 12;
 
   const totalCantidad = cajasRows.reduce((sum, r) => sum + r.cantidad, 0);
 
