@@ -1,59 +1,23 @@
 import { NextResponse } from 'next/server';
-import ExcelJS from 'exceljs';
 import { supabaseServer } from '@/lib/supabase/server';
 import type { StudentQueryRow } from '@/types/database';
-import { groupBySchool } from '@/lib/pdf/agreement/sections';
-import { calculateCajasTotales } from '@/lib/pdf/agreement/builders';
+import {
+  generateCajasPivotExcel,
+  excelStoragePath,
+  EXCEL_FILENAMES,
+} from '@/lib/excel/generators';
 
-const FILENAME = 'Cajas_Acumulado_Editable.xlsx';
+const FILENAME = EXCEL_FILENAMES.cajasPivot;
 const PAGE_SIZE = 1000;
 const MAX_ROWS = 200000;
-
-/**
- * Compute per-grade cajas (hombres, mujeres, total) for a school.
- * Same logic as renderCajasSection in sections.ts:
- *   1. Group students by grado_ok
- *   2. Count hombres/mujeres per grade
- *   3. Apply Math.round(count * 1.05) per gender (0 students → 0 cajas)
- */
-function computeCajasPerGrade(
-  students: StudentQueryRow[]
-): Array<{ grado: string; hombres: number; mujeres: number; total: number }> {
-  const gradeMap = new Map<string, { hombres: number; mujeres: number }>();
-
-  for (const student of students) {
-    const grade = student.grado_ok || student.grado || 'N/A';
-    if (!gradeMap.has(grade)) {
-      gradeMap.set(grade, { hombres: 0, mujeres: 0 });
-    }
-    const counts = gradeMap.get(grade)!;
-    if (student.sexo === 'Hombre') {
-      counts.hombres++;
-    } else if (student.sexo === 'Mujer') {
-      counts.mujeres++;
-    }
-  }
-
-  const grades = Array.from(gradeMap.keys()).sort();
-
-  return grades.map(grade => {
-    const counts = gradeMap.get(grade)!;
-    const cajasHombres = counts.hombres === 0 ? 0 : Math.round(counts.hombres * 1.05);
-    const cajasMujeres = counts.mujeres === 0 ? 0 : Math.round(counts.mujeres * 1.05);
-    return {
-      grado: grade,
-      hombres: cajasHombres,
-      mujeres: cajasMujeres,
-      total: cajasHombres + cajasMujeres,
-    };
-  });
-}
 
 /**
  * GET /api/bulk/jobs/[jobId]/cajas-pivot-excel
  *
  * Returns an .xlsx with consolidated cajas data across all schools.
  * Columns: No, Codigo CE, Nombre CE, Departamento, Distrito, Grado, Cajas Hombres, Cajas Mujeres, Cajas Totales
+ *
+ * Serves from pre-generated storage if available; falls back to live generation.
  */
 export async function GET(_request: Request, { params }: { params: { jobId: string } }) {
   const reportJobId = params.jobId;
@@ -79,22 +43,9 @@ export async function GET(_request: Request, { params }: { params: { jobId: stri
       );
     }
 
-    const { data: schoolRows, error: schoolsError } = await supabaseServer
-      .from('report_category_tasks')
-      .select('school_codigo_ce')
-      .eq('job_id', reportJobId);
-
-    if (schoolsError) {
-      return NextResponse.json(
-        { error: `Failed to fetch schools: ${schoolsError.message}` },
-        { status: 500 }
-      );
-    }
-
-    const uniqueSchoolCodes = [...new Set((schoolRows ?? []).map(r => r.school_codigo_ce))];
-
-    if (uniqueSchoolCodes.length === 0) {
-      return NextResponse.json({ error: 'No schools found for this job' }, { status: 404 });
+    const storedBuffer = await tryDownloadFromStorage(reportJobId);
+    if (storedBuffer) {
+      return excelResponse(storedBuffer);
     }
 
     const allStudents = await fetchAllStudentsForDate(fechaInicio);
@@ -106,118 +57,40 @@ export async function GET(_request: Request, { params }: { params: { jobId: stri
       );
     }
 
-    const jobSchoolSet = new Set(uniqueSchoolCodes);
-    const filteredStudents = allStudents.filter(s => jobSchoolSet.has(s.school_codigo_ce));
+    const buffer = await generateCajasPivotExcel(allStudents);
 
-    if (filteredStudents.length === 0) {
-      return NextResponse.json(
-        { error: 'No students found for the schools in this job' },
-        { status: 404 }
-      );
-    }
+    uploadToStorage(reportJobId, buffer).catch(() => {});
 
-    const schools = groupBySchool(filteredStudents).sort(
-      (a, b) => calculateCajasTotales(b) - calculateCajasTotales(a)
-    );
-
-    // Build workbook
-    const workbook = new ExcelJS.Workbook();
-    const sheet = workbook.addWorksheet('Cajas_Consolidado', {
-      views: [{ state: 'frozen', ySplit: 1 }],
-    });
-
-    // Header row
-    const headerRow = sheet.getRow(1);
-    headerRow.values = [
-      'No',
-      'Codigo CE',
-      'Nombre CE',
-      'Departamento',
-      'Distrito',
-      'Grado',
-      'Cajas Hombres',
-      'Cajas Mujeres',
-      'Cajas Totales',
-    ];
-    headerRow.font = { bold: true };
-    headerRow.alignment = { horizontal: 'center' };
-
-    // Grand totals accumulators
-    let grandTotalH = 0;
-    let grandTotalM = 0;
-    let grandTotal = 0;
-
-    let rowIndex = 2;
-    let correlativo = 1;
-
-    for (const school of schools) {
-      const gradeRows = computeCajasPerGrade(school.students);
-
-      for (const gradeRow of gradeRows) {
-        const row = sheet.getRow(rowIndex);
-        row.values = [
-          correlativo,
-          school.codigo_ce,
-          school.nombre_ce,
-          school.departamento,
-          school.distrito,
-          gradeRow.grado,
-          gradeRow.hombres > 0 ? gradeRow.hombres : null,
-          gradeRow.mujeres > 0 ? gradeRow.mujeres : null,
-          gradeRow.total > 0 ? gradeRow.total : null,
-        ];
-
-        grandTotalH += gradeRow.hombres;
-        grandTotalM += gradeRow.mujeres;
-        grandTotal += gradeRow.total;
-
-        rowIndex++;
-        correlativo++;
-      }
-    }
-
-    // Grand total row
-    const totalRow = sheet.getRow(rowIndex);
-    totalRow.values = [
-      null,
-      null,
-      'Total general',
-      null,
-      null,
-      null,
-      grandTotalH > 0 ? grandTotalH : null,
-      grandTotalM > 0 ? grandTotalM : null,
-      grandTotal > 0 ? grandTotal : null,
-    ];
-    totalRow.font = { bold: true };
-
-    // Auto-width for columns
-    sheet.columns.forEach(column => {
-      if (column.values) {
-        let maxLength = 0;
-        column.values.forEach(val => {
-          if (val !== null && val !== undefined) {
-            const len = val.toString().length;
-            if (len > maxLength) maxLength = len;
-          }
-        });
-        column.width = Math.max(maxLength + 2, 8);
-      }
-    });
-
-    const buffer = await workbook.xlsx.writeBuffer();
-
-    return new Response(buffer, {
-      headers: {
-        'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'Content-Disposition': `attachment; filename="${FILENAME}"`,
-        'Cache-Control': 'no-store',
-      },
-    });
+    return excelResponse(buffer);
   } catch (error) {
     console.error('Error in cajas-pivot-excel:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
+}
+
+function excelResponse(buffer: Buffer) {
+  return new Response(new Uint8Array(buffer), {
+    headers: {
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': `attachment; filename="${FILENAME}"`,
+      'Cache-Control': 'no-store',
+    },
+  });
+}
+
+async function tryDownloadFromStorage(jobId: string): Promise<Buffer | null> {
+  const path = excelStoragePath(jobId, FILENAME);
+  const { data } = await supabaseServer.storage.from('reports').download(path);
+  if (!data) return null;
+  return Buffer.from(await data.arrayBuffer());
+}
+
+async function uploadToStorage(jobId: string, buffer: Buffer): Promise<void> {
+  const path = excelStoragePath(jobId, FILENAME);
+  await supabaseServer.storage.from('reports').upload(path, buffer, {
+    contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    upsert: true,
+  });
 }
 
 async function fetchAllStudentsForDate(fechaInicio: string): Promise<StudentQueryRow[]> {
@@ -234,15 +107,12 @@ async function fetchAllStudentsForDate(fechaInicio: string): Promise<StudentQuer
       p_offset: offset,
     });
 
-    if (error) {
-      throw new Error(`Failed to fetch students: ${error.message}`);
-    }
+    if (error) throw new Error(`Failed to fetch students: ${error.message}`);
 
     const rows = (data as StudentQueryRow[]) ?? [];
     if (rows.length === 0) break;
 
     all.push(...rows);
-
     if (all.length >= MAX_ROWS) break;
     if (rows.length < PAGE_SIZE) break;
 

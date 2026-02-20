@@ -8,6 +8,7 @@ import { nodeStreamToWebReadableStream } from '@/lib/pdf/streams';
 import type { Readable } from 'stream';
 import type { AgreementSectionType } from '@/lib/pdf/agreement/types';
 import type { StudentQueryRow } from '@/types/database';
+import { normalizeSchoolCode, resolveJobSchoolCodes } from '@/lib/reports/job-school-codes';
 
 const sectionSchema = z.object({
   type: z.enum([
@@ -82,14 +83,7 @@ export async function GET(request: NextRequest, { params }: { params: { jobId: s
       );
     }
 
-    const uniqueSchoolCodes = [...new Set((schoolRows ?? []).map(r => r.school_codigo_ce))];
-
-    if (uniqueSchoolCodes.length === 0) {
-      return NextResponse.json({ error: 'No schools found for this job' }, { status: 404 });
-    }
-
     // 3. Fetch all students for this fecha_inicio across all schools
-    //    query_students supports p_school_codigo_ce=null to return all schools for a date
     const allStudents = await fetchAllStudentsForDate(fechaInicio);
 
     if (allStudents.length === 0) {
@@ -99,9 +93,21 @@ export async function GET(request: NextRequest, { params }: { params: { jobId: s
       );
     }
 
-    // Filter to only schools that are part of this job
-    const jobSchoolSet = new Set(uniqueSchoolCodes);
-    const filteredStudents = allStudents.filter(s => jobSchoolSet.has(s.school_codigo_ce));
+    // Resolve school codes: prefer tasks, fall back to student dataset (legacy jobs)
+    const { codes: jobSchoolCodes } = resolveJobSchoolCodes({
+      taskSchoolCodes: (schoolRows ?? []).map(r => r.school_codigo_ce),
+      studentSchoolCodes: allStudents.map(s => s.school_codigo_ce),
+    });
+
+    if (jobSchoolCodes.length === 0) {
+      return NextResponse.json({ error: 'No schools found for this job' }, { status: 404 });
+    }
+
+    const jobSchoolSet = new Set(jobSchoolCodes);
+    const filteredStudents = allStudents.filter(s => {
+      const code = normalizeSchoolCode(s.school_codigo_ce);
+      return code ? jobSchoolSet.has(code) : false;
+    });
 
     if (filteredStudents.length === 0) {
       return NextResponse.json(

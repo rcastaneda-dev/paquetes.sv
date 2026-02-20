@@ -13,6 +13,7 @@ import type { StudentQueryRow } from '@/types/database';
 import { workerConfigSchema, authConfigSchema } from '@/lib/validation/schemas';
 import { validateEnv } from '@/lib/validation/helpers';
 import { createUnauthorizedResponse } from '@/lib/validation/errors';
+import { generateAllExcels, excelStoragePath } from '@/lib/excel/generators';
 
 /**
  * Worker endpoint that processes pending category report tasks in batches.
@@ -133,10 +134,13 @@ export async function POST(request: NextRequest) {
 
     const elapsed = Date.now() - startTime;
 
-    // Check if any jobs are now complete
+    // Check if any jobs are now complete; generate Excel consolidations for newly completed ones
     if (allJobIds.size > 0) {
       for (const jobId of allJobIds) {
-        await checkAndCompleteCategoryJob(jobId);
+        const completed = await checkAndCompleteCategoryJob(jobId);
+        if (completed) {
+          await generatePostCompletionExcels(jobId);
+        }
       }
     }
 
@@ -417,9 +421,8 @@ function toBuffer(streamLike: unknown): Promise<Buffer> {
   );
 }
 
-async function checkAndCompleteCategoryJob(jobId: string): Promise<void> {
+async function checkAndCompleteCategoryJob(jobId: string): Promise<boolean> {
   try {
-    // Check current job status first
     const { data: job, error: jobError } = await supabaseServer
       .from('report_jobs')
       .select('status')
@@ -427,36 +430,31 @@ async function checkAndCompleteCategoryJob(jobId: string): Promise<void> {
       .single();
 
     if (jobError || !job) {
-      return;
+      return false;
     }
 
-    // Don't override cancelled jobs
     if (job.status === 'cancelled') {
-      return;
+      return false;
     }
 
-    // Get job progress
     const { data: progressData } = await supabaseServer.rpc('get_category_job_progress', {
       p_job_id: jobId,
     });
 
     if (!progressData || progressData.length === 0) {
-      return;
+      return false;
     }
 
     const progress = progressData[0];
-
-    // Check if all tasks are done (complete, failed, or cancelled)
     const allDone = progress.pending_tasks === 0 && progress.running_tasks === 0;
 
     if (!allDone) {
-      return;
+      return false;
     }
 
-    // Update job status
     const newStatus = progress.failed_tasks > 0 ? 'failed' : 'complete';
 
-    await supabaseServer
+    const { error: updateError } = await supabaseServer
       .from('report_jobs')
       .update({
         status: newStatus,
@@ -464,9 +462,78 @@ async function checkAndCompleteCategoryJob(jobId: string): Promise<void> {
       })
       .eq('id', jobId)
       .eq('status', job.status);
+
+    return !updateError && newStatus === 'complete';
   } catch (error) {
     console.error(`Error checking category job completion for ${jobId}:`, error);
+    return false;
   }
+}
+
+/**
+ * After a job completes, fetch all students for its fecha_inicio and
+ * pre-generate all 5 consolidation Excel files into Supabase Storage.
+ */
+async function generatePostCompletionExcels(jobId: string): Promise<void> {
+  try {
+    const { data: reportJob } = await supabaseServer
+      .from('report_jobs')
+      .select('job_params')
+      .eq('id', jobId)
+      .single();
+
+    const fechaInicio = (reportJob?.job_params as { fecha_inicio?: string } | null)?.fecha_inicio;
+    if (!fechaInicio) return;
+
+    const allStudents = await fetchAllStudentsForDate(fechaInicio);
+    if (allStudents.length === 0) return;
+
+    const excels = await generateAllExcels(allStudents);
+
+    for (const { filename, buffer } of excels) {
+      const path = excelStoragePath(jobId, filename);
+      await supabaseServer.storage.from('reports').upload(path, buffer, {
+        contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        upsert: true,
+      });
+    }
+
+    console.log(`[post-completion] Generated ${excels.length} Excel files for job ${jobId}`);
+  } catch (error) {
+    console.error(`[post-completion] Failed to generate Excels for job ${jobId}:`, error);
+  }
+}
+
+const POST_COMPLETION_PAGE_SIZE = 1000;
+const POST_COMPLETION_MAX_ROWS = 200000;
+
+async function fetchAllStudentsForDate(fechaInicio: string): Promise<StudentQueryRow[]> {
+  let offset = 0;
+  const all: StudentQueryRow[] = [];
+
+  while (true) {
+    const { data, error } = await supabaseServer.rpc('query_students', {
+      p_school_codigo_ce: null,
+      p_grado: null,
+      p_departamento: null,
+      p_fecha_inicio: fechaInicio,
+      p_limit: POST_COMPLETION_PAGE_SIZE,
+      p_offset: offset,
+    });
+
+    if (error) throw new Error(`Failed to fetch students: ${error.message}`);
+
+    const rows = (data as StudentQueryRow[]) ?? [];
+    if (rows.length === 0) break;
+
+    all.push(...rows);
+    if (all.length >= POST_COMPLETION_MAX_ROWS) break;
+    if (rows.length < POST_COMPLETION_PAGE_SIZE) break;
+
+    offset += POST_COMPLETION_PAGE_SIZE;
+  }
+
+  return all;
 }
 
 // GET endpoint for health check

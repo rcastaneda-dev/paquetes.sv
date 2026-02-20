@@ -1,17 +1,13 @@
 import { NextResponse } from 'next/server';
-import ExcelJS from 'exceljs';
 import { supabaseServer } from '@/lib/supabase/server';
 import type { StudentQueryRow } from '@/types/database';
-import { groupBySchool } from '@/lib/pdf/agreement/sections';
 import {
-  calculateCajasTotales,
-  calculateUniformesTotalPiezas,
-  calculateZapatosTotalPiezas,
-} from '@/lib/pdf/agreement/builders';
+  generateConsolidadoExcel,
+  excelStoragePath,
+  EXCEL_FILENAMES,
+} from '@/lib/excel/generators';
 
-const FILENAME = 'consolidado_estudiantes.xlsx';
-
-/** PostgREST max-rows (Supabase default = 1000). Page in increments of 1000. */
+const FILENAME = EXCEL_FILENAMES.consolidado;
 const PAGE_SIZE = 1000;
 const MAX_ROWS = 200000;
 
@@ -20,7 +16,8 @@ const MAX_ROWS = 200000;
  *
  * Returns an .xlsx file with one row per school:
  * CODIGO, NOMBRE_CE, DEPARTAMENTO, DISTRITO, TOTAL DE UNIFORMES, TOTAL DE ZAPATOS, TOTAL DE CAJAS.
- * First row is header (bold, caps). No title or padding rows. Not part of ZIP bundle logic.
+ *
+ * Serves from pre-generated storage if available; falls back to live generation.
  */
 export async function GET(_request: Request, { params }: { params: { jobId: string } }) {
   const reportJobId = params.jobId;
@@ -46,24 +43,13 @@ export async function GET(_request: Request, { params }: { params: { jobId: stri
       );
     }
 
-    const { data: schoolRows, error: schoolsError } = await supabaseServer
-      .from('report_category_tasks')
-      .select('school_codigo_ce')
-      .eq('job_id', reportJobId);
-
-    if (schoolsError) {
-      return NextResponse.json(
-        { error: `Failed to fetch schools: ${schoolsError.message}` },
-        { status: 500 }
-      );
+    // Fast path: serve pre-generated file from storage
+    const storedBuffer = await tryDownloadFromStorage(reportJobId);
+    if (storedBuffer) {
+      return excelResponse(storedBuffer);
     }
 
-    const uniqueSchoolCodes = [...new Set((schoolRows ?? []).map(r => r.school_codigo_ce))];
-
-    if (uniqueSchoolCodes.length === 0) {
-      return NextResponse.json({ error: 'No schools found for this job' }, { status: 404 });
-    }
-
+    // Fallback: live generation
     const allStudents = await fetchAllStudentsForDate(fechaInicio);
 
     if (allStudents.length === 0) {
@@ -73,69 +59,41 @@ export async function GET(_request: Request, { params }: { params: { jobId: stri
       );
     }
 
-    const jobSchoolSet = new Set(uniqueSchoolCodes);
-    const filteredStudents = allStudents.filter(s => jobSchoolSet.has(s.school_codigo_ce));
+    const buffer = await generateConsolidadoExcel(allStudents);
 
-    if (filteredStudents.length === 0) {
-      return NextResponse.json(
-        { error: 'No students found for the schools in this job' },
-        { status: 404 }
-      );
-    }
+    // Fire-and-forget upload for next time
+    uploadToStorage(reportJobId, buffer).catch(() => {});
 
-    const schools = groupBySchool(filteredStudents).sort(
-      (a, b) => calculateUniformesTotalPiezas(b) - calculateUniformesTotalPiezas(a)
-    );
-
-    const workbook = new ExcelJS.Workbook();
-    const sheet = workbook.addWorksheet('Consolidado', { views: [{ state: 'frozen', ySplit: 1 }] });
-
-    const headerRow = sheet.getRow(1);
-    headerRow.values = [
-      'CODIGO',
-      'NOMBRE_CE',
-      'DEPARTAMENTO',
-      'DISTRITO',
-      'TOTAL DE UNIFORMES',
-      'TOTAL DE ZAPATOS',
-      'TOTAL DE CAJAS',
-    ];
-    headerRow.font = { bold: true };
-    headerRow.alignment = { horizontal: 'left' };
-
-    let rowIndex = 2;
-    for (const school of schools) {
-      const totalZapatos = calculateZapatosTotalPiezas(school);
-      const totalUniformes = calculateUniformesTotalPiezas(school);
-      const totalCajas = calculateCajasTotales(school);
-
-      const row = sheet.getRow(rowIndex);
-      row.values = [
-        school.codigo_ce,
-        school.nombre_ce,
-        school.departamento,
-        school.distrito,
-        totalUniformes,
-        totalZapatos,
-        totalCajas,
-      ];
-      row.font = { bold: false };
-      rowIndex++;
-    }
-
-    const buffer = await workbook.xlsx.writeBuffer();
-
-    return new Response(buffer, {
-      headers: {
-        'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'Content-Disposition': `attachment; filename="${FILENAME}"`,
-        'Cache-Control': 'no-store',
-      },
-    });
+    return excelResponse(buffer);
   } catch (error) {
     console.error('Error in consolidado-excel:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
+}
+
+function excelResponse(buffer: Buffer) {
+  return new Response(new Uint8Array(buffer), {
+    headers: {
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': `attachment; filename="${FILENAME}"`,
+      'Cache-Control': 'no-store',
+    },
+  });
+}
+
+async function tryDownloadFromStorage(jobId: string): Promise<Buffer | null> {
+  const path = excelStoragePath(jobId, FILENAME);
+  const { data } = await supabaseServer.storage.from('reports').download(path);
+  if (!data) return null;
+  return Buffer.from(await data.arrayBuffer());
+}
+
+async function uploadToStorage(jobId: string, buffer: Buffer): Promise<void> {
+  const path = excelStoragePath(jobId, FILENAME);
+  await supabaseServer.storage.from('reports').upload(path, buffer, {
+    contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    upsert: true,
+  });
 }
 
 async function fetchAllStudentsForDate(fechaInicio: string): Promise<StudentQueryRow[]> {
