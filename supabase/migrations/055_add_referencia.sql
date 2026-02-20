@@ -23,7 +23,7 @@ BEGIN
     )
     SELECT DISTINCT ON (trim("CODIGO"))
         trim("CODIGO"),
-        trim("NOMBRE DE CENTRO ESCOLAR"),
+        COALESCE(NULLIF(trim("NOMBRE DE CENTRO ESCOLAR"), ''), ''),
         COALESCE(NULLIF(trim("DEPARTAMENTO"), ''), ''),
         '',
         COALESCE(NULLIF(trim("DISTRITO"), ''), ''),
