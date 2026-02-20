@@ -13,10 +13,28 @@ ALTER TABLE public.school_demand ADD COLUMN IF NOT EXISTS referencia TEXT DEFAUL
 CREATE OR REPLACE FUNCTION migrate_demand_staging_data()
 RETURNS json AS $$
 BEGIN
-    -- Clear existing demand data only
+    -- Clear existing demand data
     TRUNCATE public.school_demand RESTART IDENTITY;
 
-    -- Upsert schools from staging (unchanged)
+    -- Remove stale schools and their dependents not in current staging data
+    DELETE FROM public.report_category_tasks
+    WHERE school_codigo_ce NOT IN (
+        SELECT DISTINCT trim("CODIGO") FROM public.staging_demand_raw
+        WHERE NULLIF(trim("CODIGO"), '') IS NOT NULL
+    );
+    DELETE FROM public.students
+    WHERE school_codigo_ce NOT IN (
+        SELECT DISTINCT trim("CODIGO") FROM public.staging_demand_raw
+        WHERE NULLIF(trim("CODIGO"), '') IS NOT NULL
+    );
+    -- report_tasks cascades via ON DELETE CASCADE
+    DELETE FROM public.schools
+    WHERE codigo_ce NOT IN (
+        SELECT DISTINCT trim("CODIGO") FROM public.staging_demand_raw
+        WHERE NULLIF(trim("CODIGO"), '') IS NOT NULL
+    );
+
+    -- Upsert schools from staging
     INSERT INTO public.schools (
         codigo_ce, nombre_ce, departamento, municipio, distrito,
         direccion, zona, fecha_inicio, transporte
