@@ -168,6 +168,7 @@ export async function generateConsolidadoDemandExcelV2(demandRows: DemandRow[]):
     'TIPO_PRENDA',
     'TALLA',
     'CANTIDAD',
+    'REFERENCIA',
   ];
   headerRow.font = { bold: true };
   headerRow.alignment = { horizontal: 'center' };
@@ -186,6 +187,7 @@ export async function generateConsolidadoDemandExcelV2(demandRows: DemandRow[]):
       r.tipo,
       r.categoria,
       r.cantidad,
+      r.referencia,
     ];
     correlativo++;
     rowIndex++;
@@ -202,6 +204,7 @@ export async function generateConsolidadoDemandExcelV2(demandRows: DemandRow[]):
       'CAJAS',
       r.categoria,
       r.cantidad,
+      r.referencia,
     ];
     correlativo++;
     rowIndex++;
