@@ -93,10 +93,23 @@ function formatOverlayCode(
 }
 
 /**
+ * Ref field to use from SchoolGroup for each section type.
+ * Falls back to auto-generated overlay code when the ref is empty.
+ */
+const REF_FIELD_BY_SECTION: Record<AgreementSectionType, 'ref_kits' | 'ref_uniformes' | 'ref_zapatos'> = {
+  cajas: 'ref_kits',
+  acta_recepcion_cajas: 'ref_kits',
+  ficha_uniformes: 'ref_uniformes',
+  acta_recepcion_uniformes: 'ref_uniformes',
+  ficha_zapatos: 'ref_zapatos',
+  acta_recepcion_zapatos: 'ref_zapatos',
+};
+
+/**
  * Single switchToPage pass: stamps comanda codes (top-left) AND page numbers
  * (bottom-center) on every buffered page.
  */
-function stampPageOverlays(doc: PDFDocumentInstance, comandaCodes: string[]): void {
+export function stampPageOverlays(doc: PDFDocumentInstance, comandaCodes: string[]): void {
   const range = doc.bufferedPageRange();
   for (let i = range.start; i < range.start + range.count; i++) {
     doc.switchToPage(i);
@@ -330,6 +343,7 @@ export function buildConsolidatedPdf(options: {
 
   const doc = new PDFDocument({ ...pageOptions, bufferPages: true }) as PDFDocumentInstance;
   const prefix = OVERLAY_CODE_PREFIX[section];
+  const refField = REF_FIELD_BY_SECTION[section];
   const pageCodes: string[] = [];
 
   for (let i = 0; i < sortedSchools.length; i++) {
@@ -344,8 +358,10 @@ export function buildConsolidatedPdf(options: {
 
     const pagesAfter = doc.bufferedPageRange().count;
     const pagesForSchool = i === 0 ? pagesAfter : pagesAfter - pagesBefore;
+    // Use the CSV-provided ref code if available, otherwise fall back to auto-generated code
+    const schoolRef = sortedSchools[i][refField];
     for (let p = 1; p <= pagesForSchool; p++) {
-      pageCodes.push(formatOverlayCode(prefix, fechaInicio, i, p));
+      pageCodes.push(schoolRef || formatOverlayCode(prefix, fechaInicio, i, p));
     }
   }
 

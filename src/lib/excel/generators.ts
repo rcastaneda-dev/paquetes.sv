@@ -177,6 +177,9 @@ export async function generateConsolidadoExcel(students: StudentQueryRow[]): Pro
     'TOTAL DE UNIFORMES',
     'TOTAL DE ZAPATOS',
     'TOTAL DE CAJAS',
+    'REF_KITS',
+    'REF_UNIFORMES',
+    'REF_ZAPATOS',
   ];
   headerRow.font = { bold: true };
   headerRow.alignment = { horizontal: 'left' };
@@ -192,6 +195,9 @@ export async function generateConsolidadoExcel(students: StudentQueryRow[]): Pro
       calculateUniformesTotalPiezas(school),
       calculateZapatosTotalPiezas(school),
       calculateCajasTotales(school),
+      school.ref_kits,
+      school.ref_uniformes,
+      school.ref_zapatos,
     ];
     row.font = { bold: false };
     rowIndex++;

@@ -41,6 +41,9 @@ function makeStudent(overrides: Partial<StudentQueryRow> = {}): StudentQueryRow 
     t_pantalon_falda_short: '',
     zapato: '',
     total_count: 1,
+    ref_kits: '',
+    ref_uniformes: '',
+    ref_zapatos: '',
     ...overrides,
   };
 }
@@ -58,6 +61,9 @@ function makeSchool(
     distrito: students[0]?.distrito ?? 'SAN SALVADOR',
     zona: students[0]?.zona ?? 'URBANA',
     transporte: students[0]?.transporte ?? 'NO',
+    ref_kits: '',
+    ref_uniformes: '',
+    ref_zapatos: '',
     students,
   };
 }

@@ -98,6 +98,9 @@ export interface StudentQueryRow {
   t_pantalon_falda_short: string;
   zapato: string;
   total_count: number;
+  ref_kits: string;
+  ref_uniformes: string;
+  ref_zapatos: string;
 }
 
 export interface SchoolSearchResult {

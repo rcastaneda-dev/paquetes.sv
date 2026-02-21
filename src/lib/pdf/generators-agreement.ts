@@ -7,13 +7,12 @@
  */
 import PDFDocument from 'pdfkit';
 import type { StudentQueryRow } from '@/types/database';
-import { addPageNumbers } from './page-numbers';
 import {
   computeFinalCount,
   getRestrictedSizeOrder,
   computeClothingExtra,
 } from '@/lib/reports/vacios';
-import { buildConsolidatedPdf } from './agreement/builders';
+import { buildConsolidatedPdf, stampPageOverlays } from './agreement/builders';
 import {
   addLogoToPage,
   formatDateForTitle,
@@ -147,6 +146,7 @@ export function generateCamisasPDF(options: AgreementReportOptions): PDFDocument
   const totalColWidth = 50;
   const tipoColWidth = availableWidth - sizes.length * sizeColWidth - totalColWidth;
   const headerHeight = 25;
+  const pageCodes: string[] = [];
 
   for (let s = 0; s < schools.length; s++) {
     const school = schools[s];
@@ -154,6 +154,7 @@ export function generateCamisasPDF(options: AgreementReportOptions): PDFDocument
     if (s > 0) {
       doc.addPage();
     }
+    pageCodes.push(school.ref_uniformes || '');
 
     addLogoToPage(doc, doc.page.width);
     doc.fontSize(AGREEMENT_FONT.TITLE).font('Helvetica-Bold').text(title, { align: 'center' });
@@ -321,7 +322,7 @@ export function generateCamisasPDF(options: AgreementReportOptions): PDFDocument
     currentY += summaryRowHeight;
   }
 
-  addPageNumbers(doc);
+  stampPageOverlays(doc, pageCodes);
   doc.end();
   return doc;
 }
@@ -356,6 +357,7 @@ export function generatePantalonesPDF(options: AgreementReportOptions): PDFDocum
   const totalColWidth = 50;
   const tipoPrendaColWidth = availableWidth - sizes.length * sizeColWidth - totalColWidth;
   const headerHeight = 25;
+  const pageCodes: string[] = [];
 
   for (let s = 0; s < schools.length; s++) {
     const school = schools[s];
@@ -363,6 +365,7 @@ export function generatePantalonesPDF(options: AgreementReportOptions): PDFDocum
     if (s > 0) {
       doc.addPage();
     }
+    pageCodes.push(school.ref_uniformes || '');
 
     addLogoToPage(doc, doc.page.width);
     doc.fontSize(AGREEMENT_FONT.TITLE).font('Helvetica-Bold').text(title, { align: 'center' });
@@ -530,7 +533,7 @@ export function generatePantalonesPDF(options: AgreementReportOptions): PDFDocum
     currentY += summaryRowHeight;
   }
 
-  addPageNumbers(doc);
+  stampPageOverlays(doc, pageCodes);
   doc.end();
   return doc;
 }
@@ -568,6 +571,7 @@ export function generateZapatosPDF(options: AgreementReportOptions): PDFDocument
   const totalColWidth = 40;
   const sexoColWidth = availableWidth - sizes.length * sizeColWidth - totalColWidth;
   const headerHeight = 26;
+  const pageCodes: string[] = [];
 
   for (let s = 0; s < schools.length; s++) {
     const school = schools[s];
@@ -575,6 +579,7 @@ export function generateZapatosPDF(options: AgreementReportOptions): PDFDocument
     if (s > 0) {
       doc.addPage();
     }
+    pageCodes.push(school.ref_zapatos || '');
 
     addLogoToPage(doc, doc.page.width);
     doc.fontSize(AGREEMENT_FONT.TITLE).font('Helvetica-Bold').text(title, { align: 'center' });
@@ -728,7 +733,7 @@ export function generateZapatosPDF(options: AgreementReportOptions): PDFDocument
     currentY += summaryRowHeight;
   }
 
-  addPageNumbers(doc);
+  stampPageOverlays(doc, pageCodes);
   doc.end();
   return doc;
 }
@@ -783,8 +788,11 @@ export function generateDayZapatosPDF(options: AgreementReportOptions): PDFDocum
     return calculateTotal(b) - calculateTotal(a);
   });
 
+  const pageCodes: string[] = [];
+
   for (let s = 0; s < schools.length; s++) {
     const school = schools[s];
+    const pagesBefore = doc.bufferedPageRange().count;
 
     if (s > 0) {
       doc.addPage();
@@ -919,9 +927,16 @@ export function generateDayZapatosPDF(options: AgreementReportOptions): PDFDocum
     currentY += 10;
     doc.font('Helvetica-Bold').fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER);
     doc.text(`TOTAL PIEZAS: ${totalPiezas}`, xStart, currentY, { align: 'left' });
+
+    // Track ref codes for all pages rendered by this school
+    const pagesAfter = doc.bufferedPageRange().count;
+    const pagesForSchool = s === 0 ? pagesAfter : pagesAfter - pagesBefore;
+    for (let p = 0; p < pagesForSchool; p++) {
+      pageCodes.push(school.ref_zapatos || '');
+    }
   }
 
-  addPageNumbers(doc);
+  stampPageOverlays(doc, pageCodes);
   doc.end();
   return doc;
 }
@@ -1056,8 +1071,11 @@ export function generateDayUniformesPDF(options: AgreementReportOptions): PDFDoc
     return calculateTotal(b) - calculateTotal(a);
   });
 
+  const pageCodes: string[] = [];
+
   for (let s = 0; s < schools.length; s++) {
     const school = schools[s];
+    const pagesBefore = doc.bufferedPageRange().count;
 
     if (s > 0) {
       doc.addPage();
@@ -1261,9 +1279,16 @@ export function generateDayUniformesPDF(options: AgreementReportOptions): PDFDoc
     currentY += 10;
     doc.font('Helvetica-Bold').fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER);
     doc.text(`TOTAL PIEZAS: ${totalPiezas}`, xStart, currentY, { align: 'left' });
+
+    // Track ref codes for all pages rendered by this school
+    const pagesAfter = doc.bufferedPageRange().count;
+    const pagesForSchool = s === 0 ? pagesAfter : pagesAfter - pagesBefore;
+    for (let p = 0; p < pagesForSchool; p++) {
+      pageCodes.push(school.ref_uniformes || '');
+    }
   }
 
-  addPageNumbers(doc);
+  stampPageOverlays(doc, pageCodes);
   doc.end();
   return doc;
 }

@@ -193,7 +193,11 @@ export default function StagingPage() {
           />
 
           <div className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-200">
-            <strong>Formato esperado:</strong> CSV con 21 columnas ({REQUIRED_COLUMNS.join(', ')}).
+            <strong>Formato esperado:</strong> CSV con 21 columnas requeridas ({REQUIRED_COLUMNS.join(', ')}).
+            <br />
+            <span className="text-blue-600 dark:text-blue-300">
+              Columnas opcionales: REF_KITS, REF_UNIFORMES, REF_ZAPATOS
+            </span>
           </div>
 
           <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">

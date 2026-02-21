@@ -24,6 +24,9 @@ export interface SchoolGroup {
   distrito: string;
   zona: string;
   transporte: string;
+  ref_kits: string;
+  ref_uniformes: string;
+  ref_zapatos: string;
   students: StudentQueryRow[];
 }
 

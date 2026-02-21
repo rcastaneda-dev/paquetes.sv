@@ -156,6 +156,9 @@ export function groupBySchool(students: StudentQueryRow[]): SchoolGroup[] {
         distrito: student.distrito,
         zona: student.zona,
         transporte: student.transporte,
+        ref_kits: student.ref_kits ?? '',
+        ref_uniformes: student.ref_uniformes ?? '',
+        ref_zapatos: student.ref_zapatos ?? '',
         students: [],
       });
     }

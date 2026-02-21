@@ -21,13 +21,16 @@ test.describe('Estudiantes Upload Flow', { tag: '@estudiantes' }, () => {
   );
 
   test(
-    'shows format banner with all 21 column names',
+    'shows format banner with required and optional column info',
     { tag: ['@ui', '@smoke'] },
     async ({ stagingPage }) => {
       await expect(stagingPage.formatBanner).toBeVisible();
-      await expect(stagingPage.formatBanner).toContainText('CSV con 21 columnas');
+      await expect(stagingPage.formatBanner).toContainText('21 columnas requeridas');
       await expect(stagingPage.formatBanner).toContainText('CODIGO_CE');
       await expect(stagingPage.formatBanner).toContainText('TRANSPORTE');
+      await expect(stagingPage.formatBanner).toContainText('REF_KITS');
+      await expect(stagingPage.formatBanner).toContainText('REF_UNIFORMES');
+      await expect(stagingPage.formatBanner).toContainText('REF_ZAPATOS');
     }
   );
 
