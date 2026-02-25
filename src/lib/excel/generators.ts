@@ -12,7 +12,7 @@ import {
   calculateUniformesTotalPiezas,
   calculateZapatosTotalPiezas,
 } from '@/lib/pdf/agreement/builders';
-import { buildConsolidadoFlatRows } from '@/lib/reports/editable-v2';
+import { buildConsolidadoFlatRows, buildPrendasCajasFlatRows } from '@/lib/reports/editable-v2';
 import {
   CLOTHING_SIZE_ORDER,
   computeClothingExtra,
@@ -30,6 +30,7 @@ export const EXCEL_FILENAMES = {
   consolidadoPivot: 'Consolidado_Pivot_Uniformes.xlsx',
   zapatosPivot: 'Zapatos_Acumulado_Editable.xlsx',
   cajasPivot: 'Cajas_Acumulado_Editable.xlsx',
+  consolidadoPrendasCajas: 'Consolidado_Prendas_Cajas.xlsx',
 } as const;
 
 export type ExcelType = keyof typeof EXCEL_FILENAMES;
@@ -481,6 +482,61 @@ export async function generateCajasPivotExcel(students: StudentQueryRow[]): Prom
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Generator 6: Consolidado Prendas + Cajas (mirrors demand module's V2)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function generateConsolidadoPrendasCajasExcel(
+  students: StudentQueryRow[]
+): Promise<Buffer> {
+  const schools = groupBySchool(students).sort(
+    (a, b) => calculateUniformesTotalPiezas(b) - calculateUniformesTotalPiezas(a)
+  );
+
+  const flatRows = buildPrendasCajasFlatRows(schools);
+
+  const workbook = new ExcelJS.Workbook();
+  const sheet = workbook.addWorksheet('Consolidado_Prendas_Cajas', {
+    views: [{ state: 'frozen', ySplit: 1 }],
+  });
+
+  const headerRow = sheet.getRow(1);
+  headerRow.values = [
+    'CORRELATIVO',
+    'CODIGO_CE',
+    'NOMBRE_CE',
+    'DEPARTAMENTO',
+    'DISTRITO',
+    'TIPO_PRENDA',
+    'TALLA',
+    'CANTIDAD',
+    'REFERENCIA',
+    'FECHA_INICIO',
+  ];
+  headerRow.font = { bold: true };
+  headerRow.alignment = { horizontal: 'center' };
+
+  for (let i = 0; i < flatRows.length; i++) {
+    const r = flatRows[i];
+    const row = sheet.getRow(i + 2);
+    row.values = [
+      r.correlativo,
+      r.codigo_ce,
+      r.nombre_ce,
+      r.departamento,
+      r.distrito,
+      r.tipo_prenda,
+      r.talla,
+      r.cantidad,
+      r.referencia,
+      r.fecha_inicio,
+    ];
+  }
+
+  autoWidthColumns(sheet);
+  return Buffer.from(await workbook.xlsx.writeBuffer());
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Batch generator
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -499,6 +555,10 @@ export async function generateAllExcels(students: StudentQueryRow[]): Promise<Ge
     { filename: EXCEL_FILENAMES.consolidadoPivot, generate: generateConsolidadoPivotExcel },
     { filename: EXCEL_FILENAMES.zapatosPivot, generate: generateZapatosPivotExcel },
     { filename: EXCEL_FILENAMES.cajasPivot, generate: generateCajasPivotExcel },
+    {
+      filename: EXCEL_FILENAMES.consolidadoPrendasCajas,
+      generate: generateConsolidadoPrendasCajasExcel,
+    },
   ];
 
   const results: GeneratedExcel[] = [];

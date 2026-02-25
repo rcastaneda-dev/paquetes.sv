@@ -169,6 +169,7 @@ export async function generateConsolidadoDemandExcelV2(demandRows: DemandRow[]):
     'TALLA',
     'CANTIDAD',
     'REFERENCIA',
+    'FECHA_INICIO',
   ];
   headerRow.font = { bold: true };
   headerRow.alignment = { horizontal: 'center' };
@@ -188,6 +189,7 @@ export async function generateConsolidadoDemandExcelV2(demandRows: DemandRow[]):
       r.categoria,
       r.cantidad,
       r.referencia,
+      r.fecha_inicio,
     ];
     correlativo++;
     rowIndex++;
@@ -205,6 +207,7 @@ export async function generateConsolidadoDemandExcelV2(demandRows: DemandRow[]):
       r.categoria,
       r.cantidad,
       r.referencia,
+      r.fecha_inicio,
     ];
     correlativo++;
     rowIndex++;
