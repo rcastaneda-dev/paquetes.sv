@@ -200,3 +200,100 @@ export function buildConsolidadoFlatRows(schools: SchoolGroup[]): FlatRow[] {
 
   return combined;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Prendas + Cajas combined (mirrors demand module's Consolidado V2)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface FlatRowWithRef extends FlatRow {
+  referencia: string;
+  fecha_inicio: string;
+}
+
+/**
+ * Build flat rows for cajas (one row per school/grade) with 5% buffer.
+ */
+export function buildCajasFlatRows(schools: SchoolGroup[]): FlatRowWithRef[] {
+  const rows: FlatRowWithRef[] = [];
+  let correlativo = 1;
+
+  for (const school of schools) {
+    const fechaInicio = school.students[0]?.fecha_inicio ?? '';
+    const gradeMap = new Map<string, { hombres: number; mujeres: number }>();
+
+    for (const student of school.students) {
+      const grade = student.grado_ok || student.grado || 'N/A';
+      if (!gradeMap.has(grade)) {
+        gradeMap.set(grade, { hombres: 0, mujeres: 0 });
+      }
+      const counts = gradeMap.get(grade)!;
+      if (student.sexo === 'Hombre') counts.hombres++;
+      else if (student.sexo === 'Mujer') counts.mujeres++;
+    }
+
+    const grades = Array.from(gradeMap.keys()).sort();
+    for (const grade of grades) {
+      const counts = gradeMap.get(grade)!;
+      const cajasH = counts.hombres === 0 ? 0 : Math.round(counts.hombres * 1.05);
+      const cajasM = counts.mujeres === 0 ? 0 : Math.round(counts.mujeres * 1.05);
+      const total = cajasH + cajasM;
+
+      if (total > 0) {
+        rows.push({
+          correlativo: correlativo++,
+          codigo_ce: school.codigo_ce,
+          nombre_ce: school.nombre_ce,
+          departamento: school.departamento,
+          distrito: school.distrito,
+          tipo_prenda: 'CAJAS',
+          talla: grade,
+          cantidad: total,
+          referencia: school.ref_kits,
+          fecha_inicio: fechaInicio,
+        });
+      }
+    }
+  }
+
+  return rows;
+}
+
+/**
+ * Build combined Prendas + Cajas flat rows: uniformes, then zapatos, then cajas.
+ * Each section carries the appropriate school-level REFERENCIA and FECHA_INICIO.
+ * CORRELATIVO is continuous across all sections.
+ */
+export function buildPrendasCajasFlatRows(schools: SchoolGroup[]): FlatRowWithRef[] {
+  const schoolMeta = new Map(
+    schools.map(s => [
+      s.codigo_ce,
+      {
+        ref_uniformes: s.ref_uniformes,
+        ref_zapatos: s.ref_zapatos,
+        fecha_inicio: s.students[0]?.fecha_inicio ?? '',
+      },
+    ])
+  );
+
+  const uniformRows: FlatRowWithRef[] = buildUniformesFlatRows(schools).map(r => ({
+    ...r,
+    referencia: schoolMeta.get(r.codigo_ce)?.ref_uniformes ?? '',
+    fecha_inicio: schoolMeta.get(r.codigo_ce)?.fecha_inicio ?? '',
+  }));
+
+  const zapatoRows: FlatRowWithRef[] = buildZapatosFlatRows(schools).map(r => ({
+    ...r,
+    referencia: schoolMeta.get(r.codigo_ce)?.ref_zapatos ?? '',
+    fecha_inicio: schoolMeta.get(r.codigo_ce)?.fecha_inicio ?? '',
+  }));
+
+  const cajasRows = buildCajasFlatRows(schools);
+
+  const combined = [...uniformRows, ...zapatoRows, ...cajasRows];
+
+  for (let i = 0; i < combined.length; i++) {
+    combined[i].correlativo = i + 1;
+  }
+
+  return combined;
+}

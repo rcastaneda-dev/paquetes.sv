@@ -59,6 +59,7 @@ export default function JobDetailPage() {
   const [downloadingZapatosPivotExcel, setDownloadingZapatosPivotExcel] = useState(false);
   const [downloadingPivotExcelV2, setDownloadingPivotExcelV2] = useState(false);
   const [downloadingCajasExcel, setDownloadingCajasExcel] = useState(false);
+  const [downloadingPrendasCajasExcel, setDownloadingPrendasCajasExcel] = useState(false);
   const [schoolBundleLoading, setSchoolBundleLoading] = useState(false);
   const [schoolBundleStatus, setSchoolBundleStatus] = useState<{
     status: 'queued' | 'processing' | 'complete' | 'failed';
@@ -408,6 +409,35 @@ export default function JobDetailPage() {
       alert('Error al descargar Cajas Acumulado Editable');
     } finally {
       setDownloadingCajasExcel(false);
+    }
+  };
+
+  const handleDownloadPrendasCajasExcel = async () => {
+    try {
+      setDownloadingPrendasCajasExcel(true);
+
+      const response = await fetch(`/api/bulk/jobs/${jobId}/consolidado-prendas-cajas-excel`);
+
+      if (!response.ok) {
+        const data = await response.json();
+        alert(`Error: ${data.error || 'Error al generar Consolidado Excel (Prendas+Cajas)'}`);
+        return;
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'Consolidado_Prendas_Cajas.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Error downloading Consolidado Excel (Prendas+Cajas):', error);
+      alert('Error al descargar Consolidado Excel (Prendas+Cajas)');
+    } finally {
+      setDownloadingPrendasCajasExcel(false);
     }
   };
 
@@ -872,6 +902,19 @@ export default function JobDetailPage() {
                   <span className="text-lg font-semibold">Cajas Acumulado Editable</span>
                   <span className="text-xs text-muted-foreground">
                     {downloadingCajasExcel ? 'Generando Excel...' : 'Descargar .xlsx'}
+                  </span>
+                </Button>
+                <Button
+                  onClick={handleDownloadPrendasCajasExcel}
+                  disabled={downloadingPrendasCajasExcel}
+                  variant="outline"
+                  className="h-auto flex-col items-start p-4"
+                >
+                  <span className="text-lg font-semibold">
+                    Consolidado Excel (Prendas+Cajas)
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {downloadingPrendasCajasExcel ? 'Generando Excel...' : 'Descargar .xlsx'}
                   </span>
                 </Button>
               </div>
