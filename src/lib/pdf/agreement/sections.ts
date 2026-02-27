@@ -221,11 +221,11 @@ export function drawTransportFooter(doc: PDFDocumentInstance, xStart: number): v
   const colWidth = (availableWidth - colGap) / 2;
   const leftX = xStart;
   const rightX = xStart + colWidth + colGap;
-  const lineSpacing = 25;
+  const lineSpacing = 22;
 
   doc.fontSize(AGREEMENT_FONT.COLUMN_HEADER).font('Helvetica-Bold');
   doc.text('DATOS DEL TRANSPORTE', leftX, doc.y, { align: 'left' });
-  let currentY = doc.y + 10;
+  let currentY = doc.y + 8;
 
   doc.fontSize(AGREEMENT_FONT.BODY).font('Helvetica');
   const underscoreW = doc.widthOfString('_');
