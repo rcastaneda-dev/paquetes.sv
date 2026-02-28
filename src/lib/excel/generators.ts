@@ -166,8 +166,6 @@ export async function generateConsolidadoExcel(students: StudentQueryRow[]): Pro
     (a, b) => calculateUniformesTotalPiezas(b) - calculateUniformesTotalPiezas(a)
   );
 
-  const generatedAt = new Date().toISOString();
-
   const workbook = new ExcelJS.Workbook();
   const sheet = workbook.addWorksheet('Consolidado', { views: [{ state: 'frozen', ySplit: 1 }] });
 
@@ -177,7 +175,6 @@ export async function generateConsolidadoExcel(students: StudentQueryRow[]): Pro
     'NOMBRE_CE',
     'DEPARTAMENTO',
     'DISTRITO',
-    'TOTAL_ESTUDIANTES',
     'TOTAL DE UNIFORMES',
     'TOTAL DE ZAPATOS',
     'TOTAL DE CAJAS',
@@ -189,67 +186,24 @@ export async function generateConsolidadoExcel(students: StudentQueryRow[]): Pro
   headerRow.alignment = { horizontal: 'left' };
 
   let rowIndex = 2;
-  let grandStudents = 0;
-  let grandUniformes = 0;
-  let grandZapatos = 0;
-  let grandCajas = 0;
 
   for (const school of schools) {
-    const uniformes = calculateUniformesTotalPiezas(school);
-    const zapatos = calculateZapatosTotalPiezas(school);
-    const cajas = calculateCajasTotales(school);
-
     const row = sheet.getRow(rowIndex);
     row.values = [
       school.codigo_ce,
       school.nombre_ce,
       school.departamento,
       school.distrito,
-      school.students.length,
-      uniformes,
-      zapatos,
-      cajas,
+      calculateUniformesTotalPiezas(school),
+      calculateZapatosTotalPiezas(school),
+      calculateCajasTotales(school),
       school.ref_kits,
       school.ref_uniformes,
       school.ref_zapatos,
     ];
     row.font = { bold: false };
-
-    grandStudents += school.students.length;
-    grandUniformes += uniformes;
-    grandZapatos += zapatos;
-    grandCajas += cajas;
     rowIndex++;
   }
-
-  // Summary row
-  const totalRow = sheet.getRow(rowIndex);
-  totalRow.values = [
-    'TOTAL',
-    '',
-    '',
-    '',
-    grandStudents,
-    grandUniformes,
-    grandZapatos,
-    grandCajas,
-  ];
-  totalRow.font = { bold: true };
-  rowIndex++;
-
-  // Generation metadata — helps detect data drift between reports
-  const metaRow = sheet.getRow(rowIndex + 1);
-  metaRow.values = [
-    `Generado: ${generatedAt}`,
-    '',
-    '',
-    '',
-    `${schools.length} centros educativos`,
-    '',
-    '',
-    `${students.length} registros`,
-  ];
-  metaRow.font = { italic: true, color: { argb: 'FF888888' } };
 
   autoWidthColumns(sheet);
   return Buffer.from(await workbook.xlsx.writeBuffer());
