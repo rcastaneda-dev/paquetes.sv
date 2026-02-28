@@ -25,6 +25,7 @@ import {
   TableLayoutType,
 } from 'docx';
 import type { DemandRow, SchoolDemandGroup } from '@/types/database';
+import { groupAndSortDemandBySchool } from '@/lib/reports/demand-aggregation';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -35,34 +36,6 @@ function formatDate(isoDate: string): string {
   const parts = isoDate.split('-');
   if (parts.length === 3) return `${parts[2]}-${parts[1]}-${parts[0]}`;
   return isoDate;
-}
-
-function groupDemandBySchool(rows: DemandRow[]): SchoolDemandGroup[] {
-  const map = new Map<string, SchoolDemandGroup>();
-
-  for (const row of rows) {
-    if (!map.has(row.school_codigo_ce)) {
-      map.set(row.school_codigo_ce, {
-        codigo_ce: row.school_codigo_ce,
-        nombre_ce: row.nombre_ce,
-        departamento: row.departamento,
-        distrito: row.distrito,
-        zona: row.zona,
-        transporte: row.transporte,
-        fecha_inicio: row.fecha_inicio,
-        rows: [],
-      });
-    }
-    map.get(row.school_codigo_ce)!.rows.push(row);
-  }
-
-  return Array.from(map.values()).sort((a, b) => {
-    const districtCompare = a.distrito.localeCompare(b.distrito, 'es');
-    if (districtCompare !== 0) return districtCompare;
-    const totalA = a.rows.reduce((s, r) => s + r.cantidad, 0);
-    const totalB = b.rows.reduce((s, r) => s + r.cantidad, 0);
-    return totalB - totalA;
-  });
 }
 
 /** Get the referencia code for a school+item and return a left-aligned paragraph (or null) */
@@ -498,7 +471,7 @@ async function buildDemandWord(
   itemType: string,
   faltantes: boolean
 ): Promise<Buffer> {
-  const schools = groupDemandBySchool(demandRows).filter(
+  const schools = groupAndSortDemandBySchool(demandRows).filter(
     s => s.rows.filter(r => r.item === itemType).reduce((sum, r) => sum + r.cantidad, 0) > 0
   );
 
@@ -832,7 +805,7 @@ async function buildComandaWord(
   landscape: boolean,
   faltantes: boolean
 ): Promise<Buffer> {
-  const schools = groupDemandBySchool(demandRows).filter(
+  const schools = groupAndSortDemandBySchool(demandRows).filter(
     s => s.rows.filter(r => r.item === itemType).reduce((sum, r) => sum + r.cantidad, 0) > 0
   );
 

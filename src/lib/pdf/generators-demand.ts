@@ -21,6 +21,7 @@ import {
   drawTransportFooter,
   formatDateForTitle,
 } from './agreement/sections';
+import { groupAndSortDemandBySchool } from '@/lib/reports/demand-aggregation';
 
 // Page options for Cajas — same as other acta portrait layouts
 const ACTA_RECEPCION_CAJAS_PAGE_OPTIONS = {
@@ -28,39 +29,6 @@ const ACTA_RECEPCION_CAJAS_PAGE_OPTIONS = {
   layout: 'portrait' as const,
   margins: { top: 40, bottom: 40, left: 30, right: 30 },
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Helpers
-// ─────────────────────────────────────────────────────────────────────────────
-
-/** Group flat DemandRow[] into SchoolDemandGroup[] sorted by distrito asc, then total demand desc */
-function groupDemandBySchool(rows: DemandRow[]): SchoolDemandGroup[] {
-  const map = new Map<string, SchoolDemandGroup>();
-
-  for (const row of rows) {
-    if (!map.has(row.school_codigo_ce)) {
-      map.set(row.school_codigo_ce, {
-        codigo_ce: row.school_codigo_ce,
-        nombre_ce: row.nombre_ce,
-        departamento: row.departamento,
-        distrito: row.distrito,
-        zona: row.zona,
-        transporte: row.transporte,
-        fecha_inicio: row.fecha_inicio,
-        rows: [],
-      });
-    }
-    map.get(row.school_codigo_ce)!.rows.push(row);
-  }
-
-  return Array.from(map.values()).sort((a, b) => {
-    const districtCompare = a.distrito.localeCompare(b.distrito, 'es');
-    if (districtCompare !== 0) return districtCompare;
-    const totalA = a.rows.reduce((s, r) => s + r.cantidad, 0);
-    const totalB = b.rows.reduce((s, r) => s + r.cantidad, 0);
-    return totalB - totalA;
-  });
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Referencia overlay helpers (mirrors stampPageOverlays in agreement/builders.ts)
@@ -509,7 +477,7 @@ export function generateActaRecepcionCajasPDFFromDemand(
   options?: { faltantes?: boolean }
 ): PDFDocumentInstance {
   const faltantes = options?.faltantes ?? true;
-  const schools = groupDemandBySchool(demandRows).filter(
+  const schools = groupAndSortDemandBySchool(demandRows).filter(
     s => s.rows.filter(r => r.item === 'CAJAS').reduce((sum, r) => sum + r.cantidad, 0) > 0
   );
   const doc = new PDFDocument({
@@ -541,7 +509,7 @@ export function generateActaRecepcionUniformesPDFFromDemand(
   options?: { faltantes?: boolean }
 ): PDFDocumentInstance {
   const faltantes = options?.faltantes ?? true;
-  const schools = groupDemandBySchool(demandRows).filter(
+  const schools = groupAndSortDemandBySchool(demandRows).filter(
     s => s.rows.filter(r => r.item === 'UNIFORMES').reduce((sum, r) => sum + r.cantidad, 0) > 0
   );
   const doc = new PDFDocument({
@@ -573,7 +541,7 @@ export function generateActaRecepcionZapatosPDFFromDemand(
   options?: { faltantes?: boolean }
 ): PDFDocumentInstance {
   const faltantes = options?.faltantes ?? true;
-  const schools = groupDemandBySchool(demandRows).filter(
+  const schools = groupAndSortDemandBySchool(demandRows).filter(
     s => s.rows.filter(r => r.item === 'ZAPATOS').reduce((sum, r) => sum + r.cantidad, 0) > 0
   );
   const doc = new PDFDocument({
@@ -987,7 +955,7 @@ export function generateComandaCajasPDFFromDemand(
   options?: { faltantes?: boolean }
 ): PDFDocumentInstance {
   const faltantes = options?.faltantes ?? true;
-  const schools = groupDemandBySchool(demandRows).filter(
+  const schools = groupAndSortDemandBySchool(demandRows).filter(
     s => s.rows.filter(r => r.item === 'CAJAS').reduce((sum, r) => sum + r.cantidad, 0) > 0
   );
   const doc = new PDFDocument({
@@ -1019,7 +987,7 @@ export function generateComandaUniformesPDFFromDemand(
   options?: { faltantes?: boolean }
 ): PDFDocumentInstance {
   const faltantes = options?.faltantes ?? true;
-  const schools = groupDemandBySchool(demandRows).filter(
+  const schools = groupAndSortDemandBySchool(demandRows).filter(
     s => s.rows.filter(r => r.item === 'UNIFORMES').reduce((sum, r) => sum + r.cantidad, 0) > 0
   );
   const doc = new PDFDocument({
@@ -1051,7 +1019,7 @@ export function generateComandaZapatosPDFFromDemand(
   options?: { faltantes?: boolean }
 ): PDFDocumentInstance {
   const faltantes = options?.faltantes ?? true;
-  const schools = groupDemandBySchool(demandRows).filter(
+  const schools = groupAndSortDemandBySchool(demandRows).filter(
     s => s.rows.filter(r => r.item === 'ZAPATOS').reduce((sum, r) => sum + r.cantidad, 0) > 0
   );
   const doc = new PDFDocument({

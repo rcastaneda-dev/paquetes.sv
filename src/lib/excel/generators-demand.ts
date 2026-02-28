@@ -2,20 +2,15 @@
  * Demand-based Excel generators.
  *
  * Quantities are read directly from school_demand — no vacíos calculations.
+ * Grouping and totals use the shared demand-aggregation module so numbers
+ * always match what the PDF generators (ACTAS / COMANDAS) produce.
  */
 import ExcelJS from 'exceljs';
 import type { DemandRow } from '@/types/database';
-
-interface SchoolTotals {
-  codigo_ce: string;
-  nombre_ce: string;
-  departamento: string;
-  distrito: string;
-  cajas: number;
-  uniformes: number;
-  zapatos: number;
-  total: number;
-}
+import {
+  groupAndSortDemandBySchool,
+  computeSchoolItemTotals,
+} from '@/lib/reports/demand-aggregation';
 
 function autoWidthColumns(sheet: ExcelJS.Worksheet): void {
   sheet.columns.forEach(column => {
@@ -28,51 +23,12 @@ function autoWidthColumns(sheet: ExcelJS.Worksheet): void {
   });
 }
 
-function aggregateBySchool(demandRows: DemandRow[]): SchoolTotals[] {
-  const schoolMap = new Map<string, SchoolTotals>();
-
-  for (const row of demandRows) {
-    if (!schoolMap.has(row.school_codigo_ce)) {
-      schoolMap.set(row.school_codigo_ce, {
-        codigo_ce: row.school_codigo_ce,
-        nombre_ce: row.nombre_ce,
-        departamento: row.departamento,
-        distrito: row.distrito,
-        cajas: 0,
-        uniformes: 0,
-        zapatos: 0,
-        total: 0,
-      });
-    }
-    const entry = schoolMap.get(row.school_codigo_ce)!;
-    if (row.item === 'CAJAS') {
-      entry.cajas += row.cantidad;
-    } else if (row.item === 'UNIFORMES') {
-      entry.uniformes += row.cantidad;
-    } else if (row.item === 'ZAPATOS') {
-      entry.zapatos += row.cantidad;
-    }
-  }
-
-  const schools = Array.from(schoolMap.values()).map(s => ({
-    ...s,
-    total: s.cajas + s.uniformes + s.zapatos,
-  }));
-  schools.sort((a, b) => {
-    const districtCompare = a.distrito.localeCompare(b.distrito, 'es');
-    if (districtCompare !== 0) return districtCompare;
-    return b.total - a.total;
-  });
-
-  return schools;
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Generator 1: Consolidado (original — CODIGO DEL CENTRO, Nombre CE, CAJA, UNIFORMES, ZAPATOS, Total general)
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function generateConsolidadoDemandExcel(demandRows: DemandRow[]): Promise<Buffer> {
-  const schools = aggregateBySchool(demandRows);
+  const schoolGroups = groupAndSortDemandBySchool(demandRows);
 
   const workbook = new ExcelJS.Workbook();
   const sheet = workbook.addWorksheet('Consolidado', {
@@ -97,20 +53,21 @@ export async function generateConsolidadoDemandExcel(demandRows: DemandRow[]): P
   let grandZapatos = 0;
   let grandTotal = 0;
 
-  for (const school of schools) {
+  for (const group of schoolGroups) {
+    const totals = computeSchoolItemTotals(group);
     const row = sheet.getRow(rowIndex);
     row.values = [
-      school.codigo_ce,
-      school.nombre_ce,
-      school.cajas,
-      school.uniformes,
-      school.zapatos,
-      school.total,
+      totals.codigo_ce,
+      totals.nombre_ce,
+      totals.cajas,
+      totals.uniformes,
+      totals.zapatos,
+      totals.total,
     ];
-    grandCajas += school.cajas;
-    grandUniformes += school.uniformes;
-    grandZapatos += school.zapatos;
-    grandTotal += school.total;
+    grandCajas += totals.cajas;
+    grandUniformes += totals.uniformes;
+    grandZapatos += totals.zapatos;
+    grandTotal += totals.total;
     rowIndex++;
   }
 
@@ -128,8 +85,8 @@ export async function generateConsolidadoDemandExcel(demandRows: DemandRow[]): P
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function generateConsolidadoDemandExcelV2(demandRows: DemandRow[]): Promise<Buffer> {
-  const schoolOrder = aggregateBySchool(demandRows);
-  const schoolOrderMap = new Map(schoolOrder.map((s, i) => [s.codigo_ce, i]));
+  const schoolGroups = groupAndSortDemandBySchool(demandRows);
+  const schoolOrderMap = new Map(schoolGroups.map((s, i) => [s.codigo_ce, i]));
 
   // Prendas rows (UNIFORMES + ZAPATOS): sort by school order → tipo → categoria
   const sortedPrendas = demandRows
@@ -227,8 +184,8 @@ export async function generatePrendasDemandExcelV2(demandRows: DemandRow[]): Pro
   const prendaRows = demandRows.filter(r => r.item === 'UNIFORMES' || r.item === 'ZAPATOS');
 
   // Group by school for sorting
-  const schoolOrder = aggregateBySchool(demandRows);
-  const schoolOrderMap = new Map(schoolOrder.map((s, i) => [s.codigo_ce, i]));
+  const schoolGroups = groupAndSortDemandBySchool(demandRows);
+  const schoolOrderMap = new Map(schoolGroups.map((s, i) => [s.codigo_ce, i]));
 
   // Sort rows: by school order (distrito then total desc), then tipo, then categoria
   const sorted = [...prendaRows].sort((a, b) => {
@@ -287,8 +244,8 @@ export async function generateCajasDemandExcel(demandRows: DemandRow[]): Promise
   const cajasRows = demandRows.filter(r => r.item === 'CAJAS');
 
   // Group by school for sorting
-  const schoolOrder = aggregateBySchool(demandRows);
-  const schoolOrderMap = new Map(schoolOrder.map((s, i) => [s.codigo_ce, i]));
+  const schoolGroups = groupAndSortDemandBySchool(demandRows);
+  const schoolOrderMap = new Map(schoolGroups.map((s, i) => [s.codigo_ce, i]));
 
   // Build school → grade rows map
   const schoolGrades = new Map<string, { row: DemandRow; grades: DemandRow[] }>();
@@ -299,7 +256,7 @@ export async function generateCajasDemandExcel(demandRows: DemandRow[]): Promise
     schoolGrades.get(r.school_codigo_ce)!.grades.push(r);
   }
 
-  // Sort schools by the same order as aggregateBySchool, then grades alphabetically
+  // Sort schools by the same order as groupAndSortDemandBySchool, then grades alphabetically
   const sortedSchools = Array.from(schoolGrades.values()).sort((a, b) => {
     const orderA = schoolOrderMap.get(a.row.school_codigo_ce) ?? Infinity;
     const orderB = schoolOrderMap.get(b.row.school_codigo_ce) ?? Infinity;
