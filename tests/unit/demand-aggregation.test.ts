@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 /**
  * Unit tests for the shared demand aggregation module.
  *
@@ -47,7 +48,13 @@ describe('groupAndSortDemandBySchool', () => {
   it('should group rows by school_codigo_ce', () => {
     const rows: DemandRow[] = [
       makeDemandRow({ school_codigo_ce: 'A', nombre_ce: 'School A', cantidad: 10 }),
-      makeDemandRow({ school_codigo_ce: 'A', nombre_ce: 'School A', cantidad: 5, tipo: 'ZAPATOS', item: 'ZAPATOS' }),
+      makeDemandRow({
+        school_codigo_ce: 'A',
+        nombre_ce: 'School A',
+        cantidad: 5,
+        tipo: 'ZAPATOS',
+        item: 'ZAPATOS',
+      }),
       makeDemandRow({ school_codigo_ce: 'B', nombre_ce: 'School B', cantidad: 3 }),
     ];
 
@@ -104,9 +111,7 @@ describe('groupAndSortDemandBySchool', () => {
   });
 
   it('should handle a single-row school', () => {
-    const rows: DemandRow[] = [
-      makeDemandRow({ school_codigo_ce: 'SOLO', cantidad: 7 }),
-    ];
+    const rows: DemandRow[] = [makeDemandRow({ school_codigo_ce: 'SOLO', cantidad: 7 })];
 
     const groups = groupAndSortDemandBySchool(rows);
     expect(groups).toHaveLength(1);
@@ -144,9 +149,7 @@ describe('computeSchoolItemTotals', () => {
   });
 
   it('should return zero for item types not present', () => {
-    const rows: DemandRow[] = [
-      makeDemandRow({ item: 'UNIFORMES', cantidad: 12 }),
-    ];
+    const rows: DemandRow[] = [makeDemandRow({ item: 'UNIFORMES', cantidad: 12 })];
 
     const groups = groupAndSortDemandBySchool(rows);
     const totals = computeSchoolItemTotals(groups[0]);
@@ -200,14 +203,63 @@ describe('computeSchoolItemTotals', () => {
 describe('Excel totals match PDF ACTA/COMANDA totals', () => {
   const demandRows: DemandRow[] = [
     // School A — mix of all three item types
-    makeDemandRow({ school_codigo_ce: 'A', nombre_ce: 'School A', item: 'CAJAS', tipo: 'CAJAS', categoria: '1er Grado', cantidad: 10 }),
-    makeDemandRow({ school_codigo_ce: 'A', nombre_ce: 'School A', item: 'CAJAS', tipo: 'CAJAS', categoria: '2do Grado', cantidad: 5 }),
-    makeDemandRow({ school_codigo_ce: 'A', nombre_ce: 'School A', item: 'UNIFORMES', tipo: 'CAMISA BLANCA', categoria: 'T10', cantidad: 20 }),
-    makeDemandRow({ school_codigo_ce: 'A', nombre_ce: 'School A', item: 'UNIFORMES', tipo: 'PANTALON AZUL', categoria: 'T10', cantidad: 18 }),
-    makeDemandRow({ school_codigo_ce: 'A', nombre_ce: 'School A', item: 'ZAPATOS', tipo: 'ZAPATOS', categoria: '32', cantidad: 6 }),
-    makeDemandRow({ school_codigo_ce: 'A', nombre_ce: 'School A', item: 'ZAPATOS', tipo: 'ZAPATOS', categoria: '34', cantidad: 4 }),
+    makeDemandRow({
+      school_codigo_ce: 'A',
+      nombre_ce: 'School A',
+      item: 'CAJAS',
+      tipo: 'CAJAS',
+      categoria: '1er Grado',
+      cantidad: 10,
+    }),
+    makeDemandRow({
+      school_codigo_ce: 'A',
+      nombre_ce: 'School A',
+      item: 'CAJAS',
+      tipo: 'CAJAS',
+      categoria: '2do Grado',
+      cantidad: 5,
+    }),
+    makeDemandRow({
+      school_codigo_ce: 'A',
+      nombre_ce: 'School A',
+      item: 'UNIFORMES',
+      tipo: 'CAMISA BLANCA',
+      categoria: 'T10',
+      cantidad: 20,
+    }),
+    makeDemandRow({
+      school_codigo_ce: 'A',
+      nombre_ce: 'School A',
+      item: 'UNIFORMES',
+      tipo: 'PANTALON AZUL',
+      categoria: 'T10',
+      cantidad: 18,
+    }),
+    makeDemandRow({
+      school_codigo_ce: 'A',
+      nombre_ce: 'School A',
+      item: 'ZAPATOS',
+      tipo: 'ZAPATOS',
+      categoria: '32',
+      cantidad: 6,
+    }),
+    makeDemandRow({
+      school_codigo_ce: 'A',
+      nombre_ce: 'School A',
+      item: 'ZAPATOS',
+      tipo: 'ZAPATOS',
+      categoria: '34',
+      cantidad: 4,
+    }),
     // School B — only uniformes
-    makeDemandRow({ school_codigo_ce: 'B', nombre_ce: 'School B', item: 'UNIFORMES', tipo: 'CAMISA CELESTE', categoria: 'T8', cantidad: 14 }),
+    makeDemandRow({
+      school_codigo_ce: 'B',
+      nombre_ce: 'School B',
+      item: 'UNIFORMES',
+      tipo: 'CAMISA CELESTE',
+      categoria: 'T8',
+      cantidad: 14,
+    }),
   ];
 
   it('per-school CAJAS total matches what ACTA CAJAS PDF renders', () => {
@@ -263,9 +315,15 @@ describe('Excel totals match PDF ACTA/COMANDA totals', () => {
       grandZapatos += totals.zapatos;
     }
 
-    const expectedCajas = demandRows.filter(r => r.item === 'CAJAS').reduce((s, r) => s + r.cantidad, 0);
-    const expectedUniformes = demandRows.filter(r => r.item === 'UNIFORMES').reduce((s, r) => s + r.cantidad, 0);
-    const expectedZapatos = demandRows.filter(r => r.item === 'ZAPATOS').reduce((s, r) => s + r.cantidad, 0);
+    const expectedCajas = demandRows
+      .filter(r => r.item === 'CAJAS')
+      .reduce((s, r) => s + r.cantidad, 0);
+    const expectedUniformes = demandRows
+      .filter(r => r.item === 'UNIFORMES')
+      .reduce((s, r) => s + r.cantidad, 0);
+    const expectedZapatos = demandRows
+      .filter(r => r.item === 'ZAPATOS')
+      .reduce((s, r) => s + r.cantidad, 0);
 
     expect(grandCajas).toBe(expectedCajas);
     expect(grandUniformes).toBe(expectedUniformes);
