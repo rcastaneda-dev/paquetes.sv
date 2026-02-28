@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { parse } from 'csv-parse/sync';
 import { supabaseServer } from '@/lib/supabase/server';
 
+export const dynamic = 'force-dynamic';
+
 const BATCH_SIZE = 500;
 
 const REQUIRED_COLUMNS = [

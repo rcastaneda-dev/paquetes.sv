@@ -3,6 +3,8 @@ import archiver from 'archiver';
 import { supabaseServer } from '@/lib/supabase/server';
 import { buildSchoolBundlePdf } from '@/lib/pdf/agreement/builders';
 import { groupBySchool } from '@/lib/pdf/agreement/sections';
+
+export const dynamic = 'force-dynamic';
 import type { StudentQueryRow } from '@/types/database';
 import { workerConfigSchema, authConfigSchema } from '@/lib/validation/schemas';
 import { validateEnv } from '@/lib/validation/helpers';

@@ -106,10 +106,15 @@ const REF_FIELD_BY_SECTION: Record<AgreementSectionType, 'ref_kits' | 'ref_unifo
 };
 
 /**
- * Single switchToPage pass: stamps comanda codes (top-left) AND page numbers
- * (bottom-center) on every buffered page.
+ * Single switchToPage pass: stamps comanda codes (top-left), generation
+ * timestamp (top-right on page 1), and page numbers (bottom-center) on
+ * every buffered page.
  */
-export function stampPageOverlays(doc: PDFDocumentInstance, comandaCodes: string[]): void {
+export function stampPageOverlays(
+  doc: PDFDocumentInstance,
+  comandaCodes: string[],
+  meta?: { generatedAt: string; totalStudents: number; totalSchools: number }
+): void {
   const range = doc.bufferedPageRange();
   for (let i = range.start; i < range.start + range.count; i++) {
     doc.switchToPage(i);
@@ -120,6 +125,14 @@ export function stampPageOverlays(doc: PDFDocumentInstance, comandaCodes: string
     if (code) {
       doc.fontSize(8).font('Helvetica-Bold').fillColor('black');
       doc.text(code, 30, 20, { lineBreak: false });
+    }
+
+    // Generation metadata — top-right, first page only
+    if (idx === 0 && meta) {
+      const metaText = `${meta.totalSchools} CE | ${meta.totalStudents} est. | ${meta.generatedAt}`;
+      doc.fontSize(6).font('Helvetica').fillColor('#999999');
+      const metaWidth = doc.widthOfString(metaText);
+      doc.text(metaText, doc.page.width - metaWidth - 30, 20, { lineBreak: false });
     }
 
     // Page number — bottom-center
@@ -365,7 +378,11 @@ export function buildConsolidatedPdf(options: {
     }
   }
 
-  stampPageOverlays(doc, pageCodes);
+  stampPageOverlays(doc, pageCodes, {
+    generatedAt: new Date().toISOString(),
+    totalStudents: students.length,
+    totalSchools: sortedSchools.length,
+  });
   doc.end();
   return doc;
 }

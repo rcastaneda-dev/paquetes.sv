@@ -15,6 +15,8 @@ import { validateEnv } from '@/lib/validation/helpers';
 import { createUnauthorizedResponse } from '@/lib/validation/errors';
 import { generateAllExcels, excelStoragePath } from '@/lib/excel/generators';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * Worker endpoint that processes pending category report tasks in batches.
  * Can be triggered by:

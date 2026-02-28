@@ -3,6 +3,8 @@ import { supabaseServer } from '@/lib/supabase/server';
 import type { StudentQueryRow } from '@/types/database';
 import { generateConsolidadoPrendasCajasExcel, EXCEL_FILENAMES } from '@/lib/excel/generators';
 
+export const dynamic = 'force-dynamic';
+
 const FILENAME = EXCEL_FILENAMES.consolidadoPrendasCajas;
 const PAGE_SIZE = 1000;
 const MAX_ROWS = 200000;

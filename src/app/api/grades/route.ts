@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { supabaseServer } from '@/lib/supabase/server';
 import { schoolCodeSchema } from '@/lib/validation/schemas';
 import { validateQueryParams } from '@/lib/validation/helpers';
+
+export const dynamic = 'force-dynamic';
 import { createValidationErrorResponse } from '@/lib/validation/errors';
 
 export async function GET(request: NextRequest) {

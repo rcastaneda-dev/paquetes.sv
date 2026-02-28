@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { parse } from 'csv-parse/sync';
 import { supabaseServer } from '@/lib/supabase/server';
 
+export const dynamic = 'force-dynamic';
+
 const BATCH_SIZE = 500;
 
 // POST: receive a chunk of CSV rows and insert into staging

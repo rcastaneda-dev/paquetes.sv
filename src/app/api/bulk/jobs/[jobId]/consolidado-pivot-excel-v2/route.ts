@@ -3,6 +3,8 @@ import { supabaseServer } from '@/lib/supabase/server';
 import type { StudentQueryRow } from '@/types/database';
 import { generateConsolidadoPivotExcelV2, EXCEL_FILENAMES } from '@/lib/excel/generators';
 
+export const dynamic = 'force-dynamic';
+
 const FILENAME = EXCEL_FILENAMES.consolidadoPivotV2;
 const PAGE_SIZE = 1000;
 const MAX_ROWS = 200000;

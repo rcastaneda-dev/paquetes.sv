@@ -7,10 +7,15 @@ if (!supabaseUrl || !supabaseServiceKey) {
   throw new Error('Missing Supabase server environment variables');
 }
 
-// Server-side Supabase client with service role (bypasses RLS)
+// Server-side Supabase client with service role (bypasses RLS).
+// Disables Next.js fetch caching so every DB query hits Supabase fresh.
 export const supabaseServer = createClient(supabaseUrl, supabaseServiceKey, {
   auth: {
     autoRefreshToken: false,
     persistSession: false,
+  },
+  global: {
+    fetch: (url: RequestInfo | URL, init?: RequestInit) =>
+      fetch(url, { ...init, cache: 'no-store' }),
   },
 });

@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { supabaseServer } from '@/lib/supabase/server';
 import { validateQueryParams } from '@/lib/validation/helpers';
 import { createValidationErrorResponse } from '@/lib/validation/errors';
+
+export const dynamic = 'force-dynamic';
 import { buildConsolidatedPdf } from '@/lib/pdf/agreement/builders';
 import { nodeStreamToWebReadableStream } from '@/lib/pdf/streams';
 import type { Readable } from 'stream';

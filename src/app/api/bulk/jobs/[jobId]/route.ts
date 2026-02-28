@@ -5,6 +5,8 @@ import type { ReportJob, ReportTask, JobProgress } from '@/types/database';
 import { validateQueryParams } from '@/lib/validation/helpers';
 import { createValidationErrorResponse } from '@/lib/validation/errors';
 
+export const dynamic = 'force-dynamic';
+
 // Schema for job detail query params
 const jobDetailQuerySchema = z.object({
   search: z.string().optional(),

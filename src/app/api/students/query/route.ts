@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { supabaseServer } from '@/lib/supabase/server';
 import type { StudentQueryRow } from '@/types/database';
 import { studentFilterSchema } from '@/lib/validation/schemas';
+
+export const dynamic = 'force-dynamic';
 import { validateQueryParams } from '@/lib/validation/helpers';
 import { createValidationErrorResponse } from '@/lib/validation/errors';
 

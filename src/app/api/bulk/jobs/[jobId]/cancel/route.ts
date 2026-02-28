@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { supabaseServer } from '@/lib/supabase/server';
 import { cancelJobSchema } from '@/lib/validation/schemas';
 import { validateBody } from '@/lib/validation/helpers';
+
+export const dynamic = 'force-dynamic';
 import { createValidationErrorResponse } from '@/lib/validation/errors';
 
 /**

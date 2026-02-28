@@ -3,6 +3,8 @@ import { supabaseServer } from '@/lib/supabase/server';
 import { generateStudentReportPDF, generateStudentLabelsPDF } from '@/lib/pdf/generator';
 import { buildReportPdfStorageKey, buildReportEtiquetasStorageKey } from '@/lib/storage/keys';
 import type { ClaimedTask, StudentReportRow } from '@/types/database';
+
+export const dynamic = 'force-dynamic';
 import { workerConfigSchema, authConfigSchema } from '@/lib/validation/schemas';
 import { validateEnv } from '@/lib/validation/helpers';
 import { createUnauthorizedResponse } from '@/lib/validation/errors';
