@@ -1,11 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase/server';
 import type { StudentQueryRow } from '@/types/database';
-import {
-  generateConsolidadoPrendasCajasExcel,
-  excelStoragePath,
-  EXCEL_FILENAMES,
-} from '@/lib/excel/generators';
+import { generateConsolidadoPrendasCajasExcel, EXCEL_FILENAMES } from '@/lib/excel/generators';
 
 const FILENAME = EXCEL_FILENAMES.consolidadoPrendasCajas;
 const PAGE_SIZE = 1000;
@@ -17,7 +13,7 @@ const MAX_ROWS = 200000;
  * Returns an .xlsx combining Prendas (UNIFORMES + ZAPATOS) and CAJAS in flat rows:
  * CORRELATIVO, CODIGO_CE, NOMBRE_CE, DEPARTAMENTO, DISTRITO, TIPO_PRENDA, TALLA, CANTIDAD, REFERENCIA.
  *
- * Serves from pre-generated storage if available; falls back to live generation.
+ * Always generated live from current student data so numbers match the PDFs.
  */
 export async function GET(_request: Request, { params }: { params: { jobId: string } }) {
   const reportJobId = params.jobId;
@@ -43,11 +39,6 @@ export async function GET(_request: Request, { params }: { params: { jobId: stri
       );
     }
 
-    const storedBuffer = await tryDownloadFromStorage(reportJobId);
-    if (storedBuffer) {
-      return excelResponse(storedBuffer);
-    }
-
     const allStudents = await fetchAllStudentsForDate(fechaInicio);
 
     if (allStudents.length === 0) {
@@ -59,38 +50,17 @@ export async function GET(_request: Request, { params }: { params: { jobId: stri
 
     const buffer = await generateConsolidadoPrendasCajasExcel(allStudents);
 
-    uploadToStorage(reportJobId, buffer).catch(() => {});
-
-    return excelResponse(buffer);
+    return new Response(new Uint8Array(buffer), {
+      headers: {
+        'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'Content-Disposition': `attachment; filename="${FILENAME}"`,
+        'Cache-Control': 'no-store',
+      },
+    });
   } catch (error) {
     console.error('Error in consolidado-prendas-cajas-excel:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
-}
-
-function excelResponse(buffer: Buffer) {
-  return new Response(new Uint8Array(buffer), {
-    headers: {
-      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'Content-Disposition': `attachment; filename="${FILENAME}"`,
-      'Cache-Control': 'no-store',
-    },
-  });
-}
-
-async function tryDownloadFromStorage(jobId: string): Promise<Buffer | null> {
-  const path = excelStoragePath(jobId, FILENAME);
-  const { data } = await supabaseServer.storage.from('reports').download(path);
-  if (!data) return null;
-  return Buffer.from(await data.arrayBuffer());
-}
-
-async function uploadToStorage(jobId: string, buffer: Buffer): Promise<void> {
-  const path = excelStoragePath(jobId, FILENAME);
-  await supabaseServer.storage.from('reports').upload(path, buffer, {
-    contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    upsert: true,
-  });
 }
 
 async function fetchAllStudentsForDate(fechaInicio: string): Promise<StudentQueryRow[]> {
