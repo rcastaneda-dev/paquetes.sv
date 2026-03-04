@@ -21,10 +21,9 @@ import {
   ImageRun,
   PageOrientation,
   SectionType,
-  HeadingLevel,
   TableLayoutType,
 } from 'docx';
-import type { DemandRow, SchoolDemandGroup } from '@/types/database';
+import type { DemandRow, ItemType, SchoolDemandGroup } from '@/types/database';
 import { groupAndSortDemandBySchool } from '@/lib/reports/demand-aggregation';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -39,7 +38,10 @@ function formatDate(isoDate: string): string {
 }
 
 /** Get the referencia code for a school+item and return a left-aligned paragraph (or null) */
-function createReferenciaParagraph(school: SchoolDemandGroup, itemType: string): Paragraph | null {
+function createReferenciaParagraph(
+  school: SchoolDemandGroup,
+  itemType: ItemType
+): Paragraph | null {
   const row = school.rows.find(r => r.item === itemType && r.referencia);
   const code = row?.referencia;
   if (!code) return null;
@@ -56,6 +58,28 @@ function createReferenciaParagraph(school: SchoolDemandGroup, itemType: string):
     ],
   });
 }
+
+const buildInternalRefCode = (school: SchoolDemandGroup): string => {
+  const items = new Set(school.rows.map(r => r.item));
+  const parts: string[] = [];
+  if (items.has('CAJAS')) parts.push('C');
+  if (items.has('UNIFORMES')) parts.push('U');
+  if (items.has('ZAPATOS')) parts.push('Z');
+  return parts.join('-');
+};
+
+export const getInternalRefCodes = (schools: SchoolDemandGroup[]): string[] =>
+  schools.map(buildInternalRefCode);
+
+const createInternalRefParagraph = (school: SchoolDemandGroup): Paragraph => {
+  return new Paragraph({
+    alignment: AlignmentType.CENTER,
+    spacing: { after: 0 },
+    children: [
+      new TextRun({ text: buildInternalRefCode(school), bold: true, size: 16, font: 'Arial' }),
+    ],
+  });
+};
 
 function getLogoImageRun(): ImageRun | null {
   const logoPath = path.join(process.cwd(), 'public', 'goes_logo_2.png');
@@ -295,6 +319,9 @@ function buildCajasSection(school: SchoolDemandGroup, faltantes: boolean): (Para
   const refParagraph = createReferenciaParagraph(school, 'CAJAS');
   if (refParagraph) elements.push(refParagraph);
 
+  const internalRefParagraph = createInternalRefParagraph(school);
+  if (internalRefParagraph) elements.push(internalRefParagraph);
+
   if (logo) {
     elements.push(new Paragraph({ alignment: AlignmentType.RIGHT, children: [logo] }));
   }
@@ -371,6 +398,9 @@ function buildUniformesSection(
   const refParagraph = createReferenciaParagraph(school, 'UNIFORMES');
   if (refParagraph) elements.push(refParagraph);
 
+  const internalRefParagraph = createInternalRefParagraph(school);
+  if (internalRefParagraph) elements.push(internalRefParagraph);
+
   if (logo) {
     elements.push(new Paragraph({ alignment: AlignmentType.RIGHT, children: [logo] }));
   }
@@ -444,6 +474,9 @@ function buildZapatosSection(school: SchoolDemandGroup, faltantes: boolean): (Pa
   const refParagraph = createReferenciaParagraph(school, 'ZAPATOS');
   if (refParagraph) elements.push(refParagraph);
 
+  const internalRefParagraph = createInternalRefParagraph(school);
+  if (internalRefParagraph) elements.push(internalRefParagraph);
+
   if (logo) {
     elements.push(new Paragraph({ alignment: AlignmentType.RIGHT, children: [logo] }));
   }
@@ -468,7 +501,7 @@ type SectionBuilder = (school: SchoolDemandGroup, faltantes: boolean) => (Paragr
 async function buildDemandWord(
   demandRows: DemandRow[],
   sectionBuilder: SectionBuilder,
-  itemType: string,
+  itemType: ItemType,
   faltantes: boolean
 ): Promise<Buffer> {
   const schools = groupAndSortDemandBySchool(demandRows).filter(
@@ -643,6 +676,9 @@ function buildComandaCajasSection(
   const refParagraph = createReferenciaParagraph(school, 'CAJAS');
   if (refParagraph) elements.push(refParagraph);
 
+  const internalRefParagraph = createInternalRefParagraph(school);
+  if (internalRefParagraph) elements.push(internalRefParagraph);
+
   if (logo) {
     elements.push(new Paragraph({ alignment: AlignmentType.RIGHT, children: [logo] }));
   }
@@ -704,6 +740,9 @@ function buildComandaUniformesSection(
 
   const refParagraph = createReferenciaParagraph(school, 'UNIFORMES');
   if (refParagraph) elements.push(refParagraph);
+
+  const internalRefParagraph = createInternalRefParagraph(school);
+  if (internalRefParagraph) elements.push(internalRefParagraph);
 
   if (logo) {
     elements.push(new Paragraph({ alignment: AlignmentType.RIGHT, children: [logo] }));
@@ -772,6 +811,9 @@ function buildComandaZapatosSection(
   const refParagraph = createReferenciaParagraph(school, 'ZAPATOS');
   if (refParagraph) elements.push(refParagraph);
 
+  const internalRefParagraph = createInternalRefParagraph(school);
+  if (internalRefParagraph) elements.push(internalRefParagraph);
+
   if (logo) {
     elements.push(new Paragraph({ alignment: AlignmentType.RIGHT, children: [logo] }));
   }
@@ -801,7 +843,7 @@ function buildComandaZapatosSection(
 async function buildComandaWord(
   demandRows: DemandRow[],
   sectionBuilder: SectionBuilder,
-  itemType: string,
+  itemType: ItemType,
   landscape: boolean,
   faltantes: boolean
 ): Promise<Buffer> {

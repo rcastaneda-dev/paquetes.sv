@@ -6,7 +6,7 @@
  * Acta de Recepción renderers in agreement/sections.ts.
  */
 import PDFDocument from 'pdfkit';
-import type { DemandRow, SchoolDemandGroup } from '@/types/database';
+import type { DemandRow, ItemType, SchoolDemandGroup } from '@/types/database';
 import type { PDFDocumentInstance } from './agreement/types';
 import {
   addLogoToPage,
@@ -22,6 +22,7 @@ import {
   formatDateForTitle,
 } from './agreement/sections';
 import { groupAndSortDemandBySchool } from '@/lib/reports/demand-aggregation';
+import { getInternalRefCodes } from '../word/generators-demand';
 
 // Page options for Cajas — same as other acta portrait layouts
 const ACTA_RECEPCION_CAJAS_PAGE_OPTIONS = {
@@ -38,7 +39,11 @@ const ACTA_RECEPCION_CAJAS_PAGE_OPTIONS = {
  * Stamp referencia codes (top-left) and page numbers (bottom-center)
  * on every buffered page using switchToPage.
  */
-function stampDemandOverlays(doc: PDFDocumentInstance, referenciaCodes: string[]): void {
+function stampDemandOverlays(
+  doc: PDFDocumentInstance,
+  referenciaCodes: string[],
+  internalRefCodes: string[] = []
+): void {
   const range = doc.bufferedPageRange();
   for (let i = range.start; i < range.start + range.count; i++) {
     doc.switchToPage(i);
@@ -51,6 +56,19 @@ function stampDemandOverlays(doc: PDFDocumentInstance, referenciaCodes: string[]
       doc.text(code, 30, 20, { lineBreak: false });
     }
 
+    // Internal ref code — top-center
+    if (internalRefCodes.length > 0) {
+      const internalRefCode = internalRefCodes[idx] ?? '';
+      if (internalRefCode) {
+        doc.fontSize(8).font('Helvetica-Bold').fillColor('black');
+        const tw = doc.widthOfString(internalRefCode);
+        doc.text(internalRefCode, (doc.page.width - tw) / 2, 20, {
+          lineBreak: false,
+          align: 'center',
+        });
+      }
+    }
+
     // Page number — bottom-center
     const pageNum = `${idx + 1}`;
     doc.fontSize(8).font('Helvetica').fillColor('black');
@@ -60,7 +78,7 @@ function stampDemandOverlays(doc: PDFDocumentInstance, referenciaCodes: string[]
 }
 
 /** Get the referencia code for a school+item combination */
-function getSchoolReferencia(school: SchoolDemandGroup, itemType: string): string {
+function getSchoolReferencia(school: SchoolDemandGroup, itemType: ItemType): string {
   const row = school.rows.find(r => r.item === itemType && r.referencia);
   return row?.referencia ?? '';
 }
@@ -476,7 +494,7 @@ export function generateActaRecepcionCajasPDFFromDemand(
   demandRows: DemandRow[],
   options?: { faltantes?: boolean }
 ): PDFDocumentInstance {
-  const faltantes = options?.faltantes ?? true;
+  const isFaltantes = options?.faltantes ?? true;
   const schools = groupAndSortDemandBySchool(demandRows).filter(
     s => s.rows.filter(r => r.item === 'CAJAS').reduce((sum, r) => sum + r.cantidad, 0) > 0
   );
@@ -485,17 +503,19 @@ export function generateActaRecepcionCajasPDFFromDemand(
     bufferPages: true,
   }) as PDFDocumentInstance;
 
+  const internalRefCodes = getInternalRefCodes(schools);
   const referenciaCodes: string[] = [];
   for (let i = 0; i < schools.length; i++) {
     const pagesBefore = doc.bufferedPageRange().count;
-    renderActaCajasSchool(doc, schools[i], i > 0, faltantes);
+    renderActaCajasSchool(doc, schools[i], i > 0, isFaltantes);
     const pagesAfter = doc.bufferedPageRange().count;
     const pagesForSchool = i === 0 ? pagesAfter : pagesAfter - pagesBefore;
     const code = getSchoolReferencia(schools[i], 'CAJAS');
     for (let p = 0; p < pagesForSchool; p++) referenciaCodes.push(code);
   }
 
-  stampDemandOverlays(doc, referenciaCodes);
+  stampDemandOverlays(doc, referenciaCodes, isFaltantes ? internalRefCodes : undefined);
+
   doc.end();
   return doc;
 }
@@ -508,7 +528,7 @@ export function generateActaRecepcionUniformesPDFFromDemand(
   demandRows: DemandRow[],
   options?: { faltantes?: boolean }
 ): PDFDocumentInstance {
-  const faltantes = options?.faltantes ?? true;
+  const isFaltantes = options?.faltantes ?? true;
   const schools = groupAndSortDemandBySchool(demandRows).filter(
     s => s.rows.filter(r => r.item === 'UNIFORMES').reduce((sum, r) => sum + r.cantidad, 0) > 0
   );
@@ -517,17 +537,19 @@ export function generateActaRecepcionUniformesPDFFromDemand(
     bufferPages: true,
   }) as PDFDocumentInstance;
 
+  const internalRefCodes = getInternalRefCodes(schools);
   const referenciaCodes: string[] = [];
   for (let i = 0; i < schools.length; i++) {
     const pagesBefore = doc.bufferedPageRange().count;
-    renderActaUniformesSchool(doc, schools[i], i > 0, faltantes);
+    renderActaUniformesSchool(doc, schools[i], i > 0, isFaltantes);
     const pagesAfter = doc.bufferedPageRange().count;
     const pagesForSchool = i === 0 ? pagesAfter : pagesAfter - pagesBefore;
     const code = getSchoolReferencia(schools[i], 'UNIFORMES');
     for (let p = 0; p < pagesForSchool; p++) referenciaCodes.push(code);
   }
 
-  stampDemandOverlays(doc, referenciaCodes);
+  stampDemandOverlays(doc, referenciaCodes, isFaltantes ? internalRefCodes : undefined);
+
   doc.end();
   return doc;
 }
@@ -540,7 +562,7 @@ export function generateActaRecepcionZapatosPDFFromDemand(
   demandRows: DemandRow[],
   options?: { faltantes?: boolean }
 ): PDFDocumentInstance {
-  const faltantes = options?.faltantes ?? true;
+  const isFaltantes = options?.faltantes ?? true;
   const schools = groupAndSortDemandBySchool(demandRows).filter(
     s => s.rows.filter(r => r.item === 'ZAPATOS').reduce((sum, r) => sum + r.cantidad, 0) > 0
   );
@@ -549,17 +571,19 @@ export function generateActaRecepcionZapatosPDFFromDemand(
     bufferPages: true,
   }) as PDFDocumentInstance;
 
+  const internalRefCodes = getInternalRefCodes(schools);
   const referenciaCodes: string[] = [];
   for (let i = 0; i < schools.length; i++) {
     const pagesBefore = doc.bufferedPageRange().count;
-    renderActaZapatosSchool(doc, schools[i], i > 0, faltantes);
+    renderActaZapatosSchool(doc, schools[i], i > 0, isFaltantes);
     const pagesAfter = doc.bufferedPageRange().count;
     const pagesForSchool = i === 0 ? pagesAfter : pagesAfter - pagesBefore;
     const code = getSchoolReferencia(schools[i], 'ZAPATOS');
     for (let p = 0; p < pagesForSchool; p++) referenciaCodes.push(code);
   }
 
-  stampDemandOverlays(doc, referenciaCodes);
+  stampDemandOverlays(doc, referenciaCodes, isFaltantes ? internalRefCodes : undefined);
+
   doc.end();
   return doc;
 }
@@ -954,7 +978,7 @@ export function generateComandaCajasPDFFromDemand(
   demandRows: DemandRow[],
   options?: { faltantes?: boolean }
 ): PDFDocumentInstance {
-  const faltantes = options?.faltantes ?? true;
+  const isFaltantes = options?.faltantes ?? true;
   const schools = groupAndSortDemandBySchool(demandRows).filter(
     s => s.rows.filter(r => r.item === 'CAJAS').reduce((sum, r) => sum + r.cantidad, 0) > 0
   );
@@ -963,17 +987,18 @@ export function generateComandaCajasPDFFromDemand(
     bufferPages: true,
   }) as PDFDocumentInstance;
 
+  const internalRefCodes = getInternalRefCodes(schools);
   const referenciaCodes: string[] = [];
   for (let i = 0; i < schools.length; i++) {
     const pagesBefore = doc.bufferedPageRange().count;
-    renderComandaCajasSchool(doc, schools[i], i > 0, faltantes);
+    renderComandaCajasSchool(doc, schools[i], i > 0, isFaltantes);
     const pagesAfter = doc.bufferedPageRange().count;
     const pagesForSchool = i === 0 ? pagesAfter : pagesAfter - pagesBefore;
     const code = getSchoolReferencia(schools[i], 'CAJAS');
     for (let p = 0; p < pagesForSchool; p++) referenciaCodes.push(code);
   }
 
-  stampDemandOverlays(doc, referenciaCodes);
+  stampDemandOverlays(doc, referenciaCodes, isFaltantes ? internalRefCodes : undefined);
   doc.end();
   return doc;
 }
@@ -986,7 +1011,7 @@ export function generateComandaUniformesPDFFromDemand(
   demandRows: DemandRow[],
   options?: { faltantes?: boolean }
 ): PDFDocumentInstance {
-  const faltantes = options?.faltantes ?? true;
+  const isFaltantes = options?.faltantes ?? true;
   const schools = groupAndSortDemandBySchool(demandRows).filter(
     s => s.rows.filter(r => r.item === 'UNIFORMES').reduce((sum, r) => sum + r.cantidad, 0) > 0
   );
@@ -995,17 +1020,18 @@ export function generateComandaUniformesPDFFromDemand(
     bufferPages: true,
   }) as PDFDocumentInstance;
 
+  const internalRefCodes = getInternalRefCodes(schools);
   const referenciaCodes: string[] = [];
   for (let i = 0; i < schools.length; i++) {
     const pagesBefore = doc.bufferedPageRange().count;
-    renderComandaUniformesSchool(doc, schools[i], i > 0, faltantes);
+    renderComandaUniformesSchool(doc, schools[i], i > 0, isFaltantes);
     const pagesAfter = doc.bufferedPageRange().count;
     const pagesForSchool = i === 0 ? pagesAfter : pagesAfter - pagesBefore;
     const code = getSchoolReferencia(schools[i], 'UNIFORMES');
     for (let p = 0; p < pagesForSchool; p++) referenciaCodes.push(code);
   }
 
-  stampDemandOverlays(doc, referenciaCodes);
+  stampDemandOverlays(doc, referenciaCodes, isFaltantes ? internalRefCodes : undefined);
   doc.end();
   return doc;
 }
@@ -1018,7 +1044,7 @@ export function generateComandaZapatosPDFFromDemand(
   demandRows: DemandRow[],
   options?: { faltantes?: boolean }
 ): PDFDocumentInstance {
-  const faltantes = options?.faltantes ?? true;
+  const isFaltantes = options?.faltantes ?? true;
   const schools = groupAndSortDemandBySchool(demandRows).filter(
     s => s.rows.filter(r => r.item === 'ZAPATOS').reduce((sum, r) => sum + r.cantidad, 0) > 0
   );
@@ -1027,17 +1053,18 @@ export function generateComandaZapatosPDFFromDemand(
     bufferPages: true,
   }) as PDFDocumentInstance;
 
+  const internalRefCodes = getInternalRefCodes(schools);
   const referenciaCodes: string[] = [];
   for (let i = 0; i < schools.length; i++) {
     const pagesBefore = doc.bufferedPageRange().count;
-    renderComandaZapatosSchool(doc, schools[i], i > 0, faltantes);
+    renderComandaZapatosSchool(doc, schools[i], i > 0, isFaltantes);
     const pagesAfter = doc.bufferedPageRange().count;
     const pagesForSchool = i === 0 ? pagesAfter : pagesAfter - pagesBefore;
     const code = getSchoolReferencia(schools[i], 'ZAPATOS');
     for (let p = 0; p < pagesForSchool; p++) referenciaCodes.push(code);
   }
 
-  stampDemandOverlays(doc, referenciaCodes);
+  stampDemandOverlays(doc, referenciaCodes, isFaltantes ? internalRefCodes : undefined);
   doc.end();
   return doc;
 }
