@@ -142,6 +142,8 @@ export interface BatchProgress {
 
 // Normalized demand pipeline types
 
+export type ItemType = 'CAJAS' | 'UNIFORMES' | 'ZAPATOS';
+
 /** A single demand row from school_demand joined with school name */
 export interface DemandRow {
   school_codigo_ce: string;
@@ -151,7 +153,7 @@ export interface DemandRow {
   zona: string;
   transporte: string;
   fecha_inicio: string; // YYYY-MM-DD from schools table
-  item: string; // 'CAJAS' | 'UNIFORMES' | 'ZAPATOS'
+  item: ItemType;
   tipo: string; // 'CAJAS', 'CAMISA BLANCA', 'ZAPATOS', etc.
   categoria: string; // grade name or size
   cantidad: number;
