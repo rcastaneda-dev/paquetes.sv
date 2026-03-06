@@ -18,6 +18,8 @@ export interface FlatRow {
   nombre_ce: string;
   departamento: string;
   distrito: string;
+  zona: string;
+  tipo: string;
   tipo_prenda: string;
   talla: string;
   cantidad: number;
@@ -142,6 +144,8 @@ export function buildUniformesFlatRows(schools: SchoolGroup[]): FlatRow[] {
             nombre_ce: school.nombre_ce,
             departamento: school.departamento,
             distrito: school.distrito,
+            zona: school.zona,
+            tipo: 'UNIFORME',
             tipo_prenda: typeValue,
             talla: size,
             cantidad: val,
@@ -173,6 +177,8 @@ export function buildZapatosFlatRows(schools: SchoolGroup[]): FlatRow[] {
           nombre_ce: school.nombre_ce,
           departamento: school.departamento,
           distrito: school.distrito,
+          zona: school.zona,
+          tipo: 'ZAPATOS',
           tipo_prenda: 'ZAPATOS',
           talla: size,
           cantidad: val,
@@ -245,6 +251,8 @@ export function buildCajasFlatRows(schools: SchoolGroup[]): FlatRowWithRef[] {
           nombre_ce: school.nombre_ce,
           departamento: school.departamento,
           distrito: school.distrito,
+          zona: school.zona,
+          tipo: 'CAJA',
           tipo_prenda: 'CAJAS',
           talla: grade,
           cantidad: total,
