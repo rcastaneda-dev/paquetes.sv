@@ -6,11 +6,17 @@
  * always match what the PDF generators (ACTAS / COMANDAS) produce.
  */
 import ExcelJS from 'exceljs';
-import type { DemandRow } from '@/types/database';
+import type { DemandRow, ItemType } from '@/types/database';
 import {
   groupAndSortDemandBySchool,
   computeSchoolItemTotals,
 } from '@/lib/reports/demand-aggregation';
+
+const ITEM_TYPE_LABEL: Record<ItemType, string> = {
+  CAJAS: 'CAJA',
+  UNIFORMES: 'UNIFORME',
+  ZAPATOS: 'ZAPATOS',
+};
 
 function autoWidthColumns(sheet: ExcelJS.Worksheet): void {
   sheet.columns.forEach(column => {
@@ -39,6 +45,7 @@ export async function generateConsolidadoDemandExcel(demandRows: DemandRow[]): P
   headerRow.values = [
     'CODIGO DEL CENTRO',
     'Nombre CE',
+    'ZONA',
     'CAJA',
     'UNIFORMES',
     'ZAPATOS',
@@ -59,6 +66,7 @@ export async function generateConsolidadoDemandExcel(demandRows: DemandRow[]): P
     row.values = [
       totals.codigo_ce,
       totals.nombre_ce,
+      group.zona,
       totals.cajas,
       totals.uniformes,
       totals.zapatos,
@@ -72,7 +80,7 @@ export async function generateConsolidadoDemandExcel(demandRows: DemandRow[]): P
   }
 
   const totalRow = sheet.getRow(rowIndex);
-  totalRow.values = ['Total general', '', grandCajas, grandUniformes, grandZapatos, grandTotal];
+  totalRow.values = ['Total general', '', '', grandCajas, grandUniformes, grandZapatos, grandTotal];
   totalRow.font = { bold: true };
 
   autoWidthColumns(sheet);
@@ -122,6 +130,8 @@ export async function generateConsolidadoDemandExcelV2(demandRows: DemandRow[]):
     'NOMBRE_CE',
     'DEPARTAMENTO',
     'DISTRITO',
+    'ZONA',
+    'TIPO',
     'TIPO_PRENDA',
     'TALLA',
     'CANTIDAD',
@@ -142,6 +152,8 @@ export async function generateConsolidadoDemandExcelV2(demandRows: DemandRow[]):
       r.nombre_ce,
       r.departamento,
       r.distrito,
+      r.zona,
+      ITEM_TYPE_LABEL[r.item],
       r.tipo,
       r.categoria,
       r.cantidad,
@@ -160,6 +172,8 @@ export async function generateConsolidadoDemandExcelV2(demandRows: DemandRow[]):
       r.nombre_ce,
       r.departamento,
       r.distrito,
+      r.zona,
+      ITEM_TYPE_LABEL[r.item],
       'CAJAS',
       r.categoria,
       r.cantidad,
