@@ -96,18 +96,20 @@ function createTitleParagraph(title: string): Paragraph {
   });
 }
 
+/** School header font size: 8pt (2pt smaller than default 10pt) */
+const SCHOOL_HEADER_SIZE = 16; // 8pt in half-points
+
 function createSchoolHeader(school: SchoolDemandGroup): Paragraph[] {
   const departamento = (school.departamento || 'N/A').toUpperCase();
   const distrito = (school.distrito || 'N/A').toUpperCase();
+  const schoolHeaderStyle = { bold: true, size: SCHOOL_HEADER_SIZE, font: 'Arial' } as const;
   return [
     new Paragraph({
       alignment: AlignmentType.CENTER,
       children: [
         new TextRun({
           text: school.nombre_ce.toUpperCase(),
-          bold: true,
-          size: 20,
-          font: 'Arial',
+          ...schoolHeaderStyle,
         }),
       ],
     }),
@@ -116,9 +118,7 @@ function createSchoolHeader(school: SchoolDemandGroup): Paragraph[] {
       children: [
         new TextRun({
           text: `CODIGO: ${school.codigo_ce.toUpperCase()}`,
-          bold: true,
-          size: 20,
-          font: 'Arial',
+          ...schoolHeaderStyle,
         }),
       ],
     }),
@@ -128,9 +128,7 @@ function createSchoolHeader(school: SchoolDemandGroup): Paragraph[] {
       children: [
         new TextRun({
           text: `DEPARTAMENTO: ${departamento} - DISTRITO: ${distrito}`,
-          bold: true,
-          size: 20,
-          font: 'Arial',
+          ...schoolHeaderStyle,
         }),
       ],
     }),
@@ -513,7 +511,7 @@ async function buildDemandWord(
       type: idx === 0 ? undefined : SectionType.NEXT_PAGE,
       page: {
         size: { orientation: PageOrientation.PORTRAIT },
-        margin: { top: 720, bottom: 720, left: 540, right: 540 },
+        margin: { top: 720, bottom: 600, left: 540, right: 540 },
       },
     },
     children: sectionBuilder(school, faltantes),
@@ -561,16 +559,17 @@ function createComandaSchoolHeader(school: SchoolDemandGroup): Paragraph[] {
   const distrito = (school.distrito || 'N/A').toUpperCase();
   const zona = (school.zona || 'N/A').toUpperCase();
   const transporte = (school.transporte || 'N/A').toUpperCase();
-  const headerStyle = { bold: true, size: 20, font: 'Arial' } as const;
+  const schoolHeaderStyle = { bold: true, size: SCHOOL_HEADER_SIZE, font: 'Arial' } as const;
+  const zonaStyle = { bold: true, size: 20, font: 'Arial' } as const;
   return [
     new Paragraph({
       alignment: AlignmentType.CENTER,
-      children: [new TextRun({ text: school.nombre_ce.toUpperCase(), ...headerStyle })],
+      children: [new TextRun({ text: school.nombre_ce.toUpperCase(), ...schoolHeaderStyle })],
     }),
     new Paragraph({
       alignment: AlignmentType.CENTER,
       children: [
-        new TextRun({ text: `CODIGO: ${school.codigo_ce.toUpperCase()}`, ...headerStyle }),
+        new TextRun({ text: `CODIGO: ${school.codigo_ce.toUpperCase()}`, ...schoolHeaderStyle }),
       ],
     }),
     new Paragraph({
@@ -578,14 +577,14 @@ function createComandaSchoolHeader(school: SchoolDemandGroup): Paragraph[] {
       children: [
         new TextRun({
           text: `DEPARTAMENTO: ${departamento} - DISTRITO: ${distrito}`,
-          ...headerStyle,
+          ...schoolHeaderStyle,
         }),
       ],
     }),
     new Paragraph({
       alignment: AlignmentType.CENTER,
       children: [
-        new TextRun({ text: `ZONA: ${zona} - TIPO DE VEHICULO: ${transporte}`, ...headerStyle }),
+        new TextRun({ text: `ZONA: ${zona} - TIPO DE VEHICULO: ${transporte}`, ...zonaStyle }),
       ],
     }),
     new Paragraph({
@@ -858,7 +857,7 @@ async function buildComandaWord(
       type: idx === 0 ? undefined : SectionType.NEXT_PAGE,
       page: {
         size: { orientation },
-        margin: { top: 720, bottom: 720, left: 540, right: 540 },
+        margin: { top: 720, bottom: 600, left: 540, right: 540 },
       },
     },
     children: sectionBuilder(school, faltantes),

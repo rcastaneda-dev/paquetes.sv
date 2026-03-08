@@ -127,7 +127,7 @@ export function generateCamisasPDF(options: AgreementReportOptions): PDFDocument
   const doc = new PDFDocument({
     size: 'LETTER',
     layout: 'landscape',
-    margins: { top: 40, bottom: 40, left: 20, right: 20 },
+    margins: { top: 40, bottom: 30, left: 20, right: 20 },
     bufferPages: true,
   });
 
@@ -338,7 +338,7 @@ export function generatePantalonesPDF(options: AgreementReportOptions): PDFDocum
   const doc = new PDFDocument({
     size: 'LETTER',
     layout: 'landscape',
-    margins: { top: 40, bottom: 40, left: 20, right: 20 },
+    margins: { top: 40, bottom: 30, left: 20, right: 20 },
     bufferPages: true,
   });
 
@@ -549,7 +549,7 @@ export function generateZapatosPDF(options: AgreementReportOptions): PDFDocument
   const doc = new PDFDocument({
     size: 'LETTER',
     layout: 'landscape',
-    margins: { top: 40, bottom: 40, left: 15, right: 15 },
+    margins: { top: 40, bottom: 30, left: 15, right: 15 },
     bufferPages: true,
   });
 
@@ -748,7 +748,7 @@ export function generateDayZapatosPDF(options: AgreementReportOptions): PDFDocum
   const doc = new PDFDocument({
     size: 'LETTER',
     layout: 'portrait',
-    margins: { top: 40, bottom: 40, left: 40, right: 40 },
+    margins: { top: 40, bottom: 30, left: 40, right: 40 },
     bufferPages: true,
   });
 
@@ -803,11 +803,11 @@ export function generateDayZapatosPDF(options: AgreementReportOptions): PDFDocum
     doc.moveDown(1);
 
     doc
-      .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+      .fontSize(AGREEMENT_FONT.SCHOOL_HEADER)
       .font('Helvetica-Bold')
       .text(school.nombre_ce.toUpperCase(), { align: 'center' });
     doc
-      .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+      .fontSize(AGREEMENT_FONT.SCHOOL_HEADER)
       .font('Helvetica-Bold')
       .text(`CODIGO: ${school.codigo_ce.toUpperCase()}`, { align: 'center' });
     drawFechaDespachoEntregaLine(doc, formattedDate);
@@ -910,11 +910,11 @@ export function generateDayZapatosPDF(options: AgreementReportOptions): PDFDocum
         doc.fontSize(AGREEMENT_FONT.TITLE).font('Helvetica-Bold').text(title, { align: 'center' });
         doc.moveDown(1);
         doc
-          .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+          .fontSize(AGREEMENT_FONT.SCHOOL_HEADER)
           .font('Helvetica-Bold')
           .text(school.nombre_ce.toUpperCase(), { align: 'center' });
         doc
-          .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+          .fontSize(AGREEMENT_FONT.SCHOOL_HEADER)
           .font('Helvetica-Bold')
           .text(`CODIGO: ${school.codigo_ce.toUpperCase()}`, { align: 'center' });
         drawFechaDespachoEntregaLine(doc, formattedDate);
@@ -951,7 +951,7 @@ export function generateDayUniformesPDF(options: AgreementReportOptions): PDFDoc
   const doc = new PDFDocument({
     size: 'LETTER',
     layout: 'portrait',
-    margins: { top: 40, bottom: 40, left: 40, right: 40 },
+    margins: { top: 40, bottom: 30, left: 40, right: 40 },
     bufferPages: true,
   });
 
@@ -1086,11 +1086,11 @@ export function generateDayUniformesPDF(options: AgreementReportOptions): PDFDoc
     doc.moveDown(1);
 
     doc
-      .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+      .fontSize(AGREEMENT_FONT.SCHOOL_HEADER)
       .font('Helvetica-Bold')
       .text(school.nombre_ce.toUpperCase(), { align: 'center' });
     doc
-      .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+      .fontSize(AGREEMENT_FONT.SCHOOL_HEADER)
       .font('Helvetica-Bold')
       .text(`CODIGO: ${school.codigo_ce.toUpperCase()}`, { align: 'center' });
     drawFechaDespachoEntregaLine(doc, formattedDate);
@@ -1262,11 +1262,11 @@ export function generateDayUniformesPDF(options: AgreementReportOptions): PDFDoc
         doc.fontSize(AGREEMENT_FONT.TITLE).font('Helvetica-Bold').text(title, { align: 'center' });
         doc.moveDown(1);
         doc
-          .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+          .fontSize(AGREEMENT_FONT.SCHOOL_HEADER)
           .font('Helvetica-Bold')
           .text(school.nombre_ce.toUpperCase(), { align: 'center' });
         doc
-          .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+          .fontSize(AGREEMENT_FONT.SCHOOL_HEADER)
           .font('Helvetica-Bold')
           .text(`CODIGO: ${school.codigo_ce.toUpperCase()}`, { align: 'center' });
         drawFechaDespachoEntregaLine(doc, formattedDate);

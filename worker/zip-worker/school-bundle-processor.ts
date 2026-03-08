@@ -88,19 +88,19 @@ function computeFinalCount(
 const CAJAS_PAGE_OPTIONS = {
   size: 'LETTER' as const,
   layout: 'landscape' as const,
-  margins: { top: 40, bottom: 40, left: 30, right: 30 },
+  margins: { top: 40, bottom: 30, left: 30, right: 30 },
 };
 
 const FICHA_UNIFORMES_PAGE_OPTIONS = {
   size: 'LETTER' as const,
   layout: 'portrait' as const,
-  margins: { top: 40, bottom: 40, left: 40, right: 40 },
+  margins: { top: 40, bottom: 30, left: 40, right: 40 },
 };
 
 const FICHA_ZAPATOS_PAGE_OPTIONS = {
   size: 'LETTER' as const,
   layout: 'portrait' as const,
-  margins: { top: 40, bottom: 40, left: 40, right: 40 },
+  margins: { top: 40, bottom: 30, left: 40, right: 40 },
 };
 
 // Standard font sizes (must match src/lib/pdf/agreement/sections.ts AGREEMENT_FONT)
