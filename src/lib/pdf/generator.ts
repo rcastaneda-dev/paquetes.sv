@@ -69,7 +69,7 @@ export function generateStudentReportPDF(options: PDFGeneratorOptions): PDFDocum
   const doc = new PDFDocument({
     size: 'LETTER',
     layout: 'landscape',
-    margins: { top: 50, bottom: 50, left: 50, right: 50 },
+    margins: { top: 50, bottom: 30, left: 50, right: 50 },
     bufferPages: true,
   });
 
@@ -337,7 +337,7 @@ export function generateStudentLabelsPDF(options: PDFGeneratorOptions): PDFDocum
   const doc = new PDFDocument({
     size: 'LETTER',
     layout: 'landscape',
-    margins: { top: 50, bottom: 50, left: 50, right: 50 },
+    margins: { top: 50, bottom: 30, left: 50, right: 50 },
     bufferPages: true,
   });
 

@@ -28,7 +28,7 @@ import { getInternalRefCodes } from '../word/generators-demand';
 const ACTA_RECEPCION_CAJAS_PAGE_OPTIONS = {
   size: 'LETTER' as const,
   layout: 'portrait' as const,
-  margins: { top: 40, bottom: 40, left: 30, right: 30 },
+  margins: { top: 40, bottom: 30, left: 30, right: 30 },
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -85,7 +85,7 @@ function getSchoolReferencia(school: SchoolDemandGroup, itemType: ItemType): str
 
 /** Draw the pre-table fields: DATOS DE LOS PRODUCTOS (Fecha, Hora, Bodega) */
 function drawPreTableFields(doc: PDFDocumentInstance, xStart: number): void {
-  doc.fontSize(AGREEMENT_FONT.COLUMN_HEADER).font('Helvetica-Bold');
+  doc.fontSize(8).font('Helvetica-Bold');
   doc.text('DATOS DE LOS PRODUCTOS', xStart, doc.y, { align: 'left' });
   doc.moveDown(0.5);
 
@@ -109,18 +109,18 @@ function drawTitleAndSchoolHeader(
   doc.moveDown(1);
 
   doc
-    .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+    .fontSize(AGREEMENT_FONT.SCHOOL_HEADER)
     .font('Helvetica-Bold')
     .text(school.nombre_ce.toUpperCase(), { align: 'center' });
   doc
-    .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+    .fontSize(AGREEMENT_FONT.SCHOOL_HEADER)
     .font('Helvetica-Bold')
     .text(`CODIGO: ${school.codigo_ce.toUpperCase()}`, { align: 'center' });
 
   const departamento = (school.departamento || 'N/A').toUpperCase();
   const distrito = (school.distrito || 'N/A').toUpperCase();
   doc
-    .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+    .fontSize(AGREEMENT_FONT.SCHOOL_HEADER)
     .font('Helvetica-Bold')
     .text(`DEPARTAMENTO: ${departamento} - DISTRITO: ${distrito}`, { align: 'center' });
 
@@ -296,15 +296,15 @@ function renderActaUniformesSchool(
       doc.fontSize(AGREEMENT_FONT.TITLE).font('Helvetica-Bold').text(title, { align: 'center' });
       doc.moveDown(0.5);
       doc
-        .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+        .fontSize(AGREEMENT_FONT.SCHOOL_HEADER)
         .font('Helvetica-Bold')
         .text(school.nombre_ce.toUpperCase(), { align: 'center' });
       doc
-        .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+        .fontSize(AGREEMENT_FONT.SCHOOL_HEADER)
         .font('Helvetica-Bold')
         .text(`CODIGO: ${school.codigo_ce.toUpperCase()}`, { align: 'center' });
       doc
-        .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+        .fontSize(AGREEMENT_FONT.SCHOOL_HEADER)
         .font('Helvetica-Bold')
         .text(
           `DEPARTAMENTO: ${(school.departamento || 'N/A').toUpperCase()} - DISTRITO: ${(school.distrito || 'N/A').toUpperCase()}`,
@@ -609,18 +609,18 @@ function drawComandaTitleAndSchoolHeader(
 
   // School header
   doc
-    .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+    .fontSize(AGREEMENT_FONT.SCHOOL_HEADER)
     .font('Helvetica-Bold')
     .text(school.nombre_ce.toUpperCase(), { align: 'center' });
   doc
-    .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+    .fontSize(AGREEMENT_FONT.SCHOOL_HEADER)
     .font('Helvetica-Bold')
     .text(`CODIGO: ${school.codigo_ce.toUpperCase()}`, { align: 'center' });
 
   const departamento = (school.departamento || 'N/A').toUpperCase();
   const distrito = (school.distrito || 'N/A').toUpperCase();
   doc
-    .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+    .fontSize(AGREEMENT_FONT.SCHOOL_HEADER)
     .font('Helvetica-Bold')
     .text(`DEPARTAMENTO: ${departamento} - DISTRITO: ${distrito}`, { align: 'center' });
 
@@ -687,11 +687,11 @@ function renderComandaCajasSchool(
     addLogoToPage(doc, doc.page.width);
     doc.fontSize(AGREEMENT_FONT.TITLE).font('Helvetica-Bold').text(title, { align: 'center' });
     doc
-      .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+      .fontSize(AGREEMENT_FONT.SCHOOL_HEADER)
       .font('Helvetica-Bold')
       .text(school.nombre_ce.toUpperCase(), { align: 'center' });
     doc
-      .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+      .fontSize(AGREEMENT_FONT.SCHOOL_HEADER)
       .font('Helvetica-Bold')
       .text(`CODIGO: ${school.codigo_ce.toUpperCase()}`, { align: 'center' });
     doc.moveDown(1);
@@ -825,11 +825,11 @@ function renderComandaUniformesSchool(
       doc.fontSize(AGREEMENT_FONT.TITLE).font('Helvetica-Bold').text(title, { align: 'center' });
       doc.moveDown(1);
       doc
-        .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+        .fontSize(AGREEMENT_FONT.SCHOOL_HEADER)
         .font('Helvetica-Bold')
         .text(school.nombre_ce.toUpperCase(), { align: 'center' });
       doc
-        .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+        .fontSize(AGREEMENT_FONT.SCHOOL_HEADER)
         .font('Helvetica-Bold')
         .text(`CODIGO: ${school.codigo_ce.toUpperCase()}`, { align: 'center' });
       doc.moveDown(1);
@@ -859,7 +859,7 @@ function renderComandaUniformesSchool(
 
   // Footer with total
   currentY += 10;
-  doc.font('Helvetica-Bold').fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER);
+  doc.font('Helvetica-Bold').fontSize(AGREEMENT_FONT.SCHOOL_HEADER);
   doc.text(`TOTAL PIEZAS: ${totalPiezas}`, xStart, currentY, { align: 'left' });
 }
 
@@ -929,11 +929,11 @@ function renderComandaZapatosSchool(
       doc.fontSize(AGREEMENT_FONT.TITLE).font('Helvetica-Bold').text(title, { align: 'center' });
       doc.moveDown(1);
       doc
-        .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+        .fontSize(AGREEMENT_FONT.SCHOOL_HEADER)
         .font('Helvetica-Bold')
         .text(school.nombre_ce.toUpperCase(), { align: 'center' });
       doc
-        .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+        .fontSize(AGREEMENT_FONT.SCHOOL_HEADER)
         .font('Helvetica-Bold')
         .text(`CODIGO: ${school.codigo_ce.toUpperCase()}`, { align: 'center' });
       doc.moveDown(1);
@@ -962,7 +962,7 @@ function renderComandaZapatosSchool(
 
   // Footer with total
   currentY += 10;
-  doc.font('Helvetica-Bold').fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER);
+  doc.font('Helvetica-Bold').fontSize(AGREEMENT_FONT.SCHOOL_HEADER);
   doc.text(`TOTAL PIEZAS: ${totalPiezas}`, xStart, currentY, { align: 'left' });
 }
 

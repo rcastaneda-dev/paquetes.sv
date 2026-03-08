@@ -21,13 +21,15 @@ import type { PDFDocumentInstance, SchoolGroup, SectionRenderContext } from './t
 
 export const AGREEMENT_FONT = {
   /** Main report title (e.g. "DETALLE DE PROGRAMACIÓN DE CAJAS") */
-  TITLE: 12,
-  /** Subtitle, date, school block, footer (e.g. "TOTAL PIEZAS") */
-  SUBTITLE_SCHOOL_FOOTER: 10,
+  TITLE: 9,
+  /** Subtitle, date, footer (e.g. "TOTAL PIEZAS") */
+  SUBTITLE_SCHOOL_FOOTER: 9,
+  /** School name, CODIGO, DEPARTAMENTO-DISTRITO block (2pt smaller than subtitle) */
+  SCHOOL_HEADER: 8,
   /** Table column headers (e.g. "TIPO", "CANTIDAD", "TALLA") */
-  COLUMN_HEADER: 9,
+  COLUMN_HEADER: 8,
   /** Table body and data rows */
-  BODY: 8,
+  BODY: 7,
 } as const;
 
 /** Line below school header for manual fill-in of start/end time when printed */
@@ -69,37 +71,37 @@ export function drawFechaDespachoEntregaLine(
 export const CAJAS_PAGE_OPTIONS = {
   size: 'LETTER' as const,
   layout: 'portrait' as const,
-  margins: { top: 40, bottom: 40, left: 40, right: 40 },
+  margins: { top: 40, bottom: 30, left: 40, right: 40 },
 };
 
 export const FICHA_UNIFORMES_PAGE_OPTIONS = {
   size: 'LETTER' as const,
   layout: 'portrait' as const,
-  margins: { top: 40, bottom: 40, left: 40, right: 40 },
+  margins: { top: 40, bottom: 30, left: 40, right: 40 },
 };
 
 export const FICHA_ZAPATOS_PAGE_OPTIONS = {
   size: 'LETTER' as const,
   layout: 'portrait' as const,
-  margins: { top: 40, bottom: 40, left: 40, right: 40 },
+  margins: { top: 40, bottom: 30, left: 40, right: 40 },
 };
 
 export const ACTA_RECEPCION_ZAPATOS_PAGE_OPTIONS = {
   size: 'LETTER' as const,
   layout: 'portrait' as const,
-  margins: { top: 40, bottom: 40, left: 30, right: 30 },
+  margins: { top: 40, bottom: 30, left: 30, right: 30 },
 };
 
 export const ACTA_RECEPCION_UNIFORMES_PAGE_OPTIONS = {
   size: 'LETTER' as const,
   layout: 'portrait' as const,
-  margins: { top: 40, bottom: 40, left: 30, right: 30 },
+  margins: { top: 40, bottom: 30, left: 30, right: 30 },
 };
 
 export const ACTA_RECEPCION_CAJAS_PAGE_OPTIONS = {
   size: 'LETTER' as const,
   layout: 'portrait' as const,
-  margins: { top: 40, bottom: 40, left: 30, right: 30 },
+  margins: { top: 40, bottom: 30, left: 30, right: 30 },
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -180,21 +182,22 @@ export interface SchoolHeaderBlockOptions {
 
 export function drawSchoolHeaderBlock(options: SchoolHeaderBlockOptions): number {
   const { doc, school, fontSize } = options;
+  const schoolHeaderSize = AGREEMENT_FONT.SCHOOL_HEADER;
 
   doc
-    .fontSize(fontSize)
+    .fontSize(schoolHeaderSize)
     .font('Helvetica-Bold')
     .text(school.nombre_ce.toUpperCase(), { align: 'center' });
 
   doc
-    .fontSize(fontSize)
+    .fontSize(schoolHeaderSize)
     .font('Helvetica-Bold')
     .text(`CODIGO: ${school.codigo_ce.toUpperCase()}`, { align: 'center' });
 
   const departamento = (school.departamento || 'N/A').toUpperCase();
   const distrito = (school.distrito || 'N/A').toUpperCase();
   doc
-    .fontSize(fontSize)
+    .fontSize(schoolHeaderSize)
     .font('Helvetica-Bold')
     .text(`DEPARTAMENTO: ${departamento} - DISTRITO: ${distrito}`, { align: 'center' });
 
@@ -213,17 +216,30 @@ export function drawSchoolHeaderBlock(options: SchoolHeaderBlockOptions): number
   return doc.y + 8;
 }
 
-/** Draw two-column transport/signature footer with extra interline spacing */
+/** Approximate height needed for the transport footer block (title + 4 rows) */
+const TRANSPORT_FOOTER_HEIGHT = 120;
+
+/** Draw two-column transport/signature footer with extra interline spacing.
+ * If there is not enough space on the current page, moves the entire block to a new page. */
 export function drawTransportFooter(doc: PDFDocumentInstance, xStart: number): void {
+  const bottomMargin = doc.page.margins?.bottom ?? 40;
+  const topMargin = doc.page.margins?.top ?? 40;
+  const spaceNeeded = TRANSPORT_FOOTER_HEIGHT;
+
+  if (doc.y + spaceNeeded > doc.page.height - bottomMargin) {
+    doc.addPage({ size: [doc.page.width, doc.page.height], margins: doc.page.margins });
+    doc.y = topMargin;
+  }
+
   const rightMargin = doc.page.margins?.right ?? xStart;
   const availableWidth = doc.page.width - xStart - rightMargin;
   const colGap = 20;
   const colWidth = (availableWidth - colGap) / 2;
   const leftX = xStart;
   const rightX = xStart + colWidth + colGap;
-  const lineSpacing = 22;
+  const lineSpacing = 19;
 
-  doc.fontSize(AGREEMENT_FONT.COLUMN_HEADER).font('Helvetica-Bold');
+  doc.fontSize(AGREEMENT_FONT.BODY - 1).font('Helvetica-Bold');
   doc.text('DATOS DEL TRANSPORTE', leftX, doc.y, { align: 'left' });
   let currentY = doc.y + 8;
 
@@ -286,15 +302,15 @@ export function renderCajasSection(ctx: SectionRenderContext): void {
 
     // School header
     doc
-      .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+      .fontSize(AGREEMENT_FONT.SCHOOL_HEADER)
       .font('Helvetica-Bold')
       .text(school.nombre_ce.toUpperCase(), { align: 'center' });
     doc
-      .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+      .fontSize(AGREEMENT_FONT.SCHOOL_HEADER)
       .font('Helvetica-Bold')
       .text(`CODIGO: ${school.codigo_ce.toUpperCase()}`, { align: 'center' });
     doc
-      .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+      .fontSize(AGREEMENT_FONT.SCHOOL_HEADER)
       .font('Helvetica-Bold')
       .text(`DEPARTAMENTO: ${departamento.toUpperCase()} - DISTRITO: ${distrito.toUpperCase()}`, {
         align: 'center',
@@ -474,18 +490,18 @@ export function renderFichaUniformesSection(ctx: SectionRenderContext): void {
 
   // School header
   doc
-    .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+    .fontSize(AGREEMENT_FONT.SCHOOL_HEADER)
     .font('Helvetica-Bold')
     .text(school.nombre_ce.toUpperCase(), { align: 'center' });
   doc
-    .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+    .fontSize(AGREEMENT_FONT.SCHOOL_HEADER)
     .font('Helvetica-Bold')
     .text(`CODIGO: ${school.codigo_ce.toUpperCase()}`, { align: 'center' });
 
   const departamento = school.departamento || 'N/A';
   const distrito = school.distrito || 'N/A';
   doc
-    .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+    .fontSize(AGREEMENT_FONT.SCHOOL_HEADER)
     .font('Helvetica-Bold')
     .text(`DEPARTAMENTO: ${departamento.toUpperCase()} - DISTRITO: ${distrito.toUpperCase()}`, {
       align: 'center',
@@ -678,15 +694,15 @@ export function renderFichaUniformesSection(ctx: SectionRenderContext): void {
       drawFechaDespachoEntregaLine(doc, formattedDate);
       doc.moveDown(1);
       doc
-        .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+        .fontSize(AGREEMENT_FONT.SCHOOL_HEADER)
         .font('Helvetica-Bold')
         .text(school.nombre_ce.toUpperCase(), { align: 'center' });
       doc
-        .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+        .fontSize(AGREEMENT_FONT.SCHOOL_HEADER)
         .font('Helvetica-Bold')
         .text(`CODIGO: ${school.codigo_ce.toUpperCase()}`, { align: 'center' });
       doc
-        .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+        .fontSize(AGREEMENT_FONT.SCHOOL_HEADER)
         .font('Helvetica-Bold')
         .text(`DEPARTAMENTO: ${departamento.toUpperCase()} - DISTRITO: ${distrito.toUpperCase()}`, {
           align: 'center',
@@ -730,18 +746,18 @@ export function renderFichaZapatosSection(ctx: SectionRenderContext): void {
 
   // School header
   doc
-    .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+    .fontSize(AGREEMENT_FONT.SCHOOL_HEADER)
     .font('Helvetica-Bold')
     .text(school.nombre_ce.toUpperCase(), { align: 'center' });
   doc
-    .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+    .fontSize(AGREEMENT_FONT.SCHOOL_HEADER)
     .font('Helvetica-Bold')
     .text(`CODIGO: ${school.codigo_ce.toUpperCase()}`, { align: 'center' });
 
   const departamento = school.departamento || 'N/A';
   const distrito = school.distrito || 'N/A';
   doc
-    .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+    .fontSize(AGREEMENT_FONT.SCHOOL_HEADER)
     .font('Helvetica-Bold')
     .text(`DEPARTAMENTO: ${departamento.toUpperCase()} - DISTRITO: ${distrito.toUpperCase()}`, {
       align: 'center',
@@ -864,15 +880,15 @@ export function renderFichaZapatosSection(ctx: SectionRenderContext): void {
       drawFechaDespachoEntregaLine(doc, formattedDate);
       doc.moveDown(1);
       doc
-        .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+        .fontSize(AGREEMENT_FONT.SCHOOL_HEADER)
         .font('Helvetica-Bold')
         .text(school.nombre_ce.toUpperCase(), { align: 'center' });
       doc
-        .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+        .fontSize(AGREEMENT_FONT.SCHOOL_HEADER)
         .font('Helvetica-Bold')
         .text(`CODIGO: ${school.codigo_ce.toUpperCase()}`, { align: 'center' });
       doc
-        .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+        .fontSize(AGREEMENT_FONT.SCHOOL_HEADER)
         .font('Helvetica-Bold')
         .text(`DEPARTAMENTO: ${departamento.toUpperCase()} - DISTRITO: ${distrito.toUpperCase()}`, {
           align: 'center',
@@ -924,15 +940,15 @@ export function renderActaRecepcionZapatosSection(ctx: SectionRenderContext): vo
 
   // School header
   doc
-    .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+    .fontSize(AGREEMENT_FONT.SCHOOL_HEADER)
     .font('Helvetica-Bold')
     .text(school.nombre_ce.toUpperCase(), { align: 'center' });
   doc
-    .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+    .fontSize(AGREEMENT_FONT.SCHOOL_HEADER)
     .font('Helvetica-Bold')
     .text(`CODIGO: ${school.codigo_ce.toUpperCase()}`, { align: 'center' });
   doc
-    .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+    .fontSize(AGREEMENT_FONT.SCHOOL_HEADER)
     .font('Helvetica-Bold')
     .text(`DEPARTAMENTO: ${departamento.toUpperCase()} - DISTRITO: ${distrito.toUpperCase()}`, {
       align: 'center',
@@ -942,7 +958,7 @@ export function renderActaRecepcionZapatosSection(ctx: SectionRenderContext): vo
 
   // 2. Pre-table: DATOS DE LOS PRODUCTOS
   const xStart = 40;
-  doc.fontSize(AGREEMENT_FONT.COLUMN_HEADER).font('Helvetica-Bold');
+  doc.fontSize(8).font('Helvetica-Bold');
   doc.text('DATOS DE LOS PRODUCTOS', xStart, doc.y, { align: 'left' });
   doc.moveDown(0.5);
 
@@ -1096,15 +1112,15 @@ export function renderActaRecepcionUniformesSection(ctx: SectionRenderContext): 
 
   // School header
   doc
-    .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+    .fontSize(AGREEMENT_FONT.SCHOOL_HEADER)
     .font('Helvetica-Bold')
     .text(school.nombre_ce.toUpperCase(), { align: 'center' });
   doc
-    .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+    .fontSize(AGREEMENT_FONT.SCHOOL_HEADER)
     .font('Helvetica-Bold')
     .text(`CODIGO: ${school.codigo_ce.toUpperCase()}`, { align: 'center' });
   doc
-    .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+    .fontSize(AGREEMENT_FONT.SCHOOL_HEADER)
     .font('Helvetica-Bold')
     .text(`DEPARTAMENTO: ${departamento.toUpperCase()} - DISTRITO: ${distrito.toUpperCase()}`, {
       align: 'center',
@@ -1114,7 +1130,7 @@ export function renderActaRecepcionUniformesSection(ctx: SectionRenderContext): 
 
   // 2. Pre-table: DATOS DE LOS PRODUCTOS
   const xStart = 30;
-  doc.fontSize(AGREEMENT_FONT.COLUMN_HEADER).font('Helvetica-Bold');
+  doc.fontSize(8).font('Helvetica-Bold');
   doc.text('DATOS DE LOS PRODUCTOS', xStart, doc.y, { align: 'left' });
   doc.moveDown(0.5);
 
@@ -1273,15 +1289,15 @@ export function renderActaRecepcionUniformesSection(ctx: SectionRenderContext): 
       doc.fontSize(AGREEMENT_FONT.TITLE).font('Helvetica-Bold').text(title, { align: 'center' });
       doc.moveDown(0.5);
       doc
-        .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+        .fontSize(AGREEMENT_FONT.SCHOOL_HEADER)
         .font('Helvetica-Bold')
         .text(school.nombre_ce.toUpperCase(), { align: 'center' });
       doc
-        .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+        .fontSize(AGREEMENT_FONT.SCHOOL_HEADER)
         .font('Helvetica-Bold')
         .text(`CODIGO: ${school.codigo_ce.toUpperCase()}`, { align: 'center' });
       doc
-        .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+        .fontSize(AGREEMENT_FONT.SCHOOL_HEADER)
         .font('Helvetica-Bold')
         .text(`DEPARTAMENTO: ${departamento.toUpperCase()} - DISTRITO: ${distrito.toUpperCase()}`, {
           align: 'center',
@@ -1385,15 +1401,15 @@ export function renderActaRecepcionCajasSection(ctx: SectionRenderContext): void
 
   // School header
   doc
-    .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+    .fontSize(AGREEMENT_FONT.SCHOOL_HEADER)
     .font('Helvetica-Bold')
     .text(school.nombre_ce.toUpperCase(), { align: 'center' });
   doc
-    .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+    .fontSize(AGREEMENT_FONT.SCHOOL_HEADER)
     .font('Helvetica-Bold')
     .text(`CODIGO: ${school.codigo_ce.toUpperCase()}`, { align: 'center' });
   doc
-    .fontSize(AGREEMENT_FONT.SUBTITLE_SCHOOL_FOOTER)
+    .fontSize(AGREEMENT_FONT.SCHOOL_HEADER)
     .font('Helvetica-Bold')
     .text(`DEPARTAMENTO: ${departamento.toUpperCase()} - DISTRITO: ${distrito.toUpperCase()}`, {
       align: 'center',
@@ -1403,7 +1419,7 @@ export function renderActaRecepcionCajasSection(ctx: SectionRenderContext): void
 
   // 2. Pre-table: DATOS DE LOS PRODUCTOS
   const actaXStart = 40;
-  doc.fontSize(AGREEMENT_FONT.COLUMN_HEADER).font('Helvetica-Bold');
+  doc.fontSize(8).font('Helvetica-Bold');
   doc.text('DATOS DE LOS PRODUCTOS', actaXStart, doc.y, { align: 'left' });
   doc.moveDown(0.5);
 
