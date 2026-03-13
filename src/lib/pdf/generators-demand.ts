@@ -36,7 +36,7 @@ const ACTA_RECEPCION_CAJAS_PAGE_OPTIONS = {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Stamp referencia codes (top-left) and page numbers (bottom-center)
+ * Stamp referencia codes (top-right) and page numbers (bottom-center)
  * on every buffered page using switchToPage.
  */
 function stampDemandOverlays(
@@ -49,11 +49,11 @@ function stampDemandOverlays(
     doc.switchToPage(i);
     const idx = i - range.start;
 
-    // Referencia code — top-left
+    // Referencia code — top-right
     const code = referenciaCodes[idx];
     if (code) {
       doc.fontSize(8).font('Helvetica-Bold').fillColor('black');
-      doc.text(code, 30, 20, { lineBreak: false });
+      doc.text(code, doc.page.width - 30, 20, { lineBreak: false, align: 'right' });
     }
 
     // Internal ref code — top-center
