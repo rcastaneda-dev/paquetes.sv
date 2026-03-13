@@ -53,7 +53,7 @@ function stampDemandOverlays(
     const code = referenciaCodes[idx];
     if (code) {
       doc.fontSize(8).font('Helvetica-Bold').fillColor('black');
-      doc.text(code, doc.page.width - 30, 20, { lineBreak: false, align: 'right' });
+      doc.text(code, doc.page.width - 100, 20, { lineBreak: false, align: 'right' });
     }
 
     // Internal ref code — top-center
