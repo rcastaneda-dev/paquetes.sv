@@ -108,8 +108,8 @@ export const ACTA_RECEPCION_CAJAS_PAGE_OPTIONS = {
 // Shared helpers (relocated from generators-agreement.ts)
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Add GOES logo to the top-right corner of the current page */
-export function addLogoToPage(doc: PDFDocumentInstance, pageWidth: number): void {
+/** Add GOES logo to the top-left corner of the current page */
+export function addLogoToPage(doc: PDFDocumentInstance, _pageWidth: number): void {
   const logoPath = path.join(process.cwd(), 'public', 'goes_logo_2.png');
 
   if (fs.existsSync(logoPath)) {
@@ -117,9 +117,9 @@ export function addLogoToPage(doc: PDFDocumentInstance, pageWidth: number): void
 
     const logoWidth = 50;
     const logoHeight = 50;
-    const rightMargin = 40;
-    const topMargin = 20;
-    const logoX = pageWidth - logoWidth - rightMargin;
+    const leftMargin = 40;
+    const topMargin = 10;
+    const logoX = leftMargin;
     const logoY = topMargin;
 
     doc.image(logoPath, logoX, logoY, {

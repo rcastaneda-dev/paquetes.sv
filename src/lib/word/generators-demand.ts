@@ -46,7 +46,7 @@ function createReferenciaParagraph(
   const code = row?.referencia;
   if (!code) return null;
   return new Paragraph({
-    alignment: AlignmentType.LEFT,
+    alignment: AlignmentType.RIGHT,
     spacing: { after: 0 },
     children: [
       new TextRun({
@@ -321,7 +321,13 @@ function buildCajasSection(school: SchoolDemandGroup, faltantes: boolean): (Para
   if (internalRefParagraph) elements.push(internalRefParagraph);
 
   if (logo) {
-    elements.push(new Paragraph({ alignment: AlignmentType.RIGHT, children: [logo] }));
+    elements.push(
+      new Paragraph({
+        alignment: AlignmentType.LEFT,
+        spacing: { before: 0, after: 0 },
+        children: [logo],
+      })
+    );
   }
 
   elements.push(
@@ -400,7 +406,13 @@ function buildUniformesSection(
   if (internalRefParagraph) elements.push(internalRefParagraph);
 
   if (logo) {
-    elements.push(new Paragraph({ alignment: AlignmentType.RIGHT, children: [logo] }));
+    elements.push(
+      new Paragraph({
+        alignment: AlignmentType.LEFT,
+        spacing: { before: 0, after: 0 },
+        children: [logo],
+      })
+    );
   }
 
   elements.push(
@@ -476,7 +488,13 @@ function buildZapatosSection(school: SchoolDemandGroup, faltantes: boolean): (Pa
   if (internalRefParagraph) elements.push(internalRefParagraph);
 
   if (logo) {
-    elements.push(new Paragraph({ alignment: AlignmentType.RIGHT, children: [logo] }));
+    elements.push(
+      new Paragraph({
+        alignment: AlignmentType.LEFT,
+        spacing: { before: 0, after: 0 },
+        children: [logo],
+      })
+    );
   }
 
   elements.push(
@@ -679,7 +697,13 @@ function buildComandaCajasSection(
   if (internalRefParagraph) elements.push(internalRefParagraph);
 
   if (logo) {
-    elements.push(new Paragraph({ alignment: AlignmentType.RIGHT, children: [logo] }));
+    elements.push(
+      new Paragraph({
+        alignment: AlignmentType.LEFT,
+        spacing: { before: 0, after: 0 },
+        children: [logo],
+      })
+    );
   }
 
   elements.push(
@@ -744,7 +768,13 @@ function buildComandaUniformesSection(
   if (internalRefParagraph) elements.push(internalRefParagraph);
 
   if (logo) {
-    elements.push(new Paragraph({ alignment: AlignmentType.RIGHT, children: [logo] }));
+    elements.push(
+      new Paragraph({
+        alignment: AlignmentType.LEFT,
+        spacing: { before: 0, after: 0 },
+        children: [logo],
+      })
+    );
   }
 
   elements.push(
@@ -814,7 +844,13 @@ function buildComandaZapatosSection(
   if (internalRefParagraph) elements.push(internalRefParagraph);
 
   if (logo) {
-    elements.push(new Paragraph({ alignment: AlignmentType.RIGHT, children: [logo] }));
+    elements.push(
+      new Paragraph({
+        alignment: AlignmentType.LEFT,
+        spacing: { before: 0, after: 0 },
+        children: [logo],
+      })
+    );
   }
 
   elements.push(
