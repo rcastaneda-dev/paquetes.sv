@@ -109,7 +109,7 @@ const REF_FIELD_BY_SECTION: Record<
 };
 
 /**
- * Single switchToPage pass: stamps comanda codes (top-left) and
+ * Single switchToPage pass: stamps comanda codes (top-right) and
  * page numbers (bottom-center) on every buffered page.
  */
 export function stampPageOverlays(doc: PDFDocumentInstance, comandaCodes: string[]): void {
@@ -118,11 +118,11 @@ export function stampPageOverlays(doc: PDFDocumentInstance, comandaCodes: string
     doc.switchToPage(i);
     const idx = i - range.start;
 
-    // Comanda code — top-left
+    // Comanda code — top-right
     const code = comandaCodes[idx];
     if (code) {
       doc.fontSize(8).font('Helvetica-Bold').fillColor('black');
-      doc.text(code, 30, 20, { lineBreak: false });
+      doc.text(code, doc.page.width - 30, 20, { lineBreak: false, align: 'right' });
     }
 
     // Page number — bottom-center
