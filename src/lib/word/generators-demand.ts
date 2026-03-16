@@ -59,7 +59,8 @@ function createReferenciaParagraph(
   });
 }
 
-const buildInternalRefCode = (school: SchoolDemandGroup): string => {
+/** Build C-U-Z code from school's item types (exported for PDF overlay per-page use). */
+export const buildInternalRefCode = (school: SchoolDemandGroup): string => {
   const items = new Set(school.rows.map(r => r.item));
   const parts: string[] = [];
   if (items.has('CAJAS')) parts.push('C');

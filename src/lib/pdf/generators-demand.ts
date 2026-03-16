@@ -22,7 +22,7 @@ import {
   formatDateForTitle,
 } from './agreement/sections';
 import { groupAndSortDemandBySchool } from '@/lib/reports/demand-aggregation';
-import { getInternalRefCodes } from '../word/generators-demand';
+import { buildInternalRefCode } from '../word/generators-demand';
 
 // Page options for Cajas — same as other acta portrait layouts
 const ACTA_RECEPCION_CAJAS_PAGE_OPTIONS = {
@@ -503,15 +503,19 @@ export function generateActaRecepcionCajasPDFFromDemand(
     bufferPages: true,
   }) as PDFDocumentInstance;
 
-  const internalRefCodes = getInternalRefCodes(schools);
   const referenciaCodes: string[] = [];
+  const internalRefCodes: string[] = [];
   for (let i = 0; i < schools.length; i++) {
     const pagesBefore = doc.bufferedPageRange().count;
     renderActaCajasSchool(doc, schools[i], i > 0, isFaltantes);
     const pagesAfter = doc.bufferedPageRange().count;
     const pagesForSchool = i === 0 ? pagesAfter : pagesAfter - pagesBefore;
     const code = getSchoolReferencia(schools[i], 'CAJAS');
-    for (let p = 0; p < pagesForSchool; p++) referenciaCodes.push(code);
+    const internalCode = buildInternalRefCode(schools[i]);
+    for (let p = 0; p < pagesForSchool; p++) {
+      referenciaCodes.push(code);
+      internalRefCodes.push(internalCode);
+    }
   }
 
   stampDemandOverlays(doc, referenciaCodes, isFaltantes ? internalRefCodes : undefined);
@@ -537,15 +541,19 @@ export function generateActaRecepcionUniformesPDFFromDemand(
     bufferPages: true,
   }) as PDFDocumentInstance;
 
-  const internalRefCodes = getInternalRefCodes(schools);
   const referenciaCodes: string[] = [];
+  const internalRefCodes: string[] = [];
   for (let i = 0; i < schools.length; i++) {
     const pagesBefore = doc.bufferedPageRange().count;
     renderActaUniformesSchool(doc, schools[i], i > 0, isFaltantes);
     const pagesAfter = doc.bufferedPageRange().count;
     const pagesForSchool = i === 0 ? pagesAfter : pagesAfter - pagesBefore;
     const code = getSchoolReferencia(schools[i], 'UNIFORMES');
-    for (let p = 0; p < pagesForSchool; p++) referenciaCodes.push(code);
+    const internalCode = buildInternalRefCode(schools[i]);
+    for (let p = 0; p < pagesForSchool; p++) {
+      referenciaCodes.push(code);
+      internalRefCodes.push(internalCode);
+    }
   }
 
   stampDemandOverlays(doc, referenciaCodes, isFaltantes ? internalRefCodes : undefined);
@@ -571,15 +579,19 @@ export function generateActaRecepcionZapatosPDFFromDemand(
     bufferPages: true,
   }) as PDFDocumentInstance;
 
-  const internalRefCodes = getInternalRefCodes(schools);
   const referenciaCodes: string[] = [];
+  const internalRefCodes: string[] = [];
   for (let i = 0; i < schools.length; i++) {
     const pagesBefore = doc.bufferedPageRange().count;
     renderActaZapatosSchool(doc, schools[i], i > 0, isFaltantes);
     const pagesAfter = doc.bufferedPageRange().count;
     const pagesForSchool = i === 0 ? pagesAfter : pagesAfter - pagesBefore;
     const code = getSchoolReferencia(schools[i], 'ZAPATOS');
-    for (let p = 0; p < pagesForSchool; p++) referenciaCodes.push(code);
+    const internalCode = buildInternalRefCode(schools[i]);
+    for (let p = 0; p < pagesForSchool; p++) {
+      referenciaCodes.push(code);
+      internalRefCodes.push(internalCode);
+    }
   }
 
   stampDemandOverlays(doc, referenciaCodes, isFaltantes ? internalRefCodes : undefined);
@@ -987,15 +999,19 @@ export function generateComandaCajasPDFFromDemand(
     bufferPages: true,
   }) as PDFDocumentInstance;
 
-  const internalRefCodes = getInternalRefCodes(schools);
   const referenciaCodes: string[] = [];
+  const internalRefCodes: string[] = [];
   for (let i = 0; i < schools.length; i++) {
     const pagesBefore = doc.bufferedPageRange().count;
     renderComandaCajasSchool(doc, schools[i], i > 0, isFaltantes);
     const pagesAfter = doc.bufferedPageRange().count;
     const pagesForSchool = i === 0 ? pagesAfter : pagesAfter - pagesBefore;
     const code = getSchoolReferencia(schools[i], 'CAJAS');
-    for (let p = 0; p < pagesForSchool; p++) referenciaCodes.push(code);
+    const internalCode = buildInternalRefCode(schools[i]);
+    for (let p = 0; p < pagesForSchool; p++) {
+      referenciaCodes.push(code);
+      internalRefCodes.push(internalCode);
+    }
   }
 
   stampDemandOverlays(doc, referenciaCodes, isFaltantes ? internalRefCodes : undefined);
@@ -1020,15 +1036,19 @@ export function generateComandaUniformesPDFFromDemand(
     bufferPages: true,
   }) as PDFDocumentInstance;
 
-  const internalRefCodes = getInternalRefCodes(schools);
   const referenciaCodes: string[] = [];
+  const internalRefCodes: string[] = [];
   for (let i = 0; i < schools.length; i++) {
     const pagesBefore = doc.bufferedPageRange().count;
     renderComandaUniformesSchool(doc, schools[i], i > 0, isFaltantes);
     const pagesAfter = doc.bufferedPageRange().count;
     const pagesForSchool = i === 0 ? pagesAfter : pagesAfter - pagesBefore;
     const code = getSchoolReferencia(schools[i], 'UNIFORMES');
-    for (let p = 0; p < pagesForSchool; p++) referenciaCodes.push(code);
+    const internalCode = buildInternalRefCode(schools[i]);
+    for (let p = 0; p < pagesForSchool; p++) {
+      referenciaCodes.push(code);
+      internalRefCodes.push(internalCode);
+    }
   }
 
   stampDemandOverlays(doc, referenciaCodes, isFaltantes ? internalRefCodes : undefined);
@@ -1053,15 +1073,19 @@ export function generateComandaZapatosPDFFromDemand(
     bufferPages: true,
   }) as PDFDocumentInstance;
 
-  const internalRefCodes = getInternalRefCodes(schools);
   const referenciaCodes: string[] = [];
+  const internalRefCodes: string[] = [];
   for (let i = 0; i < schools.length; i++) {
     const pagesBefore = doc.bufferedPageRange().count;
     renderComandaZapatosSchool(doc, schools[i], i > 0, isFaltantes);
     const pagesAfter = doc.bufferedPageRange().count;
     const pagesForSchool = i === 0 ? pagesAfter : pagesAfter - pagesBefore;
     const code = getSchoolReferencia(schools[i], 'ZAPATOS');
-    for (let p = 0; p < pagesForSchool; p++) referenciaCodes.push(code);
+    const internalCode = buildInternalRefCode(schools[i]);
+    for (let p = 0; p < pagesForSchool; p++) {
+      referenciaCodes.push(code);
+      internalRefCodes.push(internalCode);
+    }
   }
 
   stampDemandOverlays(doc, referenciaCodes, isFaltantes ? internalRefCodes : undefined);
