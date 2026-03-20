@@ -410,7 +410,7 @@ function renderActaZapatosSchool(
 
   // Table layout
   let currentY = doc.y;
-  const tallaColWidth = 60;
+  const tallaColWidth = 100;
   const cantidadColWidth = 80;
   const comentariosColWidth = doc.page.width - 60 - tallaColWidth - cantidadColWidth;
   const headerHeight = 18;
@@ -915,7 +915,7 @@ function renderComandaZapatosSchool(
   let x = xStart;
 
   doc.rect(x, currentY, tallaColWidth, headerHeight).stroke();
-  doc.text('TALLA', x + 5, currentY + 7, {
+  doc.text('TALLA yy', x + 15, currentY + 7, {
     width: tallaColWidth - 10,
     align: 'center',
   });
